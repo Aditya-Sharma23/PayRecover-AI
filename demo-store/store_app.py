@@ -110,7 +110,7 @@ async def paypal_request(method: str, path: str, body: dict | None = None, reque
 
 
 def price_cart(items: list[CartLine]) -> tuple[list[dict], Decimal]:
-    lines, total = [], Decimal("0")
+    lines, total = [], Decimal(0)
     for item in items:
         product = CATALOG.get(item.product_id)
         if product is None:
