@@ -14,6 +14,16 @@ the demo store and the verifier, so no setting can point either at live payments
 
 The client id is public (the browser needs it for the PayPal buttons). The secret must stay on the server.
 
+**Developer account registered in India?** PayPal creates the default Sandbox accounts in India, and
+PayPal does not support India-to-India payments: the checkout popup only says "Things don't appear to be
+working at the moment". An account's country cannot be changed, so instead:
+
+1. **Sandbox Accounts → Create account → Business**, Country/Region **United States**.
+2. **Apps & Credentials → Create App** (Merchant) and pick that US business account as its Sandbox
+   account. Use this app's Client ID and Secret below.
+3. Pay with a Personal buyer account. A US one is safest; the default Indian buyer also works once the
+   seller is in the US. PayPal may show the price in INR, but the order is charged in USD.
+
 ## 2. Configure
 
 `demo-store/.env` (the store being tested):
