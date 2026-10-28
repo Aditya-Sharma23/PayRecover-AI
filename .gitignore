@@ -1,0 +1,18 @@
+# Secrets and local state
+.env
+backend/.env
+backend/data/
+
+# Dependencies and build output
+node_modules/
+frontend/dist/
+frontend/.npm-cache/
+.venv/
+__pycache__/
+*.pyc
+
+# Editor and OS clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

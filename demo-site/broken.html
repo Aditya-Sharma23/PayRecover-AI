@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TestPilot Demo - Broken page</title>
+</head>
+<body>
+  <!-- Intentional defects for a real, reproducible failing run: no H1 heading, a console error,
+       an image without alt text and a button without an accessible name. -->
+  <main>
+  <p>This page is intentionally broken so TestPilot AI can demonstrate an evidence-backed failure.</p>
+  <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" width="48" height="48">
+  <button type="button"></button>
+  <p><a href="index.html">Back to the sign-in demo</a></p>
+  </main>
+  <script>
+    console.error("Demo defect: checkout widget failed to initialise");
+  </script>
+</body>
+</html>

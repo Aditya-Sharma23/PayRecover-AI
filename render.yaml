@@ -1,0 +1,34 @@
+# Render Blueprint: New > Blueprint > pick this repository.
+# The service refuses to start until every public-deployment gate passes;
+# set TESTPILOT_PUBLIC_URL and TESTPILOT_GOOGLE_API_KEY in the dashboard.
+services:
+  - type: web
+    name: testpilot-ai
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: testpilot-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: TESTPILOT_PUBLIC_DEPLOYMENT
+        value: "true"
+      - key: TESTPILOT_AUTH_ENABLED
+        value: "true"
+      - key: TESTPILOT_RATE_LIMITING
+        value: "true"
+      - key: TESTPILOT_AUDIT_LOGGING
+        value: "true"
+      # A random 256-bit token for the single owner "default". For several
+      # users, set TESTPILOT_API_TOKENS="alice:<token>,bob:<token>" instead.
+      - key: TESTPILOT_API_TOKEN
+        generateValue: true
+      - key: TESTPILOT_PUBLIC_URL
+        sync: false
+      - key: TESTPILOT_GOOGLE_API_KEY
+        sync: false
+      - key: TESTPILOT_GEMMA_MODEL
+        value: gemma-4-26b-a4b-it
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"

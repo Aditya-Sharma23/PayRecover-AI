@@ -1,0 +1,17 @@
+# Never send secrets or local state into the image build.
+**/.env
+**/.env.*
+!**/.env.example
+backend/data/
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+frontend/dist/
+frontend/.npm-cache/
+.git/
+.github/
+.venv/
+*.docx
+docs/
+demo-site/
+backend/tests/

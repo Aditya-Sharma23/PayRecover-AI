@@ -1,0 +1,724 @@
+{
+  "schema": "testpilot-codebase-graph/v1",
+  "generated_by": "scripts/generate_graph.py",
+  "root": "TestPilotAI",
+  "nodes": [
+    {
+      "id": ".github/workflows/demo-site.yml",
+      "label": "demo-site.yml",
+      "type": "yml"
+    },
+    {
+      "id": ".github/workflows/validate.yml",
+      "label": "validate.yml",
+      "type": "yml"
+    },
+    {
+      "id": "backend/app/__init__.py",
+      "label": "__init__.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/api_runner.py",
+      "label": "api_runner.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/audit.py",
+      "label": "audit.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/compare.py",
+      "label": "compare.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/deployment.py",
+      "label": "deployment.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/execution.py",
+      "label": "execution.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/gemma.py",
+      "label": "gemma.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/jobs.py",
+      "label": "jobs.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/main.py",
+      "label": "main.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/openapi_import.py",
+      "label": "openapi_import.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/report_html.py",
+      "label": "report_html.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/schemas.py",
+      "label": "schemas.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/security.py",
+      "label": "security.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/storage.py",
+      "label": "storage.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/url_policy.py",
+      "label": "url_policy.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/website_runner.py",
+      "label": "website_runner.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/__init__.py",
+      "label": "__init__.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/isolation.py",
+      "label": "isolation.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_api_paths.py",
+      "label": "test_api_paths.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_api_runner.py",
+      "label": "test_api_runner.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_audit.py",
+      "label": "test_audit.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_deployment.py",
+      "label": "test_deployment.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_gemma.py",
+      "label": "test_gemma.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_http_api.py",
+      "label": "test_http_api.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_jobs.py",
+      "label": "test_jobs.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_openapi_import.py",
+      "label": "test_openapi_import.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_report_html.py",
+      "label": "test_report_html.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_runner_helpers.py",
+      "label": "test_runner_helpers.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_runner_integration.py",
+      "label": "test_runner_integration.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_schemas.py",
+      "label": "test_schemas.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_security.py",
+      "label": "test_security.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_storage.py",
+      "label": "test_storage.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_url_policy.py",
+      "label": "test_url_policy.py",
+      "type": "py"
+    },
+    {
+      "id": "demo-site/broken.html",
+      "label": "broken.html",
+      "type": "html"
+    },
+    {
+      "id": "demo-site/index.html",
+      "label": "index.html",
+      "type": "html"
+    },
+    {
+      "id": "docker-compose.yml",
+      "label": "docker-compose.yml",
+      "type": "yml"
+    },
+    {
+      "id": "docs/api-contract.md",
+      "label": "api-contract.md",
+      "type": "md"
+    },
+    {
+      "id": "docs/implementation-plan.md",
+      "label": "implementation-plan.md",
+      "type": "md"
+    },
+    {
+      "id": "frontend/eslint.config.js",
+      "label": "eslint.config.js",
+      "type": "js"
+    },
+    {
+      "id": "frontend/index.html",
+      "label": "index.html",
+      "type": "html"
+    },
+    {
+      "id": "frontend/package.json",
+      "label": "package.json",
+      "type": "json"
+    },
+    {
+      "id": "frontend/report.css",
+      "label": "report.css",
+      "type": "css"
+    },
+    {
+      "id": "frontend/src/api/client.js",
+      "label": "client.js",
+      "type": "js"
+    },
+    {
+      "id": "frontend/src/App.jsx",
+      "label": "App.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/Editors.jsx",
+      "label": "Editors.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/HistoryPanel.jsx",
+      "label": "HistoryPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/OpenApiImport.jsx",
+      "label": "OpenApiImport.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/ReportView.jsx",
+      "label": "ReportView.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/features.css",
+      "label": "features.css",
+      "type": "css"
+    },
+    {
+      "id": "frontend/src/lib/requestBody.js",
+      "label": "requestBody.js",
+      "type": "js"
+    },
+    {
+      "id": "frontend/src/main.jsx",
+      "label": "main.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/styles.css",
+      "label": "styles.css",
+      "type": "css"
+    },
+    {
+      "id": "frontend/tests/client.test.mjs",
+      "label": "client.test.mjs",
+      "type": "mjs"
+    },
+    {
+      "id": "frontend/tests/requestBody.test.mjs",
+      "label": "requestBody.test.mjs",
+      "type": "mjs"
+    },
+    {
+      "id": "frontend/vite.config.js",
+      "label": "vite.config.js",
+      "type": "js"
+    },
+    {
+      "id": "memory.md",
+      "label": "memory.md",
+      "type": "md"
+    },
+    {
+      "id": "README.md",
+      "label": "README.md",
+      "type": "md"
+    },
+    {
+      "id": "render.yaml",
+      "label": "render.yaml",
+      "type": "yaml"
+    },
+    {
+      "id": "scripts/generate_graph.py",
+      "label": "generate_graph.py",
+      "type": "py"
+    },
+    {
+      "id": "steps.md",
+      "label": "steps.md",
+      "type": "md"
+    }
+  ],
+  "edges": [
+    {
+      "source": "backend/app/api_runner.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/api_runner.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/api_runner.py",
+      "target": "backend/app/website_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/compare.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/deployment.py",
+      "target": "backend/app/security.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/execution.py",
+      "target": "backend/app/api_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/execution.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/execution.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/execution.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/execution.py",
+      "target": "backend/app/website_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/gemma.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/jobs.py",
+      "target": "backend/app/execution.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/jobs.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/jobs.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/compare.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/deployment.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/execution.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/gemma.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/jobs.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/openapi_import.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/report_html.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/security.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/openapi_import.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/report_html.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/security.py",
+      "target": "backend/app/audit.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/security.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/storage.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/website_runner.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/website_runner.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/website_runner.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_paths.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_paths.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_paths.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_paths.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_runner.py",
+      "target": "backend/app/api_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_api_runner.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_audit.py",
+      "target": "backend/app/audit.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_deployment.py",
+      "target": "backend/app/deployment.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_deployment.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_gemma.py",
+      "target": "backend/app/gemma.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_gemma.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_http_api.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_http_api.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_http_api.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_http_api.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_jobs.py",
+      "target": "backend/app/jobs.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_jobs.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_jobs.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_openapi_import.py",
+      "target": "backend/app/openapi_import.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_openapi_import.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_report_html.py",
+      "target": "backend/app/report_html.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_runner_helpers.py",
+      "target": "backend/app/website_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_runner_integration.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_runner_integration.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_runner_integration.py",
+      "target": "backend/app/website_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_runner_integration.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_schemas.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_security.py",
+      "target": "backend/app/security.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_storage.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_storage.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_storage.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_url_policy.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/Editors.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/HistoryPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/OpenApiImport.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/ReportView.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/lib/requestBody.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/Editors.jsx",
+      "target": "frontend/src/lib/requestBody.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/HistoryPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/OpenApiImport.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ReportView.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/main.jsx",
+      "target": "frontend/src/App.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/main.jsx",
+      "target": "frontend/src/styles.css",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/main.jsx",
+      "target": "frontend/src/features.css",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/main.jsx",
+      "target": "frontend/report.css",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/tests/client.test.mjs",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/tests/requestBody.test.mjs",
+      "target": "frontend/src/lib/requestBody.js",
+      "type": "imports"
+    }
+  ]
+}

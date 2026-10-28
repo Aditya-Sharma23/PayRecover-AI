@@ -1,0 +1,21 @@
+# Local container run: http://127.0.0.1:8000 (API + dashboard on one origin).
+#   docker compose up --build
+# The port is bound to 127.0.0.1 only. For a public deployment see docs/deployment.md.
+services:
+  testpilot:
+    build: .
+    image: testpilot-ai:local
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      TESTPILOT_PUBLIC_DEPLOYMENT: "false"
+    volumes:
+      - testpilot-data:/data
+    shm_size: "512mb"
+    restart: unless-stopped
+
+volumes:
+  testpilot-data:
