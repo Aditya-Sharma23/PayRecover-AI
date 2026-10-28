@@ -19,6 +19,8 @@ from app.schemas import (
     GemmaPlanRequest,
     OpenApiImportRequest,
     OpenApiImportResult,
+    PaymentVerification,
+    PaymentVerificationRequest,
     RunComparison,
     TargetPreflightRequest,
     WebsiteRunReport,
@@ -47,6 +49,7 @@ from app.gemma import (
     create_plan,
     explain_with_fallback,
 )
+from app import paypal
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -327,6 +330,27 @@ async def gemma_explain(request: GemmaExplanationRequest) -> GemmaExplanation:
     what the check statuses imply.
     """
     return await explain_with_fallback(request.report.model_dump(mode="json"))
+
+
+@app.get("/api/paypal/status", tags=["PayPal"])
+def paypal_status() -> dict[str, str | bool]:
+    """Return non-secret PayPal Sandbox configuration state."""
+    return paypal.configuration_status()
+
+
+@app.post("/api/paypal/verify", response_model=PaymentVerification, tags=["PayPal"])
+async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerification:
+    """Read one order from the PayPal Sandbox Orders API and check it against expectations.
+
+    This is the only source PayTest trusts for payment state: not the store's
+    confirmation page, and not Gemma.
+    """
+    try:
+        return await paypal.verify_order(request)
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except paypal.PayPalProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 if FRONTEND_DIST.joinpath("index.html").is_file():

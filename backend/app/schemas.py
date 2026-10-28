@@ -532,6 +532,43 @@ class GemmaPlan(BaseModel):
     suggested_json_assertions: list[JsonAssertion] | None = Field(default=None, max_length=MAX_JSON_ASSERTIONS)
 
 
+PAYPAL_ORDER_STATUSES = ("CREATED", "SAVED", "APPROVED", "VOIDED", "COMPLETED", "PAYER_ACTION_REQUIRED")
+
+
+class PaymentVerificationRequest(BaseModel):
+    """What a test expects PayPal's own record of one Sandbox order to show."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
+    expected_status: Literal[PAYPAL_ORDER_STATUSES] = "COMPLETED"
+    expected_amount: str | None = Field(default=None, pattern=r"^\d{1,10}(\.\d{1,2})?$")
+    expected_currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
+    require_capture: bool = True
+
+
+class PaymentCheck(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    status: CheckStatus
+    message: str = Field(min_length=1, max_length=2000)
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class PaymentVerification(BaseModel):
+    """PayPal's answer, checked. `verified` is true only when every check passed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str
+    verified: bool
+    source: str
+    checked_at: datetime
+    checks: list[PaymentCheck]
+    order: dict[str, Any] | None = None
+
+
 class GemmaExplanationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

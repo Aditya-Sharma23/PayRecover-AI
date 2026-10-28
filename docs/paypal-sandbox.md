@@ -1,0 +1,87 @@
+# PayPal Sandbox setup
+
+PayTest uses PayPal **Sandbox only**. The API base `https://api-m.sandbox.paypal.com` is hard-coded in both
+the demo store and the verifier, so no setting can point either at live payments.
+
+## 1. Create the Sandbox credentials (once)
+
+1. Sign in at https://developer.paypal.com with any PayPal account.
+2. **Apps & Credentials** → make sure the **Sandbox** toggle is selected → **Create App**
+   (type: Merchant). Copy the **Client ID** and **Secret**.
+3. **Testing Tools → Sandbox Accounts**: PayPal creates a default *Personal* (buyer) and *Business*
+   (merchant) account. Open the Personal account → **View/Edit account** to see its email and password.
+   You log in with that buyer account in the PayPal popup during checkout.
+
+The client id is public (the browser needs it for the PayPal buttons). The secret must stay on the server.
+
+## 2. Configure
+
+`demo-store/.env` (the store being tested):
+
+```
+PAYPAL_CLIENT_ID=<sandbox client id>
+PAYPAL_CLIENT_SECRET=<sandbox secret>
+```
+
+`backend/.env` (PayTest, which reads orders back from PayPal to verify them):
+
+```
+TESTPILOT_PAYPAL_CLIENT_ID=<sandbox client id>
+TESTPILOT_PAYPAL_CLIENT_SECRET=<sandbox secret>
+```
+
+Using the same Sandbox app for both is fine: an app can only read orders it created.
+
+## 3. Run
+
+```powershell
+cd demo-store
+python -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\python -m uvicorn store_app:app --port 8100
+```
+
+Open http://127.0.0.1:8100, pay with the Sandbox buyer account, and note the order id on the page.
+
+Then ask PayTest what PayPal itself recorded (backend running on port 8000):
+
+```powershell
+curl.exe -s -X POST http://127.0.0.1:8000/api/paypal/verify -H "Content-Type: application/json" `
+  -d '{"order_id": "<order id>", "expected_amount": "18.00"}'
+```
+
+`verified: true` means PayPal reports the order `COMPLETED`, a completed capture exists, and the order
+and capture amounts both equal the expected amount. Each check carries its evidence; payer and payee
+details are never copied into it.
+
+## Store endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/products` | Server-side catalog (the only source of prices) |
+| `POST /api/orders` | Prices the cart and creates the PayPal order |
+| `POST /api/orders/{id}/capture` | Captures the approved order (idempotent via `PayPal-Request-Id`) |
+| `POST /api/orders/{id}/cancel` | Records a buyer cancellation |
+| `GET /api/orders/{id}` | What the **store believes** happened, for comparison with PayPal |
+| `GET/POST /api/defects` | Controlled defects (POST needs `STORE_ADMIN_TOKEN`) |
+
+## Controlled defects
+
+| Defect | Bug it simulates | What PayTest sees |
+|---|---|---|
+| `trust_client_price` | Server uses the price the browser sends | `amount_matches` fails: PayPal charged less than the catalog total |
+| `confirm_without_capture` | Store shows "paid" without capturing | Store says `PAID`; PayPal says `APPROVED` with no capture, so `capture_completed` fails |
+
+Enable with `STORE_DEFECTS=trust_client_price` in `demo-store/.env`, or at runtime:
+
+```powershell
+curl.exe -s -X POST http://127.0.0.1:8100/api/defects -H "X-Store-Admin-Token: <token>" `
+  -H "Content-Type: application/json" -d '{"defects": ["confirm_without_capture"]}'
+```
+
+## Not done yet
+
+- Playwright scenarios that drive the checkout, including logging in to PayPal's Sandbox popup (roadmap days 4–5).
+- PayTest's URL policy blocks private and loopback addresses, so a browser run against a store on
+  `127.0.0.1` will be refused. Deploy the store (for example on Render) or add an explicit, opt-in
+  local-target allowance before running the browser checks.
+- Orders live in memory and are lost when the store restarts.

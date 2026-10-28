@@ -1,0 +1,223 @@
+"""PayPal Sandbox verifier: reads an order straight from PayPal's Orders API.
+
+A store, a browser page or Gemma can claim a payment succeeded; only this
+module's view of PayPal's own record decides it. The base URL is fixed to the
+Sandbox and cannot be configured, so PayTest can never reach live payments.
+Requests are read-only (GET), and payer details are never copied into evidence.
+"""
+
+import asyncio
+import json
+import os
+import time
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+
+import aiohttp
+from dotenv import load_dotenv
+
+from app.schemas import CheckStatus, PaymentCheck, PaymentVerification, PaymentVerificationRequest
+
+SANDBOX_API = "https://api-m.sandbox.paypal.com"
+TIMEOUT_SECONDS = 20
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+_token_cache: dict[str, Any] = {"token": None, "expires_at": 0.0, "client_id": None}
+
+
+class PayPalConfigurationError(RuntimeError):
+    """Sandbox credentials are missing."""
+
+
+class PayPalProviderError(RuntimeError):
+    """PayPal could not be reached or returned an unusable response."""
+
+
+class PayPalOrderNotFound(RuntimeError):
+    """PayPal has no order with this id for these credentials."""
+
+
+def _credentials() -> tuple[str, str]:
+    client_id = os.environ.get("TESTPILOT_PAYPAL_CLIENT_ID", "").strip().strip("\"'")
+    secret = os.environ.get("TESTPILOT_PAYPAL_CLIENT_SECRET", "").strip().strip("\"'")
+    if not client_id or not secret:
+        raise PayPalConfigurationError(
+            "PayPal Sandbox is not configured. Set TESTPILOT_PAYPAL_CLIENT_ID and TESTPILOT_PAYPAL_CLIENT_SECRET."
+        )
+    return client_id, secret
+
+
+def configuration_status() -> dict[str, str | bool]:
+    try:
+        _credentials()
+        configured = True
+    except PayPalConfigurationError:
+        configured = False
+    return {"configured": configured, "environment": "sandbox", "api": SANDBOX_API}
+
+
+async def _access_token(session: aiohttp.ClientSession) -> str:
+    client_id, secret = _credentials()
+    if _token_cache["token"] and _token_cache["client_id"] == client_id and time.monotonic() < _token_cache["expires_at"]:
+        return _token_cache["token"]
+    async with session.post(
+        f"{SANDBOX_API}/v1/oauth2/token",
+        auth=aiohttp.BasicAuth(client_id, secret),
+        data={"grant_type": "client_credentials"},
+    ) as response:
+        body = await response.text()
+        if response.status in {401, 403}:
+            raise PayPalConfigurationError("PayPal rejected the Sandbox credentials.")
+        if response.status >= 400:
+            raise PayPalProviderError(f"PayPal token request returned HTTP {response.status}.")
+    try:
+        data = json.loads(body)
+        token = data["access_token"]
+        lifetime = int(data.get("expires_in", 300))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PayPalProviderError("PayPal returned an incomplete token response.") from exc
+    # Refresh a minute early so a token never expires mid-request.
+    _token_cache.update(token=token, expires_at=time.monotonic() + max(lifetime - 60, 30), client_id=client_id)
+    return token
+
+
+async def fetch_order(order_id: str) -> dict[str, Any]:
+    """GET /v2/checkout/orders/{id}. The id is validated by PaymentVerificationRequest."""
+    timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            token = await _access_token(session)
+            async with session.get(
+                f"{SANDBOX_API}/v2/checkout/orders/{order_id}",
+                headers={"Authorization": f"Bearer {token}"},
+            ) as response:
+                body = await response.text()
+                if response.status == 404:
+                    raise PayPalOrderNotFound(f"PayPal Sandbox has no order {order_id}.")
+                if response.status >= 400:
+                    raise PayPalProviderError(f"PayPal Orders API returned HTTP {response.status}.")
+    except (PayPalConfigurationError, PayPalProviderError, PayPalOrderNotFound):
+        raise
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise PayPalProviderError("PayPal Sandbox could not be reached.") from exc
+    try:
+        order = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise PayPalProviderError("PayPal returned non-JSON order data.") from exc
+    if not isinstance(order, dict):
+        raise PayPalProviderError("PayPal returned order data that was not an object.")
+    return order
+
+
+def _decimal(value: Any) -> Decimal | None:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def order_summary(order: dict[str, Any]) -> dict[str, Any]:
+    """The fields evidence needs, and nothing about the payer."""
+    unit = (order.get("purchase_units") or [{}])[0]
+    amount = unit.get("amount") or {}
+    captures = (unit.get("payments") or {}).get("captures") or []
+    capture = captures[0] if captures else {}
+    return {
+        "order_id": order.get("id"),
+        "status": order.get("status"),
+        "intent": order.get("intent"),
+        "amount": amount.get("value"),
+        "currency": amount.get("currency_code"),
+        "purchase_units": len(order.get("purchase_units") or []),
+        "capture_count": len(captures),
+        "capture_id": capture.get("id"),
+        "capture_status": capture.get("status"),
+        "capture_amount": (capture.get("amount") or {}).get("value"),
+        "create_time": order.get("create_time"),
+        "update_time": order.get("update_time"),
+    }
+
+
+def evaluate_order(order: dict[str, Any], request: PaymentVerificationRequest) -> list[PaymentCheck]:
+    summary = order_summary(order)
+    checks = [PaymentCheck(
+        name="order_found",
+        status=CheckStatus.PASSED,
+        message=f"PayPal Sandbox returned order {summary['order_id']}.",
+        evidence={"order_id": summary["order_id"]},
+    )]
+
+    status_ok = summary["status"] == request.expected_status
+    checks.append(PaymentCheck(
+        name="order_status",
+        status=CheckStatus.PASSED if status_ok else CheckStatus.FAILED,
+        message=f"PayPal reports status {summary['status']}; expected {request.expected_status}.",
+        evidence={"observed": summary["status"], "expected": request.expected_status},
+    ))
+
+    if request.require_capture:
+        captured = summary["capture_status"] == "COMPLETED"
+        message = (
+            f"Capture {summary['capture_id']} is COMPLETED."
+            if captured
+            else f"No completed capture at PayPal (capture status: {summary['capture_status'] or 'none'})."
+        )
+        checks.append(PaymentCheck(
+            name="capture_completed",
+            status=CheckStatus.PASSED if captured else CheckStatus.FAILED,
+            message=message,
+            evidence={
+                "capture_id": summary["capture_id"],
+                "capture_status": summary["capture_status"],
+                "capture_count": summary["capture_count"],
+            },
+        ))
+
+    if request.expected_amount is not None:
+        expected = Decimal(request.expected_amount)
+        observed = [_decimal(summary["amount"])]
+        if summary["capture_amount"] is not None:
+            observed.append(_decimal(summary["capture_amount"]))
+        amount_ok = all(value == expected for value in observed)
+        currency_ok = summary["currency"] == request.expected_currency
+        checks.append(PaymentCheck(
+            name="amount_matches",
+            status=CheckStatus.PASSED if amount_ok and currency_ok else CheckStatus.FAILED,
+            message=(
+                f"PayPal charged {summary['amount']} {summary['currency']}; "
+                f"expected {request.expected_amount} {request.expected_currency}."
+            ),
+            evidence={
+                "order_amount": summary["amount"],
+                "capture_amount": summary["capture_amount"],
+                "currency": summary["currency"],
+                "expected_amount": request.expected_amount,
+                "expected_currency": request.expected_currency,
+            },
+        ))
+    return checks
+
+
+def _result(order_id: str, checks: list[PaymentCheck], order: dict[str, Any] | None) -> PaymentVerification:
+    return PaymentVerification(
+        order_id=order_id,
+        verified=all(check.status == CheckStatus.PASSED for check in checks),
+        source="paypal_sandbox_orders_api",
+        checked_at=datetime.now(timezone.utc),
+        checks=checks,
+        order=order,
+    )
+
+
+async def verify_order(request: PaymentVerificationRequest) -> PaymentVerification:
+    """Compare PayPal's record of an order with what the test expects."""
+    try:
+        order = await fetch_order(request.order_id)
+    except PayPalOrderNotFound as exc:
+        check = PaymentCheck(
+            name="order_found", status=CheckStatus.FAILED, message=str(exc), evidence={"order_id": request.order_id}
+        )
+        return _result(request.order_id, [check], None)
+    return _result(request.order_id, evaluate_order(order, request), order_summary(order))

@@ -159,6 +159,17 @@ textarea { display: block; font-family: ui-monospace, SFMono-Regular, Consolas, 
 .method-delete { background: #a33a38; }
 .method-put, .method-patch { background: #3f5ea8; }
 
+/* PayPal verification */
+.payment-form { display: grid; grid-template-columns: 1.4fr 1.2fr .8fr .5fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+.payment-form .field-label { margin: 0; }
+.payment-form .danger-button { min-width: 170px; }
+.payment-result { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+.payment-result > .check-row-head { padding-bottom: 8px; }
+.payment-result > .check-row-head small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.payment-order { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; margin: 12px 0 4px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; }
+.payment-order dt { color: var(--muted); }
+.payment-order dd { margin: 2px 0 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+
 /* Report */
 .result-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .result-heading h2 { margin: 0; font: 700 21px 'Space Grotesk', sans-serif; overflow-wrap: anywhere; }
@@ -244,13 +255,14 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
   .main-content { margin-left: 62px; padding: 0 18px; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .advanced-grid { grid-template-columns: 1fr; }
+  .payment-form { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 650px) {
   .main-content { padding: 0 12px 20px; }
   .welcome { flex-direction: column; align-items: flex-start; }
   .date-label { justify-items: start; }
   .welcome::after { right: -100px; opacity: .6; }
-  .scan-bar, .reports-grid, .vulnerability-grid { grid-template-columns: 1fr; }
+  .scan-bar, .reports-grid, .vulnerability-grid, .payment-form { grid-template-columns: 1fr; }
   .metric-card { padding: 10px; }
   .metric-trend { display: none; }
 }

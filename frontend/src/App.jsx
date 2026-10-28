@@ -3,6 +3,7 @@ import { apiJson, getToken, setToken } from "./api/client.js";
 import { AssertionEditor, FlowEditor, HeaderEditor } from "./components/Editors.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import OpenApiImport from "./components/OpenApiImport.jsx";
+import PaymentPanel from "./components/PaymentPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
 import { CATEGORIES } from "./lib/report.js";
 import {
@@ -189,6 +190,7 @@ export default function App() {
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
         <a href="#scan"><span aria-hidden="true">⌕</span> New scan</a>
+        <a href="#payments"><span aria-hidden="true">$</span> PayPal checks</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
         <a href="#findings"><span aria-hidden="true">⚠</span> Vulnerabilities</a>
         <a href="#history"><span aria-hidden="true">▤</span> Run history</a>
@@ -290,10 +292,12 @@ export default function App() {
           : "One bounded GET is sent. Redirects, request bodies and non-public destinations are blocked. Header values are never stored."}</p>
       </section>
 
+      <PaymentPanel />
+
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Run a scan, or open one from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 
       <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
-      <footer>TestPilot AI · HTTP · Playwright + axe · security probes · Schemathesis · Gemma 4</footer>
+      <footer>TestPilot AI · HTTP · Playwright + axe · security probes · Schemathesis · PayPal Sandbox · Gemma 4</footer>
     </main>
   </div>;
 }

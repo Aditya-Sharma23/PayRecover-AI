@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayTest Demo Store</title>
+  <link rel="stylesheet" href="/static/store.css">
+</head>
+<body>
+<main>
+  <h1>PayTest Demo Store</h1>
+  <p class="note">A controlled test target. Payments go to PayPal <strong>Sandbox</strong> only; no real money moves.</p>
+
+  <section aria-labelledby="cart-heading">
+    <h2 id="cart-heading">Your cart</h2>
+    <table id="cart" data-testid="cart">
+      <thead><tr><th scope="col">Item</th><th scope="col">Price</th><th scope="col">Quantity</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="total">Total: <span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></p>
+  </section>
+
+  <section aria-labelledby="pay-heading">
+    <h2 id="pay-heading">Pay</h2>
+    <div id="paypal-buttons" data-testid="paypal-buttons"></div>
+    <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
+      Choose your items, then pay with PayPal.
+    </div>
+    <dl class="order">
+      <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
+      <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
+    </dl>
+  </section>
+
+  <p id="defects" data-testid="defects" class="defects" hidden></p>
+</main>
+<script src="/static/store.js"></script>
+</body>
+</html>
