@@ -584,3 +584,49 @@ class GemmaExplanation(BaseModel):
     next_steps: list[str] = Field(max_length=10)
     risk_level: Literal["HIGH", "REVIEW", "LOW", "UNKNOWN"] = "UNKNOWN"
     source: str = "Gemma"
+
+
+LEAK_KINDS = ("never_captured", "fake_paid", "wrong_amount", "duplicate_charge")
+
+
+class InvestigationRequest(BaseModel):
+    """One order id; every check is derived from the store's claim and PayPal's record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
+    probe_store: bool = True
+    website_checks: bool = True
+    explain: bool = True
+
+
+class Leak(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal[LEAK_KINDS]
+    title: str
+    amount: str
+    currency: str
+    root_cause: str
+    recovery_action: Literal["capture", "invoice", "refund"]
+    recovery: str
+
+
+class Investigation(BaseModel):
+    """The full answer for one order. Leaks come only from checks, never from Gemma."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str
+    verdict: Literal["healthy", "leaking", "review"]
+    checked_at: datetime
+    store_url: str
+    store_claim: dict[str, Any] | None = None
+    expected_total: str | None = None
+    paypal_order: dict[str, Any] | None = None
+    checks: list[PaymentCheck]
+    website_report: WebsiteRunReport | None = None
+    leaks: list[Leak]
+    money_at_risk: str
+    currency: str
+    explanation: GemmaExplanation | None = None

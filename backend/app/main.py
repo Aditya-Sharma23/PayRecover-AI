@@ -17,6 +17,8 @@ from app.schemas import (
     GemmaExplanationRequest,
     GemmaPlan,
     GemmaPlanRequest,
+    Investigation,
+    InvestigationRequest,
     OpenApiImportRequest,
     OpenApiImportResult,
     PaymentVerification,
@@ -49,7 +51,7 @@ from app.gemma import (
     create_plan,
     explain_with_fallback,
 )
-from app import paypal
+from app import investigate, paypal
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -347,6 +349,27 @@ async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerificat
     """
     try:
         return await paypal.verify_order(request)
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except paypal.PayPalProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/orders/investigate", response_model=Investigation, tags=["PayPal"])
+async def investigate_order(request: InvestigationRequest, http: Request) -> Investigation:
+    """Run every check for one order id: the store's claim, PayPal's record, store probes,
+    a full website scan of the store, and leaks.
+
+    Leaks and money at risk come from the checks alone; Gemma only explains them. The
+    website scan is saved to run history like any other run.
+    """
+    owner = request_owner(http)
+
+    async def run_website(website: WebsiteRunRequest) -> WebsiteRunReport:
+        return await _run(JobType.WEBSITE, website, owner)
+
+    try:
+        return await investigate.investigate(request, run_website)
     except paypal.PayPalConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:

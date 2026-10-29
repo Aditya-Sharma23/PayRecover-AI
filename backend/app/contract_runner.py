@@ -106,7 +106,8 @@ def _cli() -> str | None:
 
 def _run_cli(command: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(command, capture_output=True, text=True, timeout=RUN_TIMEOUT_SECONDS, check=False,
-                          env={**os.environ, "NO_COLOR": "1"})
+                          # Plain UTF-8: Schemathesis crashes on an inherited "utf-8:surrogateescape".
+                          env={**os.environ, "NO_COLOR": "1", "PYTHONIOENCODING": "utf-8"})
 
 
 async def run_contract(target: str) -> dict:

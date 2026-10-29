@@ -190,7 +190,7 @@ export default function App() {
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
         <a href="#scan"><span aria-hidden="true">⌕</span> New scan</a>
-        <a href="#payments"><span aria-hidden="true">$</span> PayPal checks</a>
+        <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
         <a href="#findings"><span aria-hidden="true">⚠</span> Vulnerabilities</a>
         <a href="#history"><span aria-hidden="true">▤</span> Run history</a>
@@ -292,7 +292,7 @@ export default function App() {
           : "One bounded GET is sent. Redirects, request bodies and non-public destinations are blocked. Header values are never stored."}</p>
       </section>
 
-      <PaymentPanel />
+      <PaymentPanel onOpenReport={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
 
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Run a scan, or open one from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 

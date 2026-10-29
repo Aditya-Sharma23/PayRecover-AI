@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from app.url_policy import UnsafeTarget, validate_target_url
+from app.url_policy import UnsafeTarget, trusted_origin, validate_target_url
 
 
 class UrlPolicyTests(unittest.TestCase):
@@ -23,6 +23,14 @@ class UrlPolicyTests(unittest.TestCase):
         self.assertUnsafe("file:///etc/passwd")
         self.assertUnsafe("ftp://example.com/")
         self.assertUnsafe("http://app.localhost/")
+
+    def test_trusted_origin_allows_only_that_exact_private_origin(self):
+        with trusted_origin("http://127.0.0.1:8100/"):
+            self.assertEqual(asyncio.run(validate_target_url("http://127.0.0.1:8100/api/products")), ("127.0.0.1",))
+            self.assertUnsafe("http://127.0.0.1:8000/")
+            self.assertUnsafe("https://127.0.0.1:8100/")
+            self.assertUnsafe("http://169.254.169.254/latest/meta-data/")
+        self.assertUnsafe("http://127.0.0.1:8100/")
 
     def test_rejects_credentials_and_fragments(self):
         self.assertUnsafe("https://user:password@example.com/")

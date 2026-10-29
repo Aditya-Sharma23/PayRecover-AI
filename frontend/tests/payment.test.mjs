@@ -1,29 +1,32 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyPaymentForm, paymentBody, paymentProblems } from "../src/lib/payment.js";
+import { groupChecks, investigationBody, orderIdProblem } from "../src/lib/payment.js";
 
-const form = (change) => ({ ...emptyPaymentForm(), ...change });
-
-test("a paid expectation requires a completed capture", () => {
-  assert.deepEqual(paymentBody(form({ orderId: " 5o190127tn364715t ", expectedAmount: "18.00" })), {
+test("the investigation body normalizes the order id", () => {
+  assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
     order_id: "5O190127TN364715T",
-    expected_status: "COMPLETED",
-    require_capture: true,
-    expected_amount: "18.00",
-    expected_currency: "USD",
+    probe_store: true,
+    website_checks: true,
+    explain: true,
   });
+  assert.equal(investigationBody("5O190127TN364715T", { probe: false }).probe_store, false);
+  assert.equal(investigationBody("5O190127TN364715T", { website: false }).website_checks, false);
 });
 
-test("cancelled flows expect an uncaptured order and amount is optional", () => {
-  const body = paymentBody(form({ orderId: "5O190127TN364715T", outcome: "created" }));
-  assert.equal(body.expected_status, "CREATED");
-  assert.equal(body.require_capture, false);
-  assert.equal("expected_amount" in body, false);
+test("malformed order ids are reported before sending", () => {
+  assert.equal(orderIdProblem("5O190127TN364715T"), null);
+  assert.equal(orderIdProblem(""), null);
+  assert.ok(orderIdProblem("../oauth2"));
 });
 
-test("malformed order ids, amounts and currencies are reported before sending", () => {
-  assert.deepEqual(paymentProblems(form({ orderId: "5O190127TN364715T", expectedAmount: "18.00" })), []);
-  assert.equal(paymentProblems(form({ orderId: "../oauth2" })).length, 1);
-  assert.equal(paymentProblems(form({ expectedAmount: "1e3" })).length, 1);
-  assert.equal(paymentProblems(form({ currency: "dollars" })).length, 1);
+test("checks are grouped by source, with unknown checks kept", () => {
+  const groups = groupChecks([
+    { name: "capture_completed" }, { name: "store_claim_found" }, { name: "price_tampering_probe" }, { name: "new_check" },
+  ]);
+  assert.deepEqual(groups.map(([title, items]) => [title, items.map((item) => item.name)]), [
+    ["Store's claim", ["store_claim_found"]],
+    ["PayPal's record", ["capture_completed"]],
+    ["Security probes", ["price_tampering_probe"]],
+    ["Other", ["new_check"]],
+  ]);
 });

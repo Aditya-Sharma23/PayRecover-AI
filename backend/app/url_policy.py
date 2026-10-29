@@ -4,12 +4,36 @@ Call ``validate_target_url`` before the first request and again for every
 redirect destination. A hostname lookup check alone cannot prevent DNS
 rebinding; the eventual runner must also pin/verify the connection address or
 run behind network egress controls.
+
+One exception exists: ``trusted_origin`` lets server-side code (PayRecover's order
+investigation) test the store the operator configured, even on a private address.
+It is set only from TESTPILOT_STORE_URL, never from a request, and covers that
+exact scheme, host and port only.
 """
 
 import asyncio
 import ipaddress
 import socket
+from contextlib import contextmanager
+from contextvars import ContextVar
 from urllib.parse import urlsplit
+
+_trusted_origin: ContextVar[tuple[str, str, int] | None] = ContextVar("trusted_origin", default=None)
+
+
+def _origin(scheme: str, hostname: str, port: int | None) -> tuple[str, str, int]:
+    return scheme, hostname, port or (443 if scheme == "https" else 80)
+
+
+@contextmanager
+def trusted_origin(url: str):
+    """Allow private addresses for this one operator-configured origin within the block."""
+    parsed = urlsplit(url)
+    token = _trusted_origin.set(_origin(parsed.scheme.lower(), (parsed.hostname or "").rstrip(".").lower(), parsed.port))
+    try:
+        yield
+    finally:
+        _trusted_origin.reset(token)
 
 
 class UnsafeTarget(ValueError):
@@ -39,7 +63,8 @@ async def validate_target_url(url: str) -> tuple[str, ...]:
         raise UnsafeTarget("URL fragments are not allowed")
 
     hostname = hostname.rstrip(".").lower()
-    if (
+    trusted = _trusted_origin.get() == _origin(scheme, hostname, parsed.port)
+    if not trusted and (
         not hostname
         or "%" in hostname
         or hostname == "localhost"
@@ -76,7 +101,7 @@ async def validate_target_url(url: str) -> tuple[str, ...]:
             ip = ipaddress.ip_address(address)
         except ValueError as exc:
             raise UnsafeTarget("hostname resolved to an invalid address") from exc
-        if not ip.is_global:
+        if not ip.is_global and not trusted:
             raise UnsafeTarget("target resolves to a non-public IP address")
 
     return addresses

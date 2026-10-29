@@ -309,6 +309,12 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
     gate = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
     state = {"requests": 0, "blocked_reason": None}
     console_errors: list[str] = []
+    blocked_urls: set[str] = set()
+
+    def on_console(msg):
+        # A resource the runner itself refused is the runner's doing, not a page error.
+        if msg.type == "error" and (msg.location or {}).get("url") not in blocked_urls:
+            console_errors.append(_redact_text(msg.text))
 
     async def guarded_route(route):
         req = route.request
@@ -318,10 +324,12 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
             await route.abort("blockedbyclient")
             return
         if req.method not in {"GET", "HEAD"}:
+            blocked_urls.add(req.url)
             await route.fulfill(status=405, body="Method blocked by safe runner")
             return
         if not _same_origin(target_url, req.url):
             state["blocked_reason"] = "cross-origin request blocked"
+            blocked_urls.add(req.url)
             await route.fulfill(status=403, body="Cross-origin request blocked by safe runner")
             return
         try:
@@ -349,7 +357,7 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
                 await websocket.close(code=1008, reason="WebSockets are disabled in the safe runner")
             await context.route_web_socket("**/*", block_websocket)
             page = await context.new_page()
-            page.on("console", lambda msg: console_errors.append(_redact_text(msg.text)) if msg.type == "error" else None)
+            page.on("console", on_console)
             page.on("pageerror", lambda error: console_errors.append(_redact_text(str(error))))
             page.set_default_timeout(request.timeout_seconds * 1000)
             load_started = time.monotonic()

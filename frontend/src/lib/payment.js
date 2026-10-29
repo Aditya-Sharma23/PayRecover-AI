@@ -1,41 +1,51 @@
-// Pure helpers for the PayPal Sandbox verification panel.
+// Pure helpers for the PayRecover order investigation panel.
 
-// What the tester expects PayPal to show, mapped to the verify request fields.
-export const OUTCOMES = [
-  ["paid", "Paid and captured", { expected_status: "COMPLETED", require_capture: true }],
-  ["approved", "Approved, not captured", { expected_status: "APPROVED", require_capture: false }],
-  ["created", "Not paid / cancelled", { expected_status: "CREATED", require_capture: false }],
+export const CHECK_GROUPS = [
+  ["Store's claim", ["store_claim_found", "store_claim_matches", "price_integrity"]],
+  ["PayPal's record", ["order_found", "order_status", "capture_completed", "amount_matches", "single_capture"]],
+  ["Security probes", ["price_tampering_probe"]],
 ];
 
-export const PAYMENT_CHECK_LABELS = {
+export const CHECK_LABELS = {
+  store_claim_found: "Store has this order",
+  store_claim_matches: "Store's claim matches PayPal",
+  price_integrity: "Prices match the catalog",
   order_found: "Order exists at PayPal",
   order_status: "Order status",
   capture_completed: "Payment captured",
   amount_matches: "Amount and currency",
+  single_capture: "Charged only once",
+  price_tampering_probe: "Price tampering probe",
 };
 
+export const VERDICTS = {
+  healthy: ["Healthy", "passed", "The store's claim matches PayPal's record."],
+  leaking: ["Money leak found", "failed", "The store and PayPal disagree, and money is at risk."],
+  review: ["Needs review", "warning", "Some checks could not be completed."],
+};
+
+export const RECOVERY_LABELS = { capture: "Capture payment", invoice: "Send invoice", refund: "Refund extra charge" };
+
 const ORDER_ID = /^[A-Z0-9]{8,40}$/;
-const AMOUNT = /^\d{1,10}(\.\d{1,2})?$/;
-const CURRENCY = /^[A-Z]{3}$/;
 
-export const emptyPaymentForm = () => ({ orderId: "", expectedAmount: "", currency: "USD", outcome: "paid" });
+export const normalizeOrderId = (value) => value.trim().toUpperCase();
 
-export function paymentProblems(form) {
-  const problems = [];
-  const orderId = form.orderId.trim().toUpperCase();
-  if (orderId && !ORDER_ID.test(orderId)) problems.push("Order id must be 8–40 letters and digits, as shown by the store.");
-  if (form.expectedAmount.trim() && !AMOUNT.test(form.expectedAmount.trim())) problems.push("Expected amount must look like 18.00.");
-  if (!CURRENCY.test(form.currency.trim().toUpperCase())) problems.push("Currency must be a 3-letter code such as USD.");
-  return problems;
+export function orderIdProblem(value) {
+  const orderId = normalizeOrderId(value);
+  return orderId && !ORDER_ID.test(orderId) ? "Order id must be 8–40 letters and digits, as shown by the store." : null;
 }
 
-export function paymentBody(form) {
-  const outcome = OUTCOMES.find(([key]) => key === form.outcome) || OUTCOMES[0];
-  const amount = form.expectedAmount.trim();
-  return {
-    order_id: form.orderId.trim().toUpperCase(),
-    ...outcome[2],
-    ...(amount ? { expected_amount: amount } : {}),
-    expected_currency: form.currency.trim().toUpperCase(),
-  };
+export const investigationBody = (value, { probe = true, website = true, explain = true } = {}) => ({
+  order_id: normalizeOrderId(value),
+  probe_store: probe,
+  website_checks: website,
+  explain,
+});
+
+// Checks in display groups; any check the backend adds later lands in a final "Other" group.
+export function groupChecks(checks) {
+  const known = new Set(CHECK_GROUPS.flatMap(([, names]) => names));
+  const groups = CHECK_GROUPS.map(([title, names]) => [title, checks.filter((check) => names.includes(check.name))]);
+  const other = checks.filter((check) => !known.has(check.name));
+  return [...groups, ["Other", other]].filter(([, items]) => items.length > 0);
 }
