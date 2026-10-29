@@ -595,6 +595,8 @@ class InvestigationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
+    # Which operator-configured store to check; never a URL, so a request cannot aim PayTest anywhere else.
+    store: Literal["main", "vulnerable"] = "main"
     probe_store: bool = True
     website_checks: bool = True
     xss_probe: bool = True
@@ -620,6 +622,7 @@ class Investigation(BaseModel):
 
     order_id: str
     verdict: Literal["healthy", "leaking", "review"]
+    store: str = "main"
     checked_at: datetime
     store_url: str
     store_claim: dict[str, Any] | None = None

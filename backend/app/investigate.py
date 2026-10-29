@@ -9,7 +9,10 @@ Three sources are checked against each other:
                       accessibility, contract), run through the normal runners
   XSS probe           15 inert reflected-XSS payloads in 15 parameters and the URL path
                       of the store page, reported as its own section (app.xss_probe)
-The store address is set by the operator (TESTPILOT_STORE_URL), never by the request.
+Store addresses are set by the operator (TESTPILOT_STORE_URL for the Main store,
+TESTPILOT_VULN_STORE_URL for the Vulnerable store); a request only picks one of the two.
+Duplicate charges are found across orders: every other order opened for the same cart
+is looked up at PayPal, because a double click pays a second order, not the same one twice.
 Leaks and money at risk come only from these checks. The AI model explains them; it cannot
 add, remove or change a leak, and the suggested recovery is never executed here.
 """
@@ -18,6 +21,7 @@ import asyncio
 import json
 import os
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -42,6 +46,12 @@ from app.url_policy import trusted_origin
 WebsiteRunner = Callable[[WebsiteRunRequest], Awaitable[WebsiteRunReport]]
 
 DEFAULT_STORE_URL = "http://127.0.0.1:8100"
+STORES = {
+    "main": ("TESTPILOT_STORE_URL", DEFAULT_STORE_URL),
+    "vulnerable": ("TESTPILOT_VULN_STORE_URL", "http://127.0.0.1:8200"),
+}
+MAX_SIBLING_ORDERS = 5
+_active_store: ContextVar[str] = ContextVar("active_store", default="main")
 STORE_TIMEOUT_SECONDS = 10
 TAMPERED_PRICE = "0.01"
 CENT = Decimal("0.01")
@@ -51,11 +61,47 @@ class StoreUnavailable(RuntimeError):
     """The configured store could not be reached or answered with unusable data."""
 
 
+def _store_setting() -> tuple[str, str]:
+    return STORES[_active_store.get()]
+
+
 def store_url() -> str:
-    url = os.environ.get("TESTPILOT_STORE_URL", DEFAULT_STORE_URL).strip().rstrip("/")
+    """The address of the store this investigation checks, from operator settings only."""
+    variable, default = _store_setting()
+    url = os.environ.get(variable, default).strip().rstrip("/")
     if not url.startswith(("http://", "https://")):
-        raise StoreUnavailable("TESTPILOT_STORE_URL must start with http:// or https://.")
+        raise StoreUnavailable(f"{variable} must start with http:// or https://.")
     return url
+
+
+async def sibling_payments(claim: dict) -> tuple[list[dict], str | None]:
+    """Other orders the store opened for this cart, with what PayPal actually captured for each.
+
+    Returns the siblings and, when they could not be read, the reason.
+    """
+    cart_id = claim.get("cart_id")
+    if not cart_id:
+        return [], "The store did not record a cart for this order."
+    async with _session() as session:
+        status, listed = await _store_json(session, "GET", f"/api/carts/{cart_id}/orders")
+    if status == 404 or not isinstance(listed, list):
+        return [], "The store does not list orders per cart."
+    siblings = []
+    others = [o for o in listed if isinstance(o, dict) and o.get("order_id") != claim.get("order_id")]
+    for other in others[:MAX_SIBLING_ORDERS]:
+        entry = {"order_id": other.get("order_id"), "store_status": other.get("status"), "total": other.get("total")}
+        try:
+            order = await paypal.fetch_order(str(other.get("order_id")))
+        except paypal.PayPalOrderNotFound:
+            siblings.append({**entry, "paypal_status": None, "captured": "0.00", "capture_ids": []})
+            continue
+        completed = [c for c in _captures(order) if c.get("status") == "COMPLETED"]
+        captured = sum((_decimal((c.get("amount") or {}).get("value")) or Decimal(0) for c in completed), Decimal(0))
+        siblings.append({
+            **entry, "paypal_status": order.get("status"), "captured": _money(captured),
+            "capture_ids": [c.get("id") for c in completed],
+        })
+    return siblings, None
 
 
 def _decimal(value: Any) -> Decimal | None:
@@ -194,7 +240,8 @@ def _claim_check(claim: dict, summary: dict | None) -> PaymentCheck:
 
 
 def find_leaks(
-    claim: dict | None, order: dict | None, expected: Decimal | None, checks: list[PaymentCheck]
+    claim: dict | None, order: dict | None, expected: Decimal | None, checks: list[PaymentCheck],
+    siblings: list[dict] | None = None,
 ) -> list[Leak]:
     """Turn failed checks into leaks with an amount and a suggested recovery. Deterministic."""
     if claim is None or claim.get("status") != "PAID" or expected is None:
@@ -219,6 +266,18 @@ def find_leaks(
             recovery=f"Capture order {order.get('id')} at PayPal now to collect {_money(expected)} {currency}.",
         )]
     leaks = []
+    charged = [s for s in siblings or [] if (_decimal(s.get("captured")) or Decimal(0)) > 0]
+    if charged:
+        extra = sum((Decimal(s["captured"]) for s in charged), Decimal(0))
+        names = ", ".join(s["order_id"] for s in charged)
+        leaks.append(Leak(
+            kind="duplicate_charge", title=f"The same cart was charged {len(charged) + 1} times",
+            amount=_money(extra), currency=currency,
+            root_cause="The store does not lock a cart once it is paid, so paying again opened and charged a new order.",
+            recovery_action="refund",
+            recovery=f"Refund {_money(extra)} {currency} from order {names} before the buyer files a chargeback, "
+                     "and refuse new orders for a cart that is already paid.",
+        ))
     amounts = [_decimal((c.get("amount") or {}).get("value")) or Decimal(0) for c in captures]
     if len(captures) > 1:
         extra = sum(amounts[1:], Decimal(0))
@@ -358,12 +417,14 @@ def _website_digest(report: WebsiteRunReport | None) -> dict[str, Any] | None:
 
 async def investigate(request: InvestigationRequest, run_website: WebsiteRunner | None = None) -> Investigation:
     """Run every check for one order. PayPal configuration and provider errors propagate to the caller."""
+    _active_store.set(request.store)
     checks: list[PaymentCheck] = []
     try:
         base = store_url()
         claim, catalog, store_note = await read_store(request.order_id)
     except StoreUnavailable as exc:
-        base = os.environ.get("TESTPILOT_STORE_URL", DEFAULT_STORE_URL)
+        variable, default = _store_setting()
+        base = os.environ.get(variable, default)
         claim, catalog, store_note = None, None, str(exc)
     checks.append(PaymentCheck(
         name="store_claim_found",
@@ -424,10 +485,38 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
                         "parameters": [], "payload_count": 0, "requests": 0,
                         "content_security_policy": False, "limitations": []}
 
-    leaks = find_leaks(claim, order, expected, checks)
+    siblings: list[dict] = []
+    if claim is not None:
+        try:
+            siblings, sibling_note = await sibling_payments(claim)
+        except StoreUnavailable as exc:
+            sibling_note = str(exc)
+        charged = [s for s in siblings if Decimal(s["captured"]) > 0]
+        this_charged = bool(summary) and summary["capture_status"] == "COMPLETED"
+        if sibling_note:
+            checks.append(PaymentCheck(
+                name="no_duplicate_charge", status=CheckStatus.SKIPPED, message=sibling_note, evidence={},
+            ))
+        else:
+            duplicate = bool(charged) and this_charged
+            checks.append(PaymentCheck(
+                name="no_duplicate_charge",
+                status=CheckStatus.FAILED if duplicate else CheckStatus.PASSED,
+                message=(
+                    f"This cart was also charged in {len(charged)} other order(s): "
+                    + ", ".join(f"{s['order_id']} ({s['captured']})" for s in charged) + "."
+                    if duplicate else
+                    f"No other order charged this cart ({len(siblings)} other order(s) opened for it)."
+                ),
+                evidence={"cart_id": claim.get("cart_id"), "other_orders": siblings},
+            ))
+        if not this_charged:
+            siblings = []
+
+    leaks = find_leaks(claim, order, expected, checks, siblings)
     if leaks:
         verdict = "leaking"
-    elif claim and order and all(c.status in {CheckStatus.PASSED, CheckStatus.WARNING} for c in checks):
+    elif claim and order and all(c.status in {CheckStatus.PASSED, CheckStatus.WARNING, CheckStatus.SKIPPED} for c in checks):
         verdict = "healthy"
     else:
         verdict = "review"
@@ -436,6 +525,7 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
         order_id=request.order_id,
         verdict=verdict,
         checked_at=datetime.now(timezone.utc),
+        store=request.store,
         store_url=base,
         store_claim=claim,
         expected_total=_money(expected) if expected is not None else None,

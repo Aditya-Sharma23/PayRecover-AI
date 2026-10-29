@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayTest Vulnerable Store</title>
+  <link rel="stylesheet" href="/static/store.css">
+</head>
+<body>
+<main>
+  <h1>PayTest Vulnerable Store</h1>
+  <p class="warning-banner" role="note"><strong>Deliberately vulnerable, for demos only.</strong> Payments go to PayPal <strong>Sandbox</strong>; no real money moves.</p>
+
+  <section aria-labelledby="bugs-heading">
+    <h2 id="bugs-heading">Bugs to simulate</h2>
+    <p class="note">Tick a bug, pay, then investigate the order in PayTest. The search box below always has a reflected-XSS bug, and this store sends no security headers.</p>
+    <div id="bugs" class="bugs"></div>
+  </section>
+
+  <section aria-labelledby="search-heading">
+    <h2 id="search-heading">Search</h2>
+    <form method="get" action="/">
+      <label for="q">Search products</label>
+      <input id="q" name="q" type="search" placeholder="e.g. mug">
+      <button type="submit">Search</button>
+    </form>
+    {{SEARCH_RESULTS}}
+  </section>
+
+  <section aria-labelledby="cart-heading">
+    <h2 id="cart-heading">Your cart</h2>
+    <table id="cart" data-testid="cart">
+      <thead><tr><th scope="col">Item</th><th scope="col">Price (sent by your browser)</th><th scope="col">Quantity</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="total">Total: <span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></p>
+  </section>
+
+  <section aria-labelledby="pay-heading">
+    <h2 id="pay-heading">Pay</h2>
+    <div id="paypal-buttons" data-testid="paypal-buttons"></div>
+    <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
+      Choose your items, then pay with PayPal.
+    </div>
+    <dl class="order">
+      <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
+      <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
+      <dt>Cart</dt><dd id="cart-id" data-testid="cart-id">none</dd>
+    </dl>
+    <button id="new-cart" type="button">Start a new cart</button>
+  </section>
+</main>
+<script src="/static/store.js"></script>
+</body>
+</html>

@@ -20,7 +20,9 @@ from app.url_policy import UnsafeTarget, validate_target_url
 
 MAX_SCHEMA_BYTES = 512_000
 SCHEMA_PATHS = ("openapi.json", "swagger.json", "api/openapi.json", "v3/api-docs")
-RUN_TIMEOUT_SECONDS = 25
+# At 2 requests per second, a small API with five GET operations needs about 30 seconds;
+# the probe budget for this check is 60.
+RUN_TIMEOUT_SECONDS = 50
 
 
 def _origin(url: str) -> str:

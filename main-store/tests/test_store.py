@@ -18,11 +18,14 @@ CART = {"items": [{"product_id": "tee", "quantity": 2, "unit_price": "0.01"}, {"
 class FakePayPal:
     def __init__(self):
         self.calls = []
+        self.created = 0
 
     async def __call__(self, method, path, body=None, request_id=None):
         self.calls.append((method, path, body, request_id))
         if path == "/v2/checkout/orders":
-            return {"id": "5O190127TN364715T", "status": "CREATED"}
+            # The first order keeps the id the older tests expect; later ones get their own.
+            self.created += 1
+            return {"id": "5O190127TN364715T" if self.created == 1 else f"5O190127TN36471{self.created:02d}", "status": "CREATED"}
         if path.endswith("/capture"):
             return {"purchase_units": [{"payments": {"captures": [{"id": "3C679366HH908993F", "status": "COMPLETED"}]}}]}
         raise AssertionError(f"unexpected PayPal call {method} {path}")
@@ -89,6 +92,25 @@ class StoreTests(unittest.TestCase):
         store_app.orders.clear()
         store_app.orders.update(store_app._load_orders())
         self.assertEqual(self.client.get(f"/api/orders/{order_id}").json()["status"], "PENDING")
+
+    def test_a_paid_cart_cannot_be_paid_again(self):
+        cart = {**CART, "cart_id": "cart-0001-abcd"}
+        first = self.client.post("/api/orders", json=cart).json()["id"]
+        self.client.post(f"/api/orders/{first}/capture")
+        again = self.client.post("/api/orders", json=cart)
+        self.assertEqual(again.status_code, 409)
+        self.assertIn(first, again.json()["detail"])
+
+    def test_a_second_open_order_for_a_paid_cart_is_never_captured(self):
+        cart = {**CART, "cart_id": "cart-0002-abcd"}
+        first = self.client.post("/api/orders", json=cart).json()["id"]
+        second = self.client.post("/api/orders", json=cart).json()["id"]
+        self.client.post(f"/api/orders/{first}/capture")
+        calls = len(self.paypal.calls)
+        self.assertEqual(self.client.post(f"/api/orders/{second}/capture").status_code, 409)
+        self.assertEqual(len(self.paypal.calls), calls)
+        listed = self.client.get("/api/carts/cart-0002-abcd/orders").json()
+        self.assertEqual(sorted(o["status"] for o in listed), ["PAID", "PENDING"])
 
     def test_the_old_defect_switch_is_gone(self):
         self.assertEqual(self.client.get("/api/defects").status_code, 404)

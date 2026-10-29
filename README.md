@@ -25,8 +25,19 @@ A store's "Payment complete" page can be wrong. A browser test can pass while th
 `main-store/` is the PayPal Sandbox checkout PayTest checks, built to pass every check: it prices carts on
 the server and ignores any price the browser sends, marks an order paid only after PayPal captures it,
 sends a strict Content-Security-Policy and the other security headers, documents every response code in
-its OpenAPI schema, and saves orders so they survive a restart. Deliberately vulnerable stores, for showing
-PayTest catching bugs, are kept separate from it.
+its OpenAPI schema, saves orders so they survive a restart, and lets each cart be paid only once.
+
+### The Vulnerable store
+
+`vuln-store/` (port 8200) is a deliberately broken copy for demos, kept apart so the Main store stays clean.
+Tick the bugs to simulate on its page, pay, and investigate the order in PayTest with **Store: Vulnerable**:
+
+| Bug on the page | What PayTest reports |
+|---|---|
+| Charge the price the browser sends (prices are editable) | **Wrong amount** leak, and the price-tampering probe fails |
+| Show "paid" without capturing at PayPal | **Fake paid** or **Never captured** leak |
+| Let the same cart be paid more than once | **Duplicate charge** leak, naming the other order to refund |
+| Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
 ### Catching payment bugs
 
@@ -37,7 +48,7 @@ For every order, PayRecover compares the store's claim with PayPal's record and 
 | Never captured | The store says `PAID`; PayPal says `APPROVED` with no capture |
 | Fake paid | The store says `PAID`; PayPal never received a payment |
 | Wrong amount | PayPal charged less than the catalog total (the server trusted a browser price) |
-| Duplicate charge | PayPal shows more than one capture for the order |
+| Duplicate charge | Another order for the same cart was also captured (or one order captured twice) |
 
 ---
 
@@ -81,6 +92,7 @@ python -m venv .venv
 .venv\Scripts\pip install -r requirements-dev.txt
 .venv\Scripts\python -m playwright install chromium
 .venv\Scripts\pip install -r ..\main-store\requirements.txt
+.venv\Scripts\pip install -r ..\vuln-store\requirements.txt
 cd ..\frontend
 npm ci
 ```
@@ -93,7 +105,9 @@ Copy `backend/.env.example` to `backend/.env`, and `main-store/.env.example` to 
 
 Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. Everything else works without it.
 
-### 3. Run (three terminals)
+The Vulnerable store reuses `main-store/.env`, so it needs no keys of its own.
+
+### 3. Run (four terminals; the Vulnerable store is optional)
 
 ```bash
 cd backend; .\.venv\Scripts\python -m uvicorn app.main:app --port 8000
@@ -104,6 +118,10 @@ cd main-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8
 ```
 
 ```bash
+cd vuln-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8200
+```
+
+```bash
 cd frontend; npm run dev
 ```
 
@@ -111,14 +129,16 @@ cd frontend; npm run dev
 |---|---|
 | http://127.0.0.1:5173 | PayTest dashboard |
 | http://127.0.0.1:8100 | Main store |
+| http://127.0.0.1:8200 | Vulnerable store (demo bugs) |
 | http://127.0.0.1:8000/docs | Backend API docs |
 
 ### 4. Try it
 
 1. In the **Main store**, click **PayPal** and pay with your Sandbox *Personal* (buyer) account.
 2. Copy the **Order** id the store shows.
-3. In the **dashboard**, go to **PayPal checks**, paste the id, choose **Paid and captured**, enter `18.00`, and click **Verify with PayPal**.
-4. All the checks should pass.
+3. In the **dashboard**, open **Investigate order**, keep **Store: Main**, paste the id and click **Run all checks**.
+4. Every check should pass: **Healthy, 0.00 USD at risk**, no XSS, and the store's website checks green.
+5. For a failing case, tick a bug in the **Vulnerable store**, pay there, and investigate with **Store: Vulnerable**.
 
 ---
 
@@ -128,6 +148,7 @@ cd frontend; npm run dev
 backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
 frontend/     React dashboard (Vite)
 main-store/   The PayPal Sandbox checkout PayTest checks, built to pass every check
+vuln-store/   A deliberately vulnerable copy with switchable payment bugs, for demos only
 demo-site/    Static pages published to GitHub Pages as a public website-test target
 docs/         Setup, API contract, deployment, threat model and design decisions
 scripts/      Local start and validation helpers
@@ -144,10 +165,14 @@ cd main-store; ..\backend\.venv\Scripts\python -m unittest discover -s tests
 ```
 
 ```bash
+cd vuln-store; ..\backend\.venv\Scripts\python -m unittest discover -s tests
+```
+
+```bash
 cd frontend; npm run lint; npm test
 ```
 
-GitHub Actions runs the backend, main-store and frontend tests and a Docker build on every push.
+GitHub Actions runs the backend, main-store, vuln-store and frontend tests and a Docker build on every push.
 
 ## Deployment
 

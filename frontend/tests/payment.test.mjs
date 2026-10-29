@@ -5,12 +5,14 @@ import { groupChecks, investigationBody, orderIdProblem, sortPayloads } from "..
 test("the investigation body normalizes the order id", () => {
   assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
     order_id: "5O190127TN364715T",
+    store: "main",
     probe_store: true,
     website_checks: true,
     xss_probe: true,
     explain: true,
   });
   assert.equal(investigationBody("5O190127TN364715T", { xss: false }).xss_probe, false);
+  assert.equal(investigationBody("5O190127TN364715T", { store: "vulnerable" }).store, "vulnerable");
   assert.equal(investigationBody("5O190127TN364715T", { probe: false }).probe_store, false);
   assert.equal(investigationBody("5O190127TN364715T", { website: false }).website_checks, false);
 });

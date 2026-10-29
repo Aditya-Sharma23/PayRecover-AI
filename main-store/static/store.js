@@ -1,7 +1,30 @@
 // Main store checkout: the server prices the cart, creates and captures the order.
 // Element ids and data-testid values are stable so PayTest's browser checks can rely on them.
 
-const state = { products: [], quantities: {} };
+const state = { products: [], quantities: {}, cartId: "" };
+const CART_KEY = "paytest-main-cart";
+
+// One id per cart, kept across reloads; a paid cart is replaced by a new one.
+function newCartId() {
+  return crypto.randomUUID();
+}
+
+function loadCartId() {
+  try {
+    return localStorage.getItem(CART_KEY) || newCartId();
+  } catch {
+    return newCartId();
+  }
+}
+
+function saveCartId(cartId) {
+  state.cartId = cartId;
+  try {
+    localStorage.setItem(CART_KEY, cartId);
+  } catch {
+    // Private windows may block storage; the id still lasts for this page.
+  }
+}
 // The page's CSP nonce. PayPal's SDK reads data-csp-nonce and adds it to the inline scripts it creates.
 const cspNonce = document.currentScript?.nonce || "";
 const $ = (id) => document.getElementById(id);
@@ -86,7 +109,10 @@ function renderButtons() {
         throw new Error("empty cart");
       }
       setStatus("creating", "Creating your order...");
-      const order = await api("/api/orders", { method: "POST", body: JSON.stringify({ items: lines }) });
+      const order = await api("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({ items: lines, cart_id: state.cartId }),
+      });
       showOrder({ id: order.id, status: "PENDING" });
       setStatus("approving", `Order ${order.id} for ${order.total} ${order.currency}. Approve it in the PayPal window.`);
       return order.id;
@@ -96,7 +122,10 @@ function renderButtons() {
       try {
         const order = await api(`/api/orders/${data.orderID}/capture`, { method: "POST" });
         showOrder(order);
-        if (order.status === "PAID") setStatus("paid", `Payment complete. Order ${order.order_id} is paid.`);
+        if (order.status === "PAID") {
+          setStatus("paid", `Payment complete. Order ${order.order_id} is paid.`);
+          saveCartId(newCartId());
+        }
         else setStatus("error", `Payment not completed (${order.status}).`);
       } catch (error) {
         setStatus("error", `Payment failed: ${error.message}`);
@@ -114,6 +143,7 @@ function renderButtons() {
 }
 
 async function start() {
+  saveCartId(loadCartId());
   try {
     state.products = await api("/api/products");
     for (const product of state.products) state.quantities[product.id] = product.id === "tee" ? 1 : 0;

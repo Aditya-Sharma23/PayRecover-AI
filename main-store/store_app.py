@@ -6,8 +6,8 @@ order is created and captured on the server, and the store records what it
 *believes* happened so PayTest can compare that belief with PayPal's own record.
 
 The store is meant to pass every PayTest check: every page sends security headers,
-every response code is documented in the OpenAPI schema, and orders are saved to
-a local file so they survive a restart. Deliberately vulnerable stores, for showing
+every response code is documented in the OpenAPI schema, orders are saved to
+a local file so they survive a restart, and a cart can be paid only once. Deliberately vulnerable stores, for showing
 PayTest catching bugs, are built separately.
 """
 
@@ -40,6 +40,7 @@ CATALOG = {
 }
 MAX_QUANTITY = 10
 ORDER_ID_PATTERN = r"^[A-Z0-9]{8,40}$"
+CART_ID_PATTERN = r"^[a-z0-9-]{8,64}$"
 
 # PayPal's checkout script, buttons and popup need these origins; everything else is same-origin.
 PAYPAL_SOURCES = "https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com"
@@ -82,6 +83,7 @@ def _errors(*codes: int) -> dict[int, dict[str, Any]]:
     """Document every error code an endpoint can return, so the OpenAPI schema is complete."""
     text = {
         404: "This store has no such order.",
+        409: "This cart has already been paid.",
         422: "The request did not match the schema.",
         502: "PayPal could not be reached or rejected the request.",
         503: "PayPal Sandbox credentials are not configured.",
@@ -143,6 +145,8 @@ class CreateOrderRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[CartLine] = Field(min_length=1, max_length=len(CATALOG))
+    # The browser's cart. A cart is paid at most once, so a double click or a retry never charges twice.
+    cart_id: str | None = Field(default=None, pattern=CART_ID_PATTERN)
 
 
 class Product(BaseModel):
@@ -176,6 +180,7 @@ class OrderRecord(BaseModel):
     currency: str
     items: list[OrderLine]
     capture_id: str | None = None
+    cart_id: str | None = None
 
 
 def _money(value: Decimal) -> str:
@@ -238,6 +243,23 @@ def price_cart(items: list[CartLine]) -> tuple[list[dict], Decimal]:
 
 
 OrderId = PathParam(pattern=ORDER_ID_PATTERN, description="The PayPal order id the store returned.")
+CartId = PathParam(pattern=CART_ID_PATTERN, description="The cart id the browser sent with its orders.")
+
+
+def _paid_order_for_cart(cart_id: str | None, exclude: str | None = None) -> dict[str, Any] | None:
+    if not cart_id:
+        return None
+    return next(
+        (record for record in orders.values()
+         if record.get("cart_id") == cart_id and record["status"] == "PAID" and record["order_id"] != exclude),
+        None,
+    )
+
+
+def _refuse_paid_cart(cart_id: str | None, exclude: str | None = None) -> None:
+    paid = _paid_order_for_cart(cart_id, exclude)
+    if paid is not None:
+        raise HTTPException(status_code=409, detail=f"This cart has already been paid (order {paid['order_id']}).")
 
 
 @app.get("/api/config", response_model=StoreConfig, responses=_errors(503))
@@ -252,8 +274,9 @@ def products() -> list[dict[str, str]]:
     return [{"id": key, "name": item["name"], "price": _money(item["price"])} for key, item in CATALOG.items()]
 
 
-@app.post("/api/orders", response_model=CreatedOrder, responses=_errors(502, 503))
+@app.post("/api/orders", response_model=CreatedOrder, responses=_errors(409, 502, 503))
 async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
+    _refuse_paid_cart(request.cart_id)
     lines, total = price_cart(request.items)
     body = {
         "intent": "CAPTURE",
@@ -282,6 +305,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         "currency": CURRENCY,
         "items": [{**line, "unit_price": _money(line["unit_price"])} for line in lines],
         "capture_id": None,
+        "cart_id": request.cart_id,
     }
     save_orders()
     return {"id": order["id"], "total": _money(total), "currency": CURRENCY}
@@ -294,11 +318,13 @@ def _known_order(order_id: str) -> dict[str, Any]:
     return record
 
 
-@app.post("/api/orders/{order_id}/capture", response_model=OrderRecord, responses=_errors(404, 502, 503))
+@app.post("/api/orders/{order_id}/capture", response_model=OrderRecord, responses=_errors(404, 409, 502, 503))
 async def capture_order(order_id: str = OrderId) -> dict[str, Any]:
     record = _known_order(order_id)
     if record["status"] == "PAID":
         return record
+    # Two orders opened for one cart (two tabs, a double click): only the first is ever captured.
+    _refuse_paid_cart(record.get("cart_id"), exclude=order_id)
     result = await paypal_request("POST", f"/v2/checkout/orders/{order_id}/capture", {}, f"capture-{order_id}")
     try:
         capture = result["purchase_units"][0]["payments"]["captures"][0]
@@ -324,6 +350,12 @@ def cancel_order(order_id: str = OrderId) -> dict[str, Any]:
 def get_order(order_id: str = OrderId) -> dict[str, Any]:
     """The store's own claim about an order. PayTest checks it against PayPal."""
     return _known_order(order_id)
+
+
+@app.get("/api/carts/{cart_id}/orders", response_model=list[OrderRecord])
+def cart_orders(cart_id: str = CartId) -> list[dict[str, Any]]:
+    """Every order opened for one cart, so a checker can see whether the cart was charged twice."""
+    return [record for record in orders.values() if record.get("cart_id") == cart_id]
 
 
 @app.get("/", include_in_schema=False)

@@ -168,7 +168,7 @@ textarea { display: block; font-family: ui-monospace, SFMono-Regular, Consolas, 
 .payment-result > .check-row-head small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
 .payment-order { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; margin: 12px 0 4px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; }
 .payment-order dt { color: var(--muted); }
-.investigate-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+.investigate-form { display: grid; grid-template-columns: minmax(180px, .7fr) 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
 .investigate-form .field-label { margin: 0; }
 .probe-toggle { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-2); font-size: 12px; }
 .verdict-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }

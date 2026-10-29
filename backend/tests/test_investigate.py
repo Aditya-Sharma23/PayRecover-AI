@@ -7,6 +7,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app import investigate, paypal
 from app.main import app
@@ -34,7 +35,8 @@ def paypal_order(status="COMPLETED", amount="18.00", captures=("18.00",)):
     return {"id": ORDER_ID, "status": status, "intent": "CAPTURE", "purchase_units": [unit]}
 
 
-def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, website_checks=False, xss=None):
+def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, website_checks=False, xss=None,
+        siblings=None, store="main"):
     async def fake_store(_order_id):
         return store_claim, catalog, None if store_claim else "The store has no record of this order."
 
@@ -49,14 +51,20 @@ def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, websi
     async def fake_xss():
         return xss
 
+    async def fake_siblings(_claim):
+        if siblings is None:
+            return [], "The store did not record a cart for this order."
+        return siblings, None
+
     with (
         patch("app.investigate.read_store", fake_store),
         patch("app.paypal.fetch_order", fake_fetch),
         patch("app.investigate.probe_store", fake_probe),
         patch("app.investigate.scan_xss", fake_xss),
+        patch("app.investigate.sibling_payments", fake_siblings),
     ):
         request = InvestigationRequest(
-            order_id=ORDER_ID, explain=False, website_checks=website_checks, xss_probe=xss is not None
+            order_id=ORDER_ID, explain=False, website_checks=website_checks, xss_probe=xss is not None, store=store
         )
         return asyncio.run(investigate.investigate(request, run_website))
 
@@ -172,6 +180,63 @@ class XssSectionTests(unittest.TestCase):
 
     def test_xss_probe_can_be_turned_off(self):
         self.assertIsNone(run(claim(), paypal_order()).xss_scan)
+
+
+class DuplicateChargeTests(unittest.TestCase):
+    SECOND = {"order_id": "9ZZ00000000000002", "store_status": "PAID", "total": "18.00",
+              "paypal_status": "COMPLETED", "captured": "18.00", "capture_ids": ["CAP2"]}
+
+    def statuses(self, result):
+        return {check.name: check.status for check in result.checks}
+
+    def test_a_cart_charged_by_a_second_order_is_a_duplicate(self):
+        result = run(claim(), paypal_order(), siblings=[self.SECOND])
+        self.assertEqual(kinds(result), ["duplicate_charge"])
+        self.assertEqual(result.leaks[0].amount, "18.00")
+        self.assertIn("9ZZ00000000000002", result.leaks[0].recovery)
+        self.assertEqual(self.statuses(result)["no_duplicate_charge"], CheckStatus.FAILED)
+
+    def test_a_second_order_that_was_never_paid_is_fine(self):
+        unpaid = {**self.SECOND, "store_status": "PENDING", "paypal_status": "CREATED", "captured": "0.00", "capture_ids": []}
+        result = run(claim(), paypal_order(), siblings=[unpaid])
+        self.assertEqual(result.leaks, [])
+        self.assertEqual(result.verdict, "healthy")
+        self.assertEqual(self.statuses(result)["no_duplicate_charge"], CheckStatus.PASSED)
+
+    def test_no_duplicate_when_this_order_itself_was_not_charged(self):
+        result = run(claim(), paypal_order(status="APPROVED", captures=()), siblings=[self.SECOND])
+        self.assertEqual(kinds(result), ["never_captured"])
+
+    def test_without_a_cart_the_check_is_skipped_not_failed(self):
+        result = run(claim(), paypal_order())
+        self.assertEqual(self.statuses(result)["no_duplicate_charge"], CheckStatus.SKIPPED)
+        self.assertEqual(result.verdict, "healthy")
+
+    def test_siblings_are_read_from_the_store_and_checked_at_paypal(self):
+        async def fake_store_json(_session, method, path, body=None):
+            self.assertEqual(path, "/api/carts/cart-0001-abcd/orders")
+            return 200, [{"order_id": ORDER_ID, "status": "PAID"}, {"order_id": "9ZZ00000000000002", "status": "PAID"}]
+
+        async def fake_fetch(order_id):
+            self.assertEqual(order_id, "9ZZ00000000000002")
+            return paypal_order()
+
+        with patch("app.investigate._store_json", fake_store_json), patch("app.paypal.fetch_order", fake_fetch):
+            siblings, note = asyncio.run(investigate.sibling_payments({**claim(), "cart_id": "cart-0001-abcd"}))
+        self.assertIsNone(note)
+        self.assertEqual([(s["order_id"], s["captured"]) for s in siblings], [("9ZZ00000000000002", "18.00")])
+
+
+class StorePickerTests(unittest.TestCase):
+    def test_each_store_has_its_own_operator_setting(self):
+        env = {"TESTPILOT_STORE_URL": "http://127.0.0.1:8100", "TESTPILOT_VULN_STORE_URL": "http://127.0.0.1:8200"}
+        with patch.dict(os.environ, env):
+            result = run(claim(), paypal_order(), store="vulnerable")
+        self.assertEqual((result.store, result.store_url), ("vulnerable", "http://127.0.0.1:8200"))
+
+    def test_a_request_cannot_name_a_url(self):
+        with self.assertRaises(ValidationError):
+            InvestigationRequest(order_id=ORDER_ID, store="http://169.254.169.254/")
 
 
 class InvestigationEndpointTests(unittest.TestCase):

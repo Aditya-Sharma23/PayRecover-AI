@@ -2,7 +2,7 @@
 
 export const CHECK_GROUPS = [
   ["Store's claim", ["store_claim_found", "store_claim_matches", "price_integrity"]],
-  ["PayPal's record", ["order_found", "order_status", "capture_completed", "amount_matches", "single_capture"]],
+  ["PayPal's record", ["order_found", "order_status", "capture_completed", "amount_matches", "single_capture", "no_duplicate_charge"]],
   ["Security probes", ["price_tampering_probe"]],
 ];
 
@@ -14,7 +14,8 @@ export const CHECK_LABELS = {
   order_status: "Order status",
   capture_completed: "Payment captured",
   amount_matches: "Amount and currency",
-  single_capture: "Charged only once",
+  single_capture: "Captured only once",
+  no_duplicate_charge: "Cart charged only once",
   price_tampering_probe: "Price tampering probe",
 };
 
@@ -35,8 +36,15 @@ export function orderIdProblem(value) {
   return orderId && !ORDER_ID.test(orderId) ? "Order id must be 8–40 letters and digits, as shown by the store." : null;
 }
 
-export const investigationBody = (value, { probe = true, website = true, xss = true, explain = true } = {}) => ({
+// The stores PayTest can check. Their addresses are operator settings; the dashboard only picks one.
+export const STORES = [
+  ["main", "Main store (port 8100)"],
+  ["vulnerable", "Vulnerable store, demo bugs (port 8200)"],
+];
+
+export const investigationBody = (value, { store = "main", probe = true, website = true, xss = true, explain = true } = {}) => ({
   order_id: normalizeOrderId(value),
+  store,
   probe_store: probe,
   website_checks: website,
   xss_probe: xss,

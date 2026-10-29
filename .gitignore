@@ -22,3 +22,6 @@ Thumbs.db
 
 # Main store order records (local Sandbox data)
 main-store/data/
+
+# Vulnerable store records (local Sandbox data)
+vuln-store/data/

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
 import {
-  CHECK_LABELS, RECOVERY_LABELS, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, groupChecks, investigationBody,
+  CHECK_LABELS, RECOVERY_LABELS, STORES, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, groupChecks, investigationBody,
   normalizeOrderId, orderIdProblem, sortPayloads,
 } from "../lib/payment.js";
 import { groupChecks as groupWebsiteChecks, label as websiteLabel } from "../lib/report.js";
@@ -151,6 +151,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
   const [probe, setProbe] = useState(true);
   const [website, setWebsite] = useState(true);
   const [xss, setXss] = useState(true);
+  const [store, setStore] = useState("main");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -167,7 +168,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     setError(null);
     setResult(null);
     try {
-      const investigation = await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { probe, website, xss }) }, "Investigation failed.");
+      const investigation = await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { store, probe, website, xss }) }, "Investigation failed.");
       setResult(investigation);
       // The store's website scan is a normal run: show it as the latest report and refresh history.
       if (investigation.website_report && onWebsiteReport) onWebsiteReport(investigation.website_report);
@@ -183,6 +184,11 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     </div>
     <p className="hint">Paste an order id. PayRecover reads the store's claim, asks PayPal what really happened, probes the store for the hole behind any leak, scans the store's website, checks it for XSS, and explains it.</p>
     <form className="investigate-form" onSubmit={run}>
+      <label className="field-label">Store
+        <select className="text-input" value={store} onChange={(event) => setStore(event.target.value)}>
+          {STORES.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+        </select>
+      </label>
       <label className="field-label">Order id
         <input className="text-input" type="text" required placeholder="e.g. 5O190127TN364715T" value={orderId} onChange={(event) => setOrderId(event.target.value)} />
       </label>
