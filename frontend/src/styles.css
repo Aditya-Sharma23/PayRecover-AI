@@ -59,7 +59,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .status-pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel); color: var(--text-2); font-size: 11px; }
 .status-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
 .status-pill.online i { background: var(--green); }
-.status-pill i.gemma { background: #b39cff; }
+.status-pill i.ai { background: #b39cff; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-top: 12px; }
 .metric-card { position: relative; display: flex; align-items: center; gap: 11px; min-height: 68px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); }
 .metric-icon { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--red-deep); color: #ff7379; font-size: 18px; }

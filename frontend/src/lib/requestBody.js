@@ -171,7 +171,7 @@ export function formProblems(testType, form) {
   return problems;
 }
 
-// Map Gemma's reviewed plan onto the form. Only fields the user can see and edit are filled.
+// Map the AI's reviewed plan onto the form. Only fields the user can see and edit are filled.
 export function planToForm(plan, allowedChecks) {
   const update = { checks: plan.checks.filter((name) => allowedChecks.includes(name)) };
   if (plan.suggested_expected_text) update.expectedText = plan.suggested_expected_text;

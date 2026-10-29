@@ -517,7 +517,7 @@ class GemmaPlanRequest(BaseModel):
 
 
 class GemmaPlan(BaseModel):
-    """Gemma's reviewable proposal. Suggested inputs are drafts the user must confirm."""
+    """The AI model's reviewable proposal. Suggested inputs are drafts the user must confirm."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -583,7 +583,7 @@ class GemmaExplanation(BaseModel):
     limitations: list[str] = Field(max_length=10)
     next_steps: list[str] = Field(max_length=10)
     risk_level: Literal["HIGH", "REVIEW", "LOW", "UNKNOWN"] = "UNKNOWN"
-    source: str = "Gemma"
+    source: str = "AI"
 
 
 LEAK_KINDS = ("never_captured", "fake_paid", "wrong_amount", "duplicate_charge")
@@ -613,7 +613,7 @@ class Leak(BaseModel):
 
 
 class Investigation(BaseModel):
-    """The full answer for one order. Leaks come only from checks, never from Gemma."""
+    """The full answer for one order. Leaks come only from checks, never from the AI model."""
 
     model_config = ConfigDict(extra="forbid")
 

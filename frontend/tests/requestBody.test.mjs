@@ -56,7 +56,7 @@ test("form problems explain what is missing before a run", () => {
   assert.deepEqual(formProblems("api", { ...base, checks: ["api_status"] }), []);
 });
 
-test("a reviewed Gemma plan and an OpenAPI operation fill the form", () => {
+test("a reviewed AI plan and an OpenAPI operation fill the form", () => {
   const update = planToForm({
     checks: ["text_present", "api_status", "user_flow"],
     suggested_expected_text: "Email is required",

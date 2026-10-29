@@ -1,12 +1,16 @@
-"""Gemma adapter: Google's Generative Language API by default, or a local Ollama server.
+"""AI adapter: Gemini or Gemma through Google's Generative Language API, or a local Ollama server.
 
-Gemma can structure a user goal and explain stored evidence. It cannot execute
+The model can structure a user goal and explain stored evidence. It cannot execute
 checks, create evidence, or change runner classifications.
+
+Settings read TESTPILOT_AI_* first and fall back to the older TESTPILOT_GEMMA_* names,
+so existing .env files keep working.
 """
 
 import asyncio
 import json
 import os
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -22,7 +26,7 @@ from app.schemas import (
     GemmaPlanRequest,
 )
 
-DEFAULT_MODEL = "gemma-4-26b-a4b-it"
+DEFAULT_MODEL = "gemini-3.8-flash"
 DEFAULT_OLLAMA_MODEL = "gemma4"
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 DEFAULT_TIMEOUT_SECONDS = 90
@@ -30,58 +34,86 @@ API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
+# The model that produced the latest answer in this request, which may be a fallback model.
+_answered_by: ContextVar[str | None] = ContextVar("answered_by", default=None)
+
+
+def _env(name: str, default: str = "") -> str:
+    """TESTPILOT_AI_<name>, else the older TESTPILOT_GEMMA_<name>, else the default."""
+    for key in (f"TESTPILOT_AI_{name}", f"TESTPILOT_GEMMA_{name}"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value
+    return default
+
+
+def ai_name(model: str) -> str:
+    """The family name shown to people: Gemini, Gemma, or plain AI for anything else."""
+    lowered = model.lower()
+    if lowered.startswith("gemini"):
+        return "Gemini"
+    if lowered.startswith("gemma"):
+        return "Gemma"
+    return "AI"
+
+
+def answer_source() -> str:
+    """How an explanation's source is labelled, e.g. "Gemini (gemini-3.7-flash)"."""
+    model = _answered_by.get() or str(configuration_status()["model"])
+    return f"{ai_name(model)} ({model})"
+
+
 class GemmaConfigurationError(RuntimeError):
-    """Gemma is not configured for this process."""
+    """The AI model is not configured for this process."""
 
 
 class GemmaProviderError(RuntimeError):
-    """The configured Gemma provider failed or returned invalid output."""
+    """The configured AI provider failed or returned invalid output."""
 
 
 def _settings() -> tuple[str, str]:
     raw_key = os.environ.get("TESTPILOT_GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     api_key = raw_key.strip().strip("\"'") if raw_key else ""
-    model = os.environ.get("TESTPILOT_GEMMA_MODEL", DEFAULT_MODEL).strip()
+    model = _env("MODEL", DEFAULT_MODEL)
     if not api_key:
-        raise GemmaConfigurationError(
-            "Gemma is required but no API key is configured. Set TESTPILOT_GOOGLE_API_KEY."
-        )
+        raise GemmaConfigurationError("No AI API key is configured. Set TESTPILOT_GOOGLE_API_KEY.")
     return api_key, model
 
 
 def _provider() -> str:
-    return os.environ.get("TESTPILOT_GEMMA_PROVIDER", "google").strip().lower() or "google"
+    return _env("PROVIDER", "google").lower()
 
 
 def _ollama_settings() -> tuple[str, str]:
     """Local inference: the Ollama server is chosen by the operator, never by a user request."""
     url = os.environ.get("TESTPILOT_OLLAMA_URL", DEFAULT_OLLAMA_URL).strip().rstrip("/")
-    model = os.environ.get("TESTPILOT_GEMMA_MODEL", DEFAULT_OLLAMA_MODEL).strip()
+    model = _env("MODEL", DEFAULT_OLLAMA_MODEL)
     return url, model
 
 
 def configuration_status() -> dict[str, str | bool]:
     if _provider() == "ollama":
         _, model = _ollama_settings()
-        return {"configured": True, "model": model, "provider": "ollama_local"}
+        return {"configured": True, "model": model, "name": ai_name(model), "provider": "ollama_local"}
     raw_key = os.environ.get("TESTPILOT_GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     return {
         "configured": bool(raw_key and raw_key.strip().strip("\"'")),
-        "model": os.environ.get("TESTPILOT_GEMMA_MODEL", DEFAULT_MODEL),
+        "model": _env("MODEL", DEFAULT_MODEL),
+        "name": ai_name(_env("MODEL", DEFAULT_MODEL)),
         "provider": "google_generative_language_api",
     }
 
 
 def _timeout_seconds() -> int:
     try:
-        configured = int(os.environ.get("TESTPILOT_GEMMA_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS))
+        configured = int(_env("TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS)))
     except ValueError:
         return DEFAULT_TIMEOUT_SECONDS
     return max(5, min(configured, 300))
 
 
 def _answer_text(data: dict[str, Any]) -> str:
-    """Join the answer parts, skipping Gemma 4 reasoning ("thought") parts."""
+    """Join the answer parts, skipping reasoning ("thought") parts."""
     parts = data["candidates"][0]["content"]["parts"]
     text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
     if not text.strip():
@@ -133,16 +165,36 @@ async def _generate_ollama(prompt: str) -> str:
     return str(text)
 
 
-async def _generate(prompt: str) -> str:
-    if _provider() == "ollama":
-        return await _generate_ollama(prompt)
-    api_key, model = _settings()
+# Google answers these when a model is busy or briefly failing; another try, or
+# another model, usually succeeds. Everything else (bad key, bad request) is final.
+RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
+RETRY_DELAY_SECONDS = 2
+# One stalled model must not use the whole budget and starve the fallbacks.
+ATTEMPT_TIMEOUT_SECONDS = 20
+
+
+class _RetryableProviderError(GemmaProviderError):
+    """A busy, overloaded or unreachable provider; worth trying again."""
+
+
+class _StalledProviderError(_RetryableProviderError):
+    """The model did not answer in time; move on to the next model instead of waiting on it again."""
+
+
+def _fallback_models(primary: str) -> list[str]:
+    """Models to try after the primary one, from TESTPILOT_AI_FALLBACK_MODELS (comma-separated)."""
+    raw = _env("FALLBACK_MODELS")
+    models = [name.strip() for name in raw.split(",") if name.strip()]
+    return [name for name in dict.fromkeys(models) if name != primary]
+
+
+async def _generate_google(prompt: str, api_key: str, model: str, timeout_seconds: float) -> str:
     url = f"{API_ROOT}/{quote(model, safe='')}:generateContent"
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
     }
-    timeout = aiohttp.ClientTimeout(total=_timeout_seconds())
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
     try:
         async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
             async with session.post(url, headers={"x-goog-api-key": api_key}, json=payload) as response:
@@ -156,18 +208,52 @@ async def _generate(prompt: str) -> str:
                         message = "unknown provider error"
                         reason = None
                     suffix = f" ({reason})" if reason else ""
-                    raise GemmaProviderError(
-                        f"Gemma provider returned HTTP {response.status}{suffix}: {message}"
-                    )
+                    error = _RetryableProviderError if response.status in RETRYABLE_STATUSES else GemmaProviderError
+                    raise error(f"{model} returned HTTP {response.status}{suffix}: {message}")
     except GemmaProviderError:
         raise
     except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
-        raise GemmaProviderError("Gemma provider could not be reached.") from exc
+        raise _StalledProviderError(f"{model} could not be reached or did not answer in time.") from exc
     try:
         data = json.loads(body)
         return _answer_text(data)
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-        raise GemmaProviderError("Gemma provider returned an incomplete response.") from exc
+        raise GemmaProviderError(f"{model} returned an incomplete response.") from exc
+
+
+async def _generate(prompt: str) -> str:
+    """Ask the primary model twice, then each fallback model once, within one overall time budget.
+
+    A model that stalls is not asked again; a model that answers "busy" gets its second try.
+    """
+    if _provider() == "ollama":
+        _answered_by.set(_ollama_settings()[1])
+        return await _generate_ollama(prompt)
+    api_key, model = _settings()
+    attempts = [model, model, *_fallback_models(model)]
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + _timeout_seconds()
+    failures: list[str] = []
+    stalled: set[str] = set()
+    for index, name in enumerate(attempts):
+        remaining = deadline - loop.time()
+        if remaining < 1:
+            break
+        if name in stalled:
+            continue
+        try:
+            text = await _generate_google(prompt, api_key, name, min(remaining, ATTEMPT_TIMEOUT_SECONDS))
+            _answered_by.set(name)
+            return text
+        except _RetryableProviderError as exc:
+            failures.append(str(exc))
+            if isinstance(exc, _StalledProviderError):
+                stalled.add(name)
+                continue
+            if index + 1 < len(attempts) and deadline - loop.time() > RETRY_DELAY_SECONDS + 1:
+                await asyncio.sleep(RETRY_DELAY_SECONDS)
+    detail = failures[-1] if failures else "the time budget ran out"
+    raise GemmaProviderError(f"The AI provider is busy or unreachable after {len(failures)} attempt(s); last: {detail}")
 
 
 CHECK_GUIDE = {
@@ -228,7 +314,7 @@ async def create_plan(request: GemmaPlanRequest) -> GemmaPlan:
             plan = GemmaPlan.model_validate(core)
         except Exception as exc:
             raise GemmaProviderError("Gemma plan did not match the required schema.") from exc
-        plan.limitations.append("Gemma's suggested inputs were malformed and were dropped.")
+        plan.limitations.append("The AI model's suggested inputs were malformed and were dropped.")
     allowed = WEBSITE_CHECK_NAMES if request.test_type == "website" else API_CHECK_NAMES
     if plan.test_type != request.test_type or any(check not in allowed for check in plan.checks):
         raise GemmaProviderError("Gemma plan used checks outside the requested test type.")
@@ -236,7 +322,7 @@ async def create_plan(request: GemmaPlanRequest) -> GemmaPlan:
 
 
 def risk_level(report: dict[str, Any]) -> str:
-    """Deterministic risk from check statuses; Gemma may raise it, never lower it."""
+    """Deterministic risk from check statuses; the AI model may raise it, never lower it."""
     checks = report.get("checks", [])
     if not checks:
         return "UNKNOWN"
@@ -248,7 +334,7 @@ def risk_level(report: dict[str, Any]) -> str:
 
 
 def builtin_explanation(report: dict[str, Any], reason: str | None = None) -> GemmaExplanation:
-    """Summary built only from the report, used when Gemma is not available."""
+    """Summary built only from the report, used when the AI model is not available."""
     checks = report.get("checks", [])
     problems = [c for c in checks if c["status"] in {"failed", "error"}]
     findings = []
@@ -258,7 +344,7 @@ def builtin_explanation(report: dict[str, Any], reason: str | None = None) -> Ge
     for check in problems:
         findings.append(f"{check['check_id']} {check['status']}: {check['message']}")
     summary = report.get("summary", {})
-    limitations = ["Gemma was not used; this summary was built from the observed check records only."]
+    limitations = ["The AI model was not used; this summary was built from the observed check records only."]
     if reason:
         limitations.append(reason[:300])
     limitations.extend(
@@ -302,7 +388,7 @@ Report JSON:
     value = _extract_json(await _generate(prompt))
     risk = str(value.get("risk_level", "")).upper()
     value["risk_level"] = risk if risk in {"HIGH", "REVIEW", "LOW"} else "UNKNOWN"
-    value["source"] = "Gemma"
+    value["source"] = answer_source()
     try:
         return GemmaExplanation.model_validate(value)
     except Exception as exc:

@@ -149,9 +149,9 @@ def dashboard(http: Request) -> dict[str, int]:
     return dashboard_stats(request_owner(http))
 
 
-@app.get("/api/ai/status", tags=["Gemma"])
+@app.get("/api/ai/status", tags=["AI"])
 def gemma_status() -> dict[str, str | bool]:
-    """Return non-secret Gemma configuration state."""
+    """Return non-secret AI configuration state: model, family name and provider."""
     return configuration_status()
 
 
@@ -313,9 +313,9 @@ def run_html(run_id: UUID, http: Request) -> str:
     return render_report_html(_owned_report(run_id, http))
 
 
-@app.post("/api/ai/plan", response_model=GemmaPlan, tags=["Gemma"])
+@app.post("/api/ai/plan", response_model=GemmaPlan, tags=["AI"])
 async def gemma_plan(request: GemmaPlanRequest) -> GemmaPlan:
-    """Use Gemma to structure a goal without executing or inventing evidence."""
+    """Use the AI model to structure a goal without executing or inventing evidence."""
     try:
         return await create_plan(request)
     except GemmaConfigurationError as exc:
@@ -324,9 +324,9 @@ async def gemma_plan(request: GemmaPlanRequest) -> GemmaPlan:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.post("/api/ai/explain", response_model=GemmaExplanation, tags=["Gemma"])
+@app.post("/api/ai/explain", response_model=GemmaExplanation, tags=["AI"])
 async def gemma_explain(request: GemmaExplanationRequest) -> GemmaExplanation:
-    """Explain a report with Gemma, or with a built-in summary when Gemma is unavailable.
+    """Explain a report with the AI model, or with a built-in summary when it is unavailable.
 
     Neither can change the report's result, and the risk level never drops below
     what the check statuses imply.
@@ -345,7 +345,7 @@ async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerificat
     """Read one order from the PayPal Sandbox Orders API and check it against expectations.
 
     This is the only source PayTest trusts for payment state: not the store's
-    confirmation page, and not Gemma.
+    confirmation page, and not the AI model.
     """
     try:
         return await paypal.verify_order(request)
@@ -360,7 +360,7 @@ async def investigate_order(request: InvestigationRequest, http: Request) -> Inv
     """Run every check for one order id: the store's claim, PayPal's record, store probes,
     a full website scan of the store, and leaks.
 
-    Leaks and money at risk come from the checks alone; Gemma only explains them. The
+    Leaks and money at risk come from the checks alone; the AI model only explains them. The
     website scan is saved to run history like any other run.
     """
     owner = request_owner(http)

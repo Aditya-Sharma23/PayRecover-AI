@@ -17,7 +17,7 @@ A store's "Payment complete" page can be wrong. A browser test can pass while th
 | **PayPal payments** | Reads the order straight from the PayPal Sandbox Orders API: does it exist, is it `COMPLETED`, was it **captured**, and do the order and capture amounts match what the store should have charged? |
 | **Website** | HTTP status, title, headings, console errors, links, security headers, cookies, exposed files, accessibility (axe-core), keyboard focus, response time, scripted user flows (fill, click, expect text), and screenshots on failure |
 | **API** | Status, response time, content type, redirects, size, JSON assertions, JSON Schema, response shape, and OpenAPI contract tests (Schemathesis) |
-| **AI (Gemma 4)** | Turns a plain-English goal into a test plan you review before it runs, and explains a finished report. It never changes a result. |
+| **AI (Gemini)** | Turns a plain-English goal into a test plan you review before it runs, and explains a finished report or order investigation in plain words. It never changes a result. |
 | **History** | Saved runs, side-by-side comparison (fixed / regressed), and self-contained HTML reports |
 
 ### Catching payment bugs
@@ -39,7 +39,7 @@ flowchart LR
     D --> B[PayTest backend<br/>FastAPI]
     B --> R[Browser and HTTP runners<br/>Playwright, aiohttp]
     B --> P[PayPal verifier]
-    B -. plan / explain only .-> G[Gemma 4]
+    B -. plan / explain only .-> G[Gemini]
     R --> S[Demo store<br/>FastAPI + PayPal JS SDK]
     S --> PP[(PayPal Sandbox)]
     P -- read-only GET --> PP
@@ -51,7 +51,7 @@ flowchart LR
 
 ### Design principles
 
-- **Evidence decides, AI advises.** Runners and PayPal's API produce every status; Gemma's output is labelled advisory.
+- **Evidence decides, AI advises.** Runners and PayPal's API produce every status; Gemini's output is labelled advisory, with the model that wrote it.
 - **Sandbox only.** The PayPal API address is hard-coded to `api-m.sandbox.paypal.com`. No setting can point PayTest at live payments.
 - **Read-only.** The verifier only reads orders. Browser runs allow GET/HEAD requests only, and the API runner sends a single GET.
 - **No personal data in evidence.** Payer and payee details are never copied into results.
@@ -81,7 +81,7 @@ On macOS or Linux, use `.venv/bin/` instead of `.venv\Scripts\`.
 
 Copy `backend/.env.example` to `backend/.env`, and `demo-store/.env.example` to `demo-store/.env`, then fill in your Sandbox **Client ID** and **Secret**. Full steps, including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
 
-Optionally, set `TESTPILOT_GOOGLE_API_KEY` in `backend/.env` to turn on Gemma. Everything else works without it.
+Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. Everything else works without it.
 
 ### 3. Run (three terminals)
 
@@ -115,7 +115,7 @@ cd frontend; npm run dev
 ## Project layout
 
 ```
-backend/      FastAPI API: runners, PayPal verifier, Gemma adapter, storage, security
+backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
 frontend/     React dashboard (Vite)
 demo-store/   PayPal Sandbox checkout used as the test target, with switchable defects
 demo-site/    Static pages published to GitHub Pages as a public website-test target
@@ -150,7 +150,8 @@ The PayTest backend and dashboard ship as a single Docker image (`docker compose
 - [x] Controlled defects: amount tampering and confirmation without capture
 - [x] Dashboard panel for payment verification
 - [ ] Playwright checkout scenarios (success and cancellation) driven from the dashboard
-- [ ] Gemma explanations that link payment evidence to browser evidence
+- [x] One order id runs every check: store claim, PayPal record, price probe, website scan
+- [x] Gemini explanations with retries and fallback models
 - [ ] Webhook signature verification check
 - [ ] Hosted demo (Render) and remote browser sessions (Kernel)
 

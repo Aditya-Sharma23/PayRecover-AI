@@ -82,7 +82,7 @@ function Assessment({ report }) {
   const explain = () => { setLoading(true); setAttempt((value) => value + 1); };
   const risk = (explanation?.risk_level || "UNKNOWN").toLowerCase();
   return <section className="ai-overview" aria-label="AI assessment">
-    <div className="section-heading"><h3>{explanation?.source === "Gemma" ? "Gemma assessment" : "Assessment"}</h3>
+    <div className="section-heading"><h3>{explanation && !explanation.error && explanation.source !== "Built-in summary" ? `${explanation.source.split(" (")[0]} assessment` : "Assessment"}</h3>
       {explanation && !explanation.error && <span className={`risk-badge risk-${risk}`}>{explanation.risk_level} RISK</span>}</div>
     {loading && <p className="hint"><span className="spinner" aria-hidden="true" /> Reading the evidence…</p>}
     {!loading && explanation?.error && <p className="hint">{explanation.error}</p>}

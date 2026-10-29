@@ -163,6 +163,6 @@ export default function PaymentPanel({ onOpenReport }) {
     {config?.configured === false && <p className="notice notice-error" role="status">Set TESTPILOT_PAYPAL_CLIENT_ID and TESTPILOT_PAYPAL_CLIENT_SECRET in backend/.env, then restart the backend.</p>}
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {result && <Investigation result={result} onOpenReport={onOpenReport} />}
-    <p className="hint">PayPal is only read, never charged. Payer details are never shown or stored. Gemma explains; the checks decide.</p>
+    <p className="hint">PayPal is only read, never charged. Payer details are never shown or stored. The AI explains; the checks decide.</p>
   </section>;
 }

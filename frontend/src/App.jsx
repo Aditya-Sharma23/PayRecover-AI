@@ -37,11 +37,11 @@ const METRICS = [
   ["accessibility_issues", "Accessibility issues", "♿", "WCAG"],
 ];
 
-function PlanReview({ plan, onApply, onDismiss }) {
+function PlanReview({ plan, aiName, onApply, onDismiss }) {
   if (plan.error) {
-    return <div className="notice notice-error" role="status"><strong>Gemma unavailable</strong><p>{plan.error}</p><p className="hint">Every check still runs without Gemma.</p></div>;
+    return <div className="notice notice-error" role="status"><strong>{aiName} unavailable</strong><p>{plan.error}</p><p className="hint">Every check still runs without {aiName}.</p></div>;
   }
-  return <section className="ai-panel" aria-label="Gemma test plan">
+  return <section className="ai-panel" aria-label={`${aiName} test plan`}>
     <p className="eyebrow">AI suggested plan · review before running</p>
     <p>{plan.rationale}</p>
     <strong>Checks</strong><p><code>{plan.checks.join(", ")}</code></p>
@@ -75,7 +75,8 @@ function CheckPicker({ available, checks, onToggle }) {
 
 export default function App() {
   const [serviceState, setServiceState] = useState("Connecting");
-  const [gemmaState, setGemmaState] = useState("Gemma status unknown");
+  const [aiState, setAiState] = useState("AI status unknown");
+  const [aiName, setAiName] = useState("AI");
   const [testType, setTestType] = useState("website");
   const [mode, setMode] = useState("full");
   const [form, setForm] = useState(INITIAL_FORM);
@@ -95,8 +96,12 @@ export default function App() {
       .then((data) => setServiceState(data.status === "ok" ? "API connected" : "API unavailable"))
       .catch(() => setServiceState("API offline"));
     apiJson("/api/ai/status")
-      .then((data) => setGemmaState(data.configured ? `Gemma ready (${data.model})` : "Gemma off · built-in summaries"))
-      .catch(() => setGemmaState("Gemma status unavailable"));
+      .then((data) => {
+        const name = data.name || "AI";
+        setAiName(name);
+        setAiState(data.configured ? `${name} ready (${data.model})` : `${name} off · built-in summaries`);
+      })
+      .catch(() => setAiState("AI status unavailable"));
     apiJson("/api/me")
       .then(() => setNeedsToken(false))
       .catch((error) => setNeedsToken(/authentication required/.test(error.message)));
@@ -159,13 +164,13 @@ export default function App() {
   }
 
   async function generatePlan() {
-    setBusy("Gemma is drafting a plan…");
+    setBusy(`${aiName} is drafting a plan…`);
     setAiPlan(null);
     try {
       setAiPlan(await apiJson("/api/ai/plan", {
         method: "POST",
         body: { goal, target_url: form.url || null, test_type: testType, authorized: form.authorized },
-      }, "Gemma could not create a plan."));
+      }, `${aiName} could not create a plan.`));
     } catch (error) {
       setAiPlan({ error: error.message });
     } finally { setBusy(null); }
@@ -198,7 +203,7 @@ export default function App() {
       <div className="sidebar-note">
         <span className="shield" aria-hidden="true">⬡</span>
         <strong>Evidence first</strong>
-        <p>Real browser and HTTP runners decide every result. Gemma explains; it never changes a verdict.</p>
+        <p>Real browser and HTTP runners decide every result. {aiName} explains; it never changes a verdict.</p>
       </div>
     </aside>
     <main className="main-content" id="dashboard">
@@ -206,7 +211,7 @@ export default function App() {
         <div><p className="eyebrow">TestPilot AI · final build</p><h1>Testing &amp; Security Overview</h1><p>Website, API, security and accessibility checks in one safe runner.</p></div>
         <div className="date-label">
           <span className={`status-pill ${online ? "online" : ""}`}><i />{serviceState}</span>
-          <span className="status-pill"><i className="gemma" />{gemmaState}</span>
+          <span className="status-pill"><i className="ai" />{aiState}</span>
         </div>
       </section>
 
@@ -248,14 +253,14 @@ export default function App() {
           {(testType === "api" || mode === "custom") && <CheckPicker available={available} checks={form.checks} onToggle={toggleCheck} />}
 
           <details className="advanced-options" open={checks.some((name) => ["text_present", "user_flow", "api_json_assertions", "api_json_schema", "api_json_shape"].includes(name)) || undefined}>
-            <summary>Inputs, Gemma planning and advanced options</summary>
+            <summary>Inputs, {aiName} planning and advanced options</summary>
             <div className="advanced-grid">
               <div>
-                <label className="field-label" htmlFor="test-goal">Testing goal for Gemma</label>
+                <label className="field-label" htmlFor="test-goal">Testing goal for {aiName}</label>
                 <input id="test-goal" className="text-input" type="text" placeholder="e.g. Signing in without a password shows Password is required" value={goal} onChange={(event) => setGoal(event.target.value)} />
-                <button className="secondary-button" type="button" onClick={generatePlan} disabled={!form.authorized || !goal || Boolean(busy)}>Ask Gemma to structure the checks</button>
-                {!form.authorized && goal && <p className="hint">Confirm permission to ask Gemma for a plan.</p>}
-                {aiPlan && <PlanReview plan={aiPlan} onApply={applyPlan} onDismiss={() => setAiPlan(null)} />}
+                <button className="secondary-button" type="button" onClick={generatePlan} disabled={!form.authorized || !goal || Boolean(busy)}>Ask {aiName} to structure the checks</button>
+                {!form.authorized && goal && <p className="hint">Confirm permission to ask {aiName} for a plan.</p>}
+                {aiPlan && <PlanReview plan={aiPlan} aiName={aiName} onApply={applyPlan} onDismiss={() => setAiPlan(null)} />}
                 {testType === "api" && <OpenApiImport onUse={(operation) => set(operationToForm(operation))} />}
               </div>
               <div className="field-stack">
@@ -297,7 +302,7 @@ export default function App() {
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Run a scan, or open one from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 
       <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
-      <footer>TestPilot AI · HTTP · Playwright + axe · security probes · Schemathesis · PayPal Sandbox · Gemma 4</footer>
+      <footer>TestPilot AI · HTTP · Playwright + axe · security probes · Schemathesis · PayPal Sandbox · {aiName}</footer>
     </main>
   </div>;
 }

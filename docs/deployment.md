@@ -46,7 +46,7 @@ docker compose up --build
 # open http://127.0.0.1:8000
 ```
 
-`docker-compose.yml` reads `backend/.env` if it exists (for the Gemma key) and binds to 127.0.0.1 only.
+`docker-compose.yml` reads `backend/.env` if it exists (for the Gemini key) and binds to 127.0.0.1 only.
 
 ## Deploy to Render (blueprint included)
 
@@ -82,6 +82,6 @@ Put a TLS-terminating proxy (the platform's, Caddy or nginx) in front. Set `FORW
 
 Run **one instance**. Rate limiting, the job queue and SQLite are per process. Scaling out would need a shared database (for example PostgreSQL), a shared rate limiter and a shared queue.
 
-## Gemma without Google's API
+## A local model instead of Google's API
 
-Set `TESTPILOT_GEMMA_PROVIDER=ollama`, `TESTPILOT_OLLAMA_URL` (default `http://127.0.0.1:11434`) and `TESTPILOT_GEMMA_MODEL` (for example `gemma4`) to use a local Ollama server instead.
+Set `TESTPILOT_AI_PROVIDER=ollama`, `TESTPILOT_OLLAMA_URL` (default `http://127.0.0.1:11434`) and `TESTPILOT_AI_MODEL` (for example `gemma4`) to use a local Ollama server instead.

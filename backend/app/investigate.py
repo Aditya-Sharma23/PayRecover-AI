@@ -8,7 +8,7 @@ Three sources are checked against each other:
   website checks      TestPilot's full website scan of the store page (Playwright, security,
                       accessibility, contract), run through the normal runners
 The store address is set by the operator (TESTPILOT_STORE_URL), never by the request.
-Leaks and money at risk come only from these checks. Gemma explains them; it cannot
+Leaks and money at risk come only from these checks. The AI model explains them; it cannot
 add, remove or change a leak, and the suggested recovery is never executed here.
 """
 
@@ -265,7 +265,7 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
     problems += [
         {"name": f"website {c['check']}", "message": c["message"]} for c in website if c["status"] in {"failed", "error"}
     ]
-    limitations = ["Gemma was not used; this summary was built from the check records only."]
+    limitations = ["The AI model was not used; this summary was built from the check records only."]
     if reason:
         limitations.append(reason[:300])
     return GemmaExplanation(
@@ -279,7 +279,7 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
 
 
 async def explain(result: dict[str, Any]) -> GemmaExplanation:
-    """Gemma explains for a merchant in plain words; the deterministic risk is a floor it cannot lower."""
+    """The AI model explains for a merchant in plain words; the deterministic risk is a floor it cannot lower."""
     floor = builtin_explanation(result).risk_level
     prompt = f"""Return only JSON matching this schema:
 {{"summary": "string", "findings": ["string"], "limitations": ["string"], "next_steps": ["string"], "risk_level": "HIGH|REVIEW|LOW"}}
@@ -290,12 +290,12 @@ Investigation JSON:
         value = gemma._extract_json(await gemma._generate(prompt))
         risk = str(value.get("risk_level", "")).upper()
         value["risk_level"] = risk if risk in {"HIGH", "REVIEW", "LOW"} else "UNKNOWN"
-        value["source"] = "Gemma"
+        value["source"] = gemma.answer_source()
         explanation = GemmaExplanation.model_validate(value)
     except (gemma.GemmaConfigurationError, gemma.GemmaProviderError) as exc:
         return builtin_explanation(result, str(exc))
     except Exception:
-        return builtin_explanation(result, "Gemma's explanation did not match the required schema.")
+        return builtin_explanation(result, "The AI explanation did not match the required schema.")
     order = ["UNKNOWN", "LOW", "REVIEW", "HIGH"]
     if order.index(explanation.risk_level) < order.index(floor):
         explanation.risk_level = floor

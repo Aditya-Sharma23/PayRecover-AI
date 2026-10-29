@@ -7,7 +7,7 @@ TestPilot AI makes network requests to URLs that users type in, runs a real brow
 - The network the server runs in (cloud metadata at 169.254.169.254, internal services, localhost admin ports).
 - Users' API tokens, request headers they supply (often credentials), and values typed into flows.
 - Each user's run history and screenshots.
-- The Gemma API key.
+- The Gemini (Google AI) API key.
 
 ## Threats and mitigations
 
@@ -19,12 +19,12 @@ TestPilot AI makes network requests to URLs that users type in, runs a real brow
 | A test changes data on the target (form posts, deletes) | Browser: only GET/HEAD reach the network; anything else gets 405. API runner: GET only, no body, no redirects. OpenAPI import only makes GET operations runnable | `test_user_flow_*`, `test_openapi_import` |
 | Resource exhaustion | Request budget (100), 2 MB response cap, 1 MB screenshot cap, run and step timeouts, bounded job queue and workers, YAML aliases refused, `$ref` expansion budget, rate limiting | `test_jobs`, `test_openapi_import` |
 | Header injection / host override via custom headers | Header names must be RFC 7230 tokens; `Host`, `Content-Length`, `Transfer-Encoding`, `Connection`, proxy headers and others refused; values may not contain CR, LF or NUL | `test_unsafe_headers_and_bad_inputs_are_rejected` |
-| Secrets leaking into reports, logs or Gemma | Header values and typed flow values are never stored (only lengths); secret-looking query parameters redacted; page text is not stored; audit log has no credentials or query strings; Gemma only sees the stored report | `test_custom_headers_are_sent_but_never_recorded`, flow test |
+| Secrets leaking into reports, logs or the AI model | Header values and typed flow values are never stored (only lengths); secret-looking query parameters redacted; page text is not stored; audit log has no credentials or query strings; the AI model only sees the stored report | `test_custom_headers_are_sent_but_never_recorded`, flow test |
 | One user reading another's data | Every run, job and screenshot row has an owner; every query filters by the caller's owner; screenshots are served only if one of the caller's reports references them | `test_auth_is_required_and_each_user_sees_only_their_runs` |
 | Token guessing / timing | Tokens ≥ 32 characters in public mode; comparison of SHA-256 digests with `hmac.compare_digest`; rate limiting | `test_security`, `test_deployment` |
 | XSS through target-controlled evidence | React escapes all text; HTML report escapes every value and embeds screenshots as data URIs; accessibility help links are shown only for `https://dequeuniversity.com/`; strict CSP on app responses | `test_report_html` |
 | Untrusted page tampering with in-page checks | Recorded as a limitation on the accessibility check; status checks that matter (HTTP status, console) are observed from outside the page | — |
-| AI inventing results | Gemma never executes anything; plans are validated against the allowed checks; the overall status is derived by the schema validator from check records only; explanations are labelled advisory | `test_gemma`, `test_schemas` |
+| AI inventing results | The AI model never executes anything; plans are validated against the allowed checks; the overall status is derived by the schema validator from check records only; explanations are labelled advisory | `test_gemma`, `test_schemas` |
 | Unsafe public deployment | Public mode refuses to start without auth, strong tokens, rate limiting, audit logging, HTTPS and secrets outside the image; runs move into isolated worker processes | `test_server_refuses_to_start_when_public_gates_fail` |
 
 ## Out of scope / residual risk

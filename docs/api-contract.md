@@ -114,15 +114,15 @@ A destination blocked at run time produces a `blocked` report with every check `
 - `GET /api/artifacts/{id}` — a screenshot, only if one of the caller's reports references it.
 - Retention: runs older than `TESTPILOT_RETENTION_DAYS` (30) or beyond `TESTPILOT_MAX_RUNS_PER_OWNER` (200) are pruned on each save. `GET /api/me` reports the owner and the policy.
 
-## Gemma
+## AI (Gemini)
 
-`POST /api/ai/plan` `{"goal", "target_url", "test_type": "website"|"api", "authorized": true}` → `{goal, test_type, checks, expectations, limitations, rationale, suggested_expected_text, suggested_flow_steps, suggested_json_assertions}`. Suggestions are drafts for the user to review; plans with checks from another test type are rejected, and malformed suggestions are dropped with a note. `POST /api/ai/explain` `{"report": {…}}` → `{summary, findings, limitations, next_steps}`, advisory only. `503` when Gemma is not configured, `502` when the provider fails. `GET /api/ai/status` shows provider and model, never the key.
+`POST /api/ai/plan` `{"goal", "target_url", "test_type": "website"|"api", "authorized": true}` → `{goal, test_type, checks, expectations, limitations, rationale, suggested_expected_text, suggested_flow_steps, suggested_json_assertions}`. Suggestions are drafts for the user to review; plans with checks from another test type are rejected, and malformed suggestions are dropped with a note. `POST /api/ai/explain` `{"report": {…}}` → `{summary, findings, limitations, next_steps}`, advisory only. `503` when no AI key is configured, `502` when the provider fails after its retries and fallback models. `GET /api/ai/status` shows provider, model and family name (`Gemini`, `Gemma` or `AI`), never the key. An explanation's `source` names the model that wrote it, for example `Gemini (gemini-3.7-flash)`.
 
 ## Added in the final build
 
 - `GET /api/checks` returns every check name per test type and the `full_scan` preset.
 - `GET /api/dashboard` returns `total_runs`, `failed_runs`, `security_issues`, `accessibility_issues` and `vulnerabilities` for the caller's stored runs.
-- `POST /api/ai/explain` no longer fails when Gemma is not configured: it returns a built-in summary with `source: "Built-in summary"`. Every explanation carries `risk_level` (`HIGH`, `REVIEW`, `LOW`, `UNKNOWN`), which Gemma can raise but never lower.
+- `POST /api/ai/explain` no longer fails when the AI model is not configured: it returns a built-in summary with `source: "Built-in summary"`. Every explanation carries `risk_level` (`HIGH`, `REVIEW`, `LOW`, `UNKNOWN`), which the AI model can raise but never lower.
 - Website requests accept `max_load_time_ms` (default 5000) and the checks `response_time`, `response_headers`, `body_not_empty`, `keyboard_focus`, `cookie_flags`, `exposed_resources`, `active_probes`, `openapi_contract`.
 - API requests accept `expected_json_example` and the checks `api_json_shape` and `openapi_contract`.
 - Security checks put review items in `evidence.findings` as `{title, severity, detail, recommendation}`.

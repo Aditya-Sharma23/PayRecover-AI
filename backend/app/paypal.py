@@ -1,6 +1,6 @@
 """PayPal Sandbox verifier: reads an order straight from PayPal's Orders API.
 
-A store, a browser page or Gemma can claim a payment succeeded; only this
+A store, a browser page or the AI model can claim a payment succeeded; only this
 module's view of PayPal's own record decides it. The base URL is fixed to the
 Sandbox and cannot be configured, so PayTest can never reach live payments.
 Requests are read-only (GET), and payer details are never copied into evidence.
