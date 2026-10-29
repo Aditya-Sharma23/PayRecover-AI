@@ -1,7 +1,9 @@
-// Demo store checkout: the server prices the cart, creates and captures the order.
+// Main store checkout: the server prices the cart, creates and captures the order.
 // Element ids and data-testid values are stable so PayTest's browser checks can rely on them.
 
 const state = { products: [], quantities: {} };
+// The page's CSP nonce. PayPal's SDK reads data-csp-nonce and adds it to the inline scripts it creates.
+const cspNonce = document.currentScript?.nonce || "";
 const $ = (id) => document.getElementById(id);
 
 function setStatus(stateName, text) {
@@ -18,12 +20,8 @@ function showOrder(order) {
 function cartLines() {
   return state.products
     .filter((product) => state.quantities[product.id] > 0)
-    .map((product) => ({
-      product_id: product.id,
-      quantity: state.quantities[product.id],
-      // Display price from the page. A correct store ignores it and uses its own catalog.
-      unit_price: document.querySelector(`[data-product="${product.id}"]`).dataset.price,
-    }));
+    // Only ids and quantities are sent: the server charges its own catalog price.
+    .map((product) => ({ product_id: product.id, quantity: state.quantities[product.id] }));
 }
 
 function renderCart() {
@@ -69,6 +67,10 @@ function loadSdk(clientId, currency) {
     const script = document.createElement("script");
     const params = new URLSearchParams({ "client-id": clientId, currency, intent: "capture" });
     script.src = `https://www.paypal.com/sdk/js?${params}`;
+    if (cspNonce) {
+      script.nonce = cspNonce;
+      script.dataset.cspNonce = cspNonce;
+    }
     script.onload = resolve;
     script.onerror = () => reject(new Error("PayPal SDK failed to load"));
     document.head.append(script);
@@ -116,11 +118,6 @@ async function start() {
     state.products = await api("/api/products");
     for (const product of state.products) state.quantities[product.id] = product.id === "tee" ? 1 : 0;
     renderCart();
-    const defects = await api("/api/defects");
-    if (defects.active.length) {
-      $("defects").hidden = false;
-      $("defects").textContent = `Controlled defects active: ${defects.active.join(", ")}`;
-    }
     const config = await api("/api/config");
     $("currency").textContent = config.currency;
     await loadSdk(config.paypal_client_id, config.currency);

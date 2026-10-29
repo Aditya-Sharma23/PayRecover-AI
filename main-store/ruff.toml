@@ -1,4 +1,4 @@
-# Lint settings for the demo store, matching the backend. Run: ruff check .
+# Lint settings for the Main store, matching the backend. Run: ruff check .
 target-version = "py312"
 line-length = 120
 

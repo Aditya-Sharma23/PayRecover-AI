@@ -19,3 +19,6 @@ Thumbs.db
 
 # Schemathesis run cache
 .schemathesis/
+
+# Main store order records (local Sandbox data)
+main-store/data/

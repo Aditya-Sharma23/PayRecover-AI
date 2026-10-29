@@ -13,4 +13,3 @@ select { height: 32px; padding: 0 6px; }
 .order { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0 0; }
 .order dt { color: #4a5068; }
 .order dd { margin: 0; font-family: ui-monospace, monospace; }
-.defects { padding: 10px 12px; border-radius: 8px; background: #fbe7e8; color: #a24045; }

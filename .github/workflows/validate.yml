@@ -23,11 +23,11 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: python -m unittest discover -s tests -v
 
-  demo-store:
+  main-store:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: demo-store
+        working-directory: main-store
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

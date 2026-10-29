@@ -1,7 +1,7 @@
 # PayPal Sandbox setup
 
 PayTest uses PayPal **Sandbox only**. The API base `https://api-m.sandbox.paypal.com` is hard-coded in both
-the demo store and the verifier, so no setting can point either at live payments.
+the Main store and the verifier, so no setting can point either at live payments.
 
 ## 1. Create the Sandbox credentials (once)
 
@@ -26,7 +26,7 @@ working at the moment". An account's country cannot be changed, so instead:
 
 ## 2. Configure
 
-`demo-store/.env` (the store being tested):
+`main-store/.env` (the store being tested):
 
 ```
 PAYPAL_CLIENT_ID=<sandbox client id>
@@ -45,7 +45,7 @@ Using the same Sandbox app for both is fine: an app can only read orders it crea
 ## 3. Run
 
 ```powershell
-cd demo-store
+cd main-store
 python -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt
 .\.venv\Scripts\python -m uvicorn store_app:app --port 8100
 ```
@@ -72,26 +72,12 @@ details are never copied into it.
 | `POST /api/orders/{id}/capture` | Captures the approved order (idempotent via `PayPal-Request-Id`) |
 | `POST /api/orders/{id}/cancel` | Records a buyer cancellation |
 | `GET /api/orders/{id}` | What the **store believes** happened, for comparison with PayPal |
-| `GET/POST /api/defects` | Controlled defects (POST needs `STORE_ADMIN_TOKEN`) |
 
-## Controlled defects
-
-| Defect | Bug it simulates | What PayTest sees |
-|---|---|---|
-| `trust_client_price` | Server uses the price the browser sends | `amount_matches` fails: PayPal charged less than the catalog total |
-| `confirm_without_capture` | Store shows "paid" without capturing | Store says `PAID`; PayPal says `APPROVED` with no capture, so `capture_completed` fails |
-
-Enable with `STORE_DEFECTS=trust_client_price` in `demo-store/.env`, or at runtime:
-
-```powershell
-curl.exe -s -X POST http://127.0.0.1:8100/api/defects -H "X-Store-Admin-Token: <token>" `
-  -H "Content-Type: application/json" -d '{"defects": ["confirm_without_capture"]}'
-```
+Every response carries the security headers (a CSP that allows only PayPal's checkout origins, `nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`), every error code is in the OpenAPI
+schema, and orders are saved to `main-store/data/orders.json` (gitignored) so they survive a restart.
 
 ## Not done yet
 
 - Playwright scenarios that drive the checkout, including logging in to PayPal's Sandbox popup (roadmap days 4–5).
-- PayTest's URL policy blocks private and loopback addresses, so a browser run against a store on
-  `127.0.0.1` will be refused. Deploy the store (for example on Render) or add an explicit, opt-in
-  local-target allowance before running the browser checks.
-- Orders live in memory and are lost when the store restarts.
+- Deliberately vulnerable stores for demonstrations are not built yet; the Main store has no switchable bugs.

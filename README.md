@@ -20,14 +20,24 @@ A store's "Payment complete" page can be wrong. A browser test can pass while th
 | **AI (Gemini)** | Turns a plain-English goal into a test plan you review before it runs, and explains a finished report or order investigation in plain words. It never changes a result. |
 | **History** | Saved runs, side-by-side comparison (fixed / regressed), and self-contained HTML reports |
 
+### The Main store
+
+`main-store/` is the PayPal Sandbox checkout PayTest checks, built to pass every check: it prices carts on
+the server and ignores any price the browser sends, marks an order paid only after PayPal captures it,
+sends a strict Content-Security-Policy and the other security headers, documents every response code in
+its OpenAPI schema, and saves orders so they survive a restart. Deliberately vulnerable stores, for showing
+PayTest catching bugs, are kept separate from it.
+
 ### Catching payment bugs
 
-The included demo store has two **controlled defects** you can switch on to show PayTest catching real payment bugs:
+For every order, PayRecover compares the store's claim with PayPal's record and reports these leaks:
 
-| Defect | The bug | What PayTest reports |
-|---|---|---|
-| `trust_client_price` | The server uses the price the browser sends, so the buyer can tamper with the amount | **Amount and currency: failed**. PayPal charged less than the catalog total. |
-| `confirm_without_capture` | The store shows "Payment complete" without capturing the money | The store says `PAID`, but PayPal says `APPROVED` with no capture: **Payment captured: failed** |
+| Leak | What PayTest sees |
+|---|---|
+| Never captured | The store says `PAID`; PayPal says `APPROVED` with no capture |
+| Fake paid | The store says `PAID`; PayPal never received a payment |
+| Wrong amount | PayPal charged less than the catalog total (the server trusted a browser price) |
+| Duplicate charge | PayPal shows more than one capture for the order |
 
 ---
 
@@ -40,12 +50,12 @@ flowchart LR
     B --> R[Browser and HTTP runners<br/>Playwright, aiohttp]
     B --> P[PayPal verifier]
     B -. plan / explain only .-> G[Gemini]
-    R --> S[Demo store<br/>FastAPI + PayPal JS SDK]
+    R --> S[Main store<br/>FastAPI + PayPal JS SDK]
     S --> PP[(PayPal Sandbox)]
     P -- read-only GET --> PP
 ```
 
-1. A buyer pays in the **demo store** with a PayPal Sandbox account. The store prices the cart on its server, creates the PayPal order, and captures it after approval.
+1. A buyer pays in the **Main store** with a PayPal Sandbox account. The store prices the cart on its server, creates the PayPal order, and captures it after approval.
 2. The store records what it **believes** happened (`GET /api/orders/{id}`).
 3. PayTest asks **PayPal** what actually happened (`POST /api/paypal/verify`) and compares the two, check by check, with evidence.
 
@@ -70,7 +80,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\pip install -r requirements-dev.txt
 .venv\Scripts\python -m playwright install chromium
-.venv\Scripts\pip install -r ..\demo-store\requirements.txt
+.venv\Scripts\pip install -r ..\main-store\requirements.txt
 cd ..\frontend
 npm ci
 ```
@@ -79,7 +89,7 @@ On macOS or Linux, use `.venv/bin/` instead of `.venv\Scripts\`.
 
 ### 2. Add PayPal Sandbox keys
 
-Copy `backend/.env.example` to `backend/.env`, and `demo-store/.env.example` to `demo-store/.env`, then fill in your Sandbox **Client ID** and **Secret**. Full steps, including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
+Copy `backend/.env.example` to `backend/.env`, and `main-store/.env.example` to `main-store/.env`, then fill in your Sandbox **Client ID** and **Secret**. Full steps, including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
 
 Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. Everything else works without it.
 
@@ -90,7 +100,7 @@ cd backend; .\.venv\Scripts\python -m uvicorn app.main:app --port 8000
 ```
 
 ```bash
-cd demo-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8100
+cd main-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8100
 ```
 
 ```bash
@@ -100,15 +110,15 @@ cd frontend; npm run dev
 | Open | What |
 |---|---|
 | http://127.0.0.1:5173 | PayTest dashboard |
-| http://127.0.0.1:8100 | Demo store |
+| http://127.0.0.1:8100 | Main store |
 | http://127.0.0.1:8000/docs | Backend API docs |
 
 ### 4. Try it
 
-1. In the **demo store**, click **PayPal** and pay with your Sandbox *Personal* (buyer) account.
+1. In the **Main store**, click **PayPal** and pay with your Sandbox *Personal* (buyer) account.
 2. Copy the **Order** id the store shows.
 3. In the **dashboard**, go to **PayPal checks**, paste the id, choose **Paid and captured**, enter `18.00`, and click **Verify with PayPal**.
-4. All four checks should pass. Then switch on a defect, pay again, and watch PayTest catch it.
+4. All the checks should pass.
 
 ---
 
@@ -117,7 +127,7 @@ cd frontend; npm run dev
 ```
 backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
 frontend/     React dashboard (Vite)
-demo-store/   PayPal Sandbox checkout used as the test target, with switchable defects
+main-store/   The PayPal Sandbox checkout PayTest checks, built to pass every check
 demo-site/    Static pages published to GitHub Pages as a public website-test target
 docs/         Setup, API contract, deployment, threat model and design decisions
 scripts/      Local start and validation helpers
@@ -130,14 +140,14 @@ cd backend; .\.venv\Scripts\python -m unittest discover -s tests
 ```
 
 ```bash
-cd demo-store; ..\backend\.venv\Scripts\python -m unittest discover -s tests
+cd main-store; ..\backend\.venv\Scripts\python -m unittest discover -s tests
 ```
 
 ```bash
 cd frontend; npm run lint; npm test
 ```
 
-GitHub Actions runs the backend, demo-store and frontend tests and a Docker build on every push.
+GitHub Actions runs the backend, main-store and frontend tests and a Docker build on every push.
 
 ## Deployment
 
@@ -145,9 +155,8 @@ The PayTest backend and dashboard ship as a single Docker image (`docker compose
 
 ## Roadmap
 
-- [x] PayPal Sandbox checkout in a controlled demo store
+- [x] PayPal Sandbox checkout in the Main store
 - [x] Independent payment verification against the PayPal Orders API
-- [x] Controlled defects: amount tampering and confirmation without capture
 - [x] Dashboard panel for payment verification
 - [ ] Playwright checkout scenarios (success and cancellation) driven from the dashboard
 - [x] One order id runs every check: store claim, PayPal record, price probe, website scan
