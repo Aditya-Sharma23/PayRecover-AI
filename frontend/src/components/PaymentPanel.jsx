@@ -110,7 +110,7 @@ function Investigation({ result, onOpenReport }) {
   </div>;
 }
 
-export default function PaymentPanel({ onOpenReport }) {
+export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
   const [config, setConfig] = useState(null);
   const [orderId, setOrderId] = useState("");
   const [probe, setProbe] = useState(true);
@@ -131,7 +131,10 @@ export default function PaymentPanel({ onOpenReport }) {
     setError(null);
     setResult(null);
     try {
-      setResult(await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { probe, website }) }, "Investigation failed."));
+      const investigation = await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { probe, website }) }, "Investigation failed.");
+      setResult(investigation);
+      // The store's website scan is a normal run: show it as the latest report and refresh history.
+      if (investigation.website_report && onWebsiteReport) onWebsiteReport(investigation.website_report);
     } catch (reason) {
       setError(reason.message);
     } finally { setBusy(false); }

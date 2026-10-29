@@ -297,7 +297,7 @@ export default function App() {
           : "One bounded GET is sent. Redirects, request bodies and non-public destinations are blocked. Header values are never stored."}</p>
       </section>
 
-      <PaymentPanel onOpenReport={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
+      <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
 
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Run a scan, or open one from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 

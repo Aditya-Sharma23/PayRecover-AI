@@ -105,7 +105,9 @@ def _cli() -> str | None:
 
 
 def _run_cli(command: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(command, capture_output=True, text=True, timeout=RUN_TIMEOUT_SECONDS, check=False,
+    # Decode as UTF-8 explicitly: Windows would use its ANSI code page and crash on Schemathesis output.
+    return subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          timeout=RUN_TIMEOUT_SECONDS, check=False,
                           # Plain UTF-8: Schemathesis crashes on an inherited "utf-8:surrogateescape".
                           env={**os.environ, "NO_COLOR": "1", "PYTHONIOENCODING": "utf-8"})
 
