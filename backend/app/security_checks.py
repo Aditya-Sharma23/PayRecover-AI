@@ -6,7 +6,6 @@ Probes are read-only: GET or HEAD, no redirects, no cookies kept, small bodies.
 """
 
 import asyncio
-import secrets
 import socket
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit, urlunsplit
@@ -127,23 +126,17 @@ async def exposure_check(target: str) -> dict:
 
 
 async def active_probe_check(target: str) -> dict:
-    """An inert HTML canary and unauthenticated GETs of common admin routes."""
-    findings: list[dict] = []
-    marker = "<testpilot-probe-" + secrets.token_hex(8) + ">"
-    parts = urlsplit(target)
-    query = (parts.query + "&" if parts.query else "") + "testpilot_probe=" + marker
-    canary_url = urlunsplit((parts.scheme, parts.netloc, parts.path or "/", query, ""))
-    response, error = await _safe(fetch_probe(canary_url, "GET", MAX_PROBE_BODY_BYTES))
-    canary = {"error": error} if error else {
-        "status_code": response.status, "reflected": marker.encode("ascii") in response.body,
+    """The inert reflected-XSS payload set and unauthenticated GETs of common admin routes."""
+    from app import xss_probe
+
+    xss = await xss_probe.scan(target)
+    findings: list[dict] = list(xss["findings"])
+    canary = {
+        "reflected": xss["status"] == "failed",
+        "payloads_tested": xss["payload_count"],
+        "parameters_tested": len(xss["parameters"]),
+        "summary": xss["summary"],
     }
-    if canary.get("reflected"):
-        findings.append(finding(
-            "Potential reflected HTML injection",
-            "medium",
-            "An inert HTML canary in a query parameter came back unescaped. No script was run, so this is not proof of XSS.",
-            "Encode output for its HTML or JavaScript context and validate the affected input.",
-        ))
     routes = []
     for path in ACCESS_CONTROL_PATHS:
         response, error = await _safe(fetch_probe(_origin_url(target, path), "GET", 4096))
@@ -160,4 +153,4 @@ async def active_probe_check(target: str) -> dict:
                 f"An unauthenticated GET of {path} returned HTTP 200 without login text. This is a lead, not proof.",
                 "Confirm the route requires authorization, using a browser that is not signed in.",
             ))
-    return {"canary": canary, "routes": routes, "findings": findings}
+    return {"canary": canary, "xss": xss, "routes": routes, "findings": findings}

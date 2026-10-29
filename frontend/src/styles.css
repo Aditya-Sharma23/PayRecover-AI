@@ -193,6 +193,13 @@ textarea { display: block; font-family: ui-monospace, SFMono-Regular, Consolas, 
 .record-card .payment-order { margin: 6px 0 0; padding-top: 0; border-top: 0; }
 .check-section { margin-top: 14px; }
 .check-section > .secondary-button { margin-top: 10px; }
+.xss-section .leak-card { margin-top: 8px; }
+.xss-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.xss-table th { padding: 6px 12px; color: var(--muted); font-weight: 600; text-align: left; border-bottom: 1px solid var(--line); }
+.xss-table td { padding: 7px 12px; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.xss-table td strong { display: block; }
+.xss-table td code { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+@media (max-width: 650px) { .xss-table th:nth-child(2), .xss-table td:nth-child(2) { display: none; } }
 .website-group { margin-top: 6px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
 .website-group summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; cursor: pointer; font-size: 12px; font-weight: 700; }
 .website-group .check-row { margin: 0 12px; }

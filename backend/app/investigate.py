@@ -7,6 +7,8 @@ Three sources are checked against each other:
                       (no money moves)
   website checks      TestPilot's full website scan of the store page (Playwright, security,
                       accessibility, contract), run through the normal runners
+  XSS probe           15 inert reflected-XSS payloads in 15 parameters and the URL path
+                      of the store page, reported as its own section (app.xss_probe)
 The store address is set by the operator (TESTPILOT_STORE_URL), never by the request.
 Leaks and money at risk come only from these checks. The AI model explains them; it cannot
 add, remove or change a leak, and the suggested recovery is never executed here.
@@ -22,7 +24,7 @@ from typing import Any
 
 import aiohttp
 
-from app import gemma, paypal
+from app import gemma, paypal, xss_probe
 from app.schemas import (
     CheckStatus,
     GemmaExplanation,
@@ -241,8 +243,8 @@ def find_leaks(
     return leaks
 
 
-def _risk(leaks: list[Leak], checks: list[PaymentCheck]) -> str:
-    if leaks or any(c.status == CheckStatus.FAILED for c in checks):
+def _risk(leaks: list[Leak], checks: list[PaymentCheck], xss_status: str | None = None) -> str:
+    if leaks or xss_status == "failed" or any(c.status == CheckStatus.FAILED for c in checks):
         return "HIGH"
     if any(c.status != CheckStatus.PASSED for c in checks):
         return "REVIEW"
@@ -265,6 +267,9 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
     problems += [
         {"name": f"website {c['check']}", "message": c["message"]} for c in website if c["status"] in {"failed", "error"}
     ]
+    xss = result.get("xss_scan") or {}
+    if xss.get("status") in {"failed", "warning"}:
+        problems.append({"name": "xss_probe", "message": xss["summary"]})
     limitations = ["The AI model was not used; this summary was built from the check records only."]
     if reason:
         limitations.append(reason[:300])
@@ -272,8 +277,13 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
         summary=summary,
         findings=[f"{c['name']}: {c['message']}" for c in problems][:10],
         limitations=limitations,
-        next_steps=[leak["recovery"] for leak in leaks][:5] + [leak["root_cause"] for leak in leaks][:5],
-        risk_level=_risk([Leak(**leak) for leak in leaks], [PaymentCheck(**c) for c in result["checks"]]),
+        next_steps=(
+            [leak["recovery"] for leak in leaks][:4] + [leak["root_cause"] for leak in leaks][:4]
+            + ([f["recommendation"] for f in xss.get("findings", [])][:1])
+        ),
+        risk_level=_risk(
+            [Leak(**leak) for leak in leaks], [PaymentCheck(**c) for c in result["checks"]], xss.get("status")
+        ),
         source="Built-in summary",
     )
 
@@ -283,7 +293,7 @@ async def explain(result: dict[str, Any]) -> GemmaExplanation:
     floor = builtin_explanation(result).risk_level
     prompt = f"""Return only JSON matching this schema:
 {{"summary": "string", "findings": ["string"], "limitations": ["string"], "next_steps": ["string"], "risk_level": "HIGH|REVIEW|LOW"}}
-You are helping a small online merchant. Explain this payment investigation in plain, simple words: what went wrong with the order, how much money is at risk, why it happened (the root cause), and what the merchant should do. Use only the checks, leaks and evidence below. Never add a leak, change an amount, or say a failed check passed. Recovery actions need the merchant's approval; do not say they were done.
+You are helping a small online merchant. Explain this payment investigation in plain, simple words: what went wrong with the order, how much money is at risk, why it happened (the root cause), whether the XSS probe found cross-site scripting on the store, and what the merchant should do. Use only the checks, leaks and evidence below. Never add a leak, change an amount, or say a failed check passed. Recovery actions need the merchant's approval; do not say they were done.
 Investigation JSON:
 {json.dumps(result, separators=(',', ':'), default=str)}"""
     try:
@@ -309,6 +319,29 @@ async def scan_store(run_website: WebsiteRunner) -> WebsiteRunReport:
         return await run_website(WebsiteRunRequest(
             url=url, authorization_confirmed=True, checks=list(FULL_SCAN_CHECKS),
         ))
+
+
+async def scan_xss() -> dict[str, Any]:
+    """The reflected-XSS probe against the store page, allowed past the private-address rule for this origin only."""
+    url = f"{store_url()}/"
+    with trusted_origin(url):
+        return await xss_probe.scan(url)
+
+
+def _xss_digest(scan: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Outcome per payload for the explanation; payload text and raw responses are left out."""
+    if scan is None:
+        return None
+    return {
+        "status": scan["status"],
+        "summary": scan["summary"],
+        "content_security_policy": scan["content_security_policy"],
+        "payloads": [
+            {"label": p["label"], "context": p["context"], "outcome": p["outcome"], "reflected_in": p["reflected_in"][:5]}
+            for p in scan["payloads"]
+        ],
+        "findings": scan["findings"],
+    }
 
 
 def _website_digest(report: WebsiteRunReport | None) -> dict[str, Any] | None:
@@ -380,6 +413,14 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
     website_report = None
     if request.website_checks and run_website is not None and claim is not None:
         website_report = await scan_store(run_website)
+    xss_scan = None
+    if request.xss_probe and claim is not None:
+        try:
+            xss_scan = await scan_xss()
+        except StoreUnavailable as exc:
+            xss_scan = {"status": "error", "summary": str(exc), "payloads": [], "findings": [],
+                        "parameters": [], "payload_count": 0, "requests": 0,
+                        "content_security_policy": False, "limitations": []}
 
     leaks = find_leaks(claim, order, expected, checks)
     if leaks:
@@ -399,12 +440,14 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
         paypal_order=summary,
         checks=checks,
         website_report=website_report,
+        xss_scan=xss_scan,
         leaks=leaks,
         money_at_risk=_money(at_risk),
         currency=currency,
     )
     if request.explain:
-        digest = result.model_dump(mode="json", exclude={"explanation", "website_report"})
+        digest = result.model_dump(mode="json", exclude={"explanation", "website_report", "xss_scan"})
         digest["website_scan"] = _website_digest(website_report)
+        digest["xss_scan"] = _xss_digest(xss_scan)
         result.explanation = await explain(digest)
     return result

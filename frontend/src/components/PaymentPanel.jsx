@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
 import {
-  CHECK_LABELS, RECOVERY_LABELS, VERDICTS, groupChecks, investigationBody, normalizeOrderId, orderIdProblem,
+  CHECK_LABELS, RECOVERY_LABELS, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, groupChecks, investigationBody,
+  normalizeOrderId, orderIdProblem, sortPayloads,
 } from "../lib/payment.js";
 import { groupChecks as groupWebsiteChecks, label as websiteLabel } from "../lib/report.js";
 
@@ -47,6 +48,39 @@ function Explanation({ explanation }) {
     <p>{explanation.summary}</p>
     {explanation.next_steps.length > 0 && <ul>{explanation.next_steps.map((step) => <li key={step}>{step}</li>)}</ul>}
     {explanation.limitations.length > 0 && <small className="hint">{explanation.limitations.join(" ")}</small>}
+  </div>;
+}
+
+function XssScan({ scan }) {
+  const [label, tone] = XSS_VERDICTS[scan.status] || XSS_VERDICTS.error;
+  return <div className="check-section xss-section">
+    <div className="check-row-head">
+      <h3>XSS check (cross-site scripting)</h3>
+      <span className={`badge ${tone}`}>{label}</span>
+    </div>
+    <p className="hint">{scan.summary} {scan.payload_count} payloads · {scan.parameters.length} parameters + URL path · {scan.requests} requests · Content-Security-Policy {scan.content_security_policy ? "present" : "missing"}.</p>
+    {scan.findings.map((item) => <div className="leak-card" key={item.title}>
+      <div className="check-row-head"><strong>{item.title}</strong><span className="leak-amount">{item.severity}</span></div>
+      <p>{item.detail}</p>
+      <p><b>Fix:</b> {item.recommendation}</p>
+    </div>)}
+    {scan.payloads.length > 0 && <details className="website-group" open={scan.status === "failed"}>
+      <summary><span>All {scan.payloads.length} payloads</span><span className={`badge ${tone}`}>{label}</span></summary>
+      <table className="xss-table">
+        <thead><tr><th>Payload</th><th>Context</th><th>Result</th><th>Where</th></tr></thead>
+        <tbody>{sortPayloads(scan.payloads).map((item) => {
+          const [text, cls] = XSS_OUTCOMES[item.outcome] || XSS_OUTCOMES.error;
+          const where = item.reflected_in.length ? item.reflected_in : item.encoded_in || [];
+          return <tr key={item.id}>
+            <td><strong>{item.label}</strong><code>{item.payload}</code></td>
+            <td>{item.context}</td>
+            <td><span className={`badge ${cls}`}>{text}</span></td>
+            <td>{where.length ? where.slice(0, 4).join(", ") + (where.length > 4 ? ` +${where.length - 4}` : "") : "—"}</td>
+          </tr>;
+        })}</tbody>
+      </table>
+    </details>}
+    {scan.limitations?.length > 0 && <small className="hint">{scan.limitations.join(" ")}</small>}
   </div>;
 }
 
@@ -105,6 +139,7 @@ function Investigation({ result, onOpenReport }) {
         <small>{check.message}</small>
       </div>)}
     </div>)}
+    {result.xss_scan && <XssScan scan={result.xss_scan} />}
     {result.website_report && <WebsiteScan report={result.website_report} onOpenReport={onOpenReport} />}
     <details className="raw-evidence"><summary>Raw evidence</summary><pre>{JSON.stringify(result.checks, null, 2)}</pre></details>
   </div>;
@@ -115,6 +150,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
   const [orderId, setOrderId] = useState("");
   const [probe, setProbe] = useState(true);
   const [website, setWebsite] = useState(true);
+  const [xss, setXss] = useState(true);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -131,7 +167,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     setError(null);
     setResult(null);
     try {
-      const investigation = await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { probe, website }) }, "Investigation failed.");
+      const investigation = await apiJson("/api/orders/investigate", { method: "POST", body: investigationBody(orderId, { probe, website, xss }) }, "Investigation failed.");
       setResult(investigation);
       // The store's website scan is a normal run: show it as the latest report and refresh history.
       if (investigation.website_report && onWebsiteReport) onWebsiteReport(investigation.website_report);
@@ -145,7 +181,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
       <div><p className="eyebrow">PayRecover · PayPal Sandbox</p><h2 id="payments-heading">Investigate an order</h2></div>
       <span className={`status-pill ${config?.configured ? "online" : ""}`}><i />{config ? (config.configured ? "Sandbox connected" : "Sandbox keys missing") : "Sandbox status unknown"}</span>
     </div>
-    <p className="hint">Paste an order id. PayRecover reads the store's claim, asks PayPal what really happened, probes the store for the hole behind any leak, scans the store's website, and explains it.</p>
+    <p className="hint">Paste an order id. PayRecover reads the store's claim, asks PayPal what really happened, probes the store for the hole behind any leak, scans the store's website, checks it for XSS, and explains it.</p>
     <form className="investigate-form" onSubmit={run}>
       <label className="field-label">Order id
         <input className="text-input" type="text" required placeholder="e.g. 5O190127TN364715T" value={orderId} onChange={(event) => setOrderId(event.target.value)} />
@@ -161,6 +197,10 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={website} onChange={(event) => setWebsite(event.target.checked)} />
       Run TestPilot website checks on the store (browser, security, accessibility, API contract; about a minute)
+    </label>
+    <label className="scan-options probe-toggle">
+      <input type="checkbox" checked={xss} onChange={(event) => setXss(event.target.checked)} />
+      Run the XSS check on the store (15 inert payloads in 15 parameters and the URL path; nothing is executed)
     </label>
     {problem && <ul className="problem-list"><li>{problem}</li></ul>}
     {config?.configured === false && <p className="notice notice-error" role="status">Set TESTPILOT_PAYPAL_CLIENT_ID and TESTPILOT_PAYPAL_CLIENT_SECRET in backend/.env, then restart the backend.</p>}

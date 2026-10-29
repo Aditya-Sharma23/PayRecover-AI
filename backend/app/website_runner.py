@@ -647,10 +647,14 @@ def _probe_result(name: CheckName, probe: dict, started: float) -> CheckResult:
     if name == CheckName.ACTIVE_PROBES:
         reflected = probe.get("canary", {}).get("reflected")
         status = CheckStatus.FAILED if reflected else CheckStatus.WARNING if findings else CheckStatus.PASSED
+        xss_summary = probe.get("canary", {}).get("summary", "")
         return result(
             status,
-            f"Active probes raised {len(findings)} lead(s) for manual review.",
-            probe, ["Inert canary and unauthenticated GETs only; these are indicators, not proof of a vulnerability."],
+            f"{xss_summary} Active probes raised {len(findings)} lead(s) for manual review.".strip(),
+            probe, [
+                "Inert XSS payloads and unauthenticated GETs only; these are indicators, not proof of a vulnerability.",
+                *probe.get("xss", {}).get("limitations", []),
+            ],
         )
     outcome = probe.get("outcome", "error")
     evidence = {key: value for key, value in probe.items() if key not in {"outcome", "message"}}

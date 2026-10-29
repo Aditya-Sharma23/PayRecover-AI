@@ -34,7 +34,7 @@ def paypal_order(status="COMPLETED", amount="18.00", captures=("18.00",)):
     return {"id": ORDER_ID, "status": status, "intent": "CAPTURE", "purchase_units": [unit]}
 
 
-def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, website_checks=False):
+def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, website_checks=False, xss=None):
     async def fake_store(_order_id):
         return store_claim, catalog, None if store_claim else "The store has no record of this order."
 
@@ -46,12 +46,18 @@ def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, websi
     async def fake_probe(_catalog):
         return probe or []
 
+    async def fake_xss():
+        return xss
+
     with (
         patch("app.investigate.read_store", fake_store),
         patch("app.paypal.fetch_order", fake_fetch),
         patch("app.investigate.probe_store", fake_probe),
+        patch("app.investigate.scan_xss", fake_xss),
     ):
-        request = InvestigationRequest(order_id=ORDER_ID, explain=False, website_checks=website_checks)
+        request = InvestigationRequest(
+            order_id=ORDER_ID, explain=False, website_checks=website_checks, xss_probe=xss is not None
+        )
         return asyncio.run(investigate.investigate(request, run_website))
 
 
@@ -139,6 +145,33 @@ class WebsiteScanTests(unittest.TestCase):
         result = run(None, paypal_order(), run_website=fake_runner, website_checks=True)
         self.assertEqual(calls, [])
         self.assertIsNone(result.website_report)
+
+
+class XssSectionTests(unittest.TestCase):
+    FOUND = {
+        "status": "failed", "summary": "XSS found: 1 of 15 payloads came back unescaped in HTML.",
+        "content_security_policy": False, "payload_count": 15, "parameters": ["q"], "requests": 18,
+        "payloads": [{"label": "Raw HTML tag", "context": "HTML body", "outcome": "unescaped", "reflected_in": ["q"]}],
+        "findings": [{"title": "Reflected XSS: Raw HTML tag", "severity": "high", "detail": "d",
+                      "recommendation": "Encode output for its exact context."}],
+        "limitations": [],
+    }
+
+    def test_xss_is_its_own_section_and_does_not_change_the_money_verdict(self):
+        result = run(claim(), paypal_order(), xss=self.FOUND)
+        self.assertEqual(result.verdict, "healthy")
+        self.assertEqual(result.xss_scan["status"], "failed")
+        self.assertNotIn("xss_probe", [check.name for check in result.checks])
+
+    def test_found_xss_raises_the_risk_and_names_the_fix(self):
+        result = run(claim(), paypal_order(), xss=self.FOUND)
+        digest = result.model_dump(mode="json")
+        explanation = investigate.builtin_explanation(digest)
+        self.assertEqual(explanation.risk_level, "HIGH")
+        self.assertIn("Encode output for its exact context.", explanation.next_steps)
+
+    def test_xss_probe_can_be_turned_off(self):
+        self.assertIsNone(run(claim(), paypal_order()).xss_scan)
 
 
 class InvestigationEndpointTests(unittest.TestCase):

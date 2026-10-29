@@ -280,7 +280,7 @@ CHECK_GUIDE = {
     "keyboard_focus": "pressing Tab reaches an interactive element",
     "cookie_flags": "cookies set Secure, HttpOnly and SameSite",
     "exposed_resources": "HEAD probes for /.env, /.git/HEAD and /backup.zip",
-    "active_probes": "opt-in inert reflection canary and unauthenticated admin-route checks",
+    "active_probes": "opt-in reflected-XSS probe (15 inert payloads in 15 parameters and the URL path) and unauthenticated admin-route checks",
     "openapi_contract": "discover a same-origin OpenAPI schema and run GET-only Schemathesis checks",
 }
 SECURITY_CHECKS = {"security_headers", "cookie_flags", "exposed_resources", "active_probes"}

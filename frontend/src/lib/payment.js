@@ -35,12 +35,35 @@ export function orderIdProblem(value) {
   return orderId && !ORDER_ID.test(orderId) ? "Order id must be 8–40 letters and digits, as shown by the store." : null;
 }
 
-export const investigationBody = (value, { probe = true, website = true, explain = true } = {}) => ({
+export const investigationBody = (value, { probe = true, website = true, xss = true, explain = true } = {}) => ({
   order_id: normalizeOrderId(value),
   probe_store: probe,
   website_checks: website,
+  xss_probe: xss,
   explain,
 });
+
+// XSS probe: overall verdict and per-payload outcome labels, with the badge class each uses.
+export const XSS_VERDICTS = {
+  failed: ["XSS found", "failed"],
+  warning: ["Raw in non-HTML", "warning"],
+  passed: ["No XSS found", "passed"],
+  error: ["Could not run", "error"],
+};
+
+export const XSS_OUTCOMES = {
+  unescaped: ["Unescaped", "failed"],
+  non_html: ["Raw, non-HTML", "warning"],
+  encoded: ["Escaped", "passed"],
+  not_reflected: ["Not reflected", "passed"],
+  error: ["Error", "error"],
+};
+
+// Worst payloads first, so a finding is never below the fold.
+export function sortPayloads(payloads) {
+  const rank = { unescaped: 0, non_html: 1, error: 2, encoded: 3, not_reflected: 4 };
+  return [...payloads].sort((a, b) => (rank[a.outcome] ?? 5) - (rank[b.outcome] ?? 5));
+}
 
 // Checks in display groups; any check the backend adds later lands in a final "Other" group.
 export function groupChecks(checks) {

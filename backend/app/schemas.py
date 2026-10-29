@@ -597,6 +597,7 @@ class InvestigationRequest(BaseModel):
     order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
     probe_store: bool = True
     website_checks: bool = True
+    xss_probe: bool = True
     explain: bool = True
 
 
@@ -626,6 +627,7 @@ class Investigation(BaseModel):
     paypal_order: dict[str, Any] | None = None
     checks: list[PaymentCheck]
     website_report: WebsiteRunReport | None = None
+    xss_scan: dict[str, Any] | None = None
     leaks: list[Leak]
     money_at_risk: str
     currency: str
