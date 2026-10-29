@@ -297,7 +297,9 @@ You are helping a small online merchant. Explain this payment investigation in p
 Investigation JSON:
 {json.dumps(result, separators=(',', ':'), default=str)}"""
     try:
-        value = gemma._extract_json(await gemma._generate(prompt))
+        value = gemma.fit_to_limits(
+            gemma._extract_json(await gemma._generate(prompt)), gemma.EXPLANATION_LISTS, ("summary",)
+        )
         risk = str(value.get("risk_level", "")).upper()
         value["risk_level"] = risk if risk in {"HIGH", "REVIEW", "LOW"} else "UNKNOWN"
         value["source"] = gemma.answer_source()

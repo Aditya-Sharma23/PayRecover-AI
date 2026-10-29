@@ -1,6 +1,8 @@
 import asyncio
+import json
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from app import gemma
@@ -171,6 +173,33 @@ class AiNamingTests(unittest.TestCase):
         self.assertEqual((status["model"], status["name"]), ("gemini-3.8-flash", "Gemini"))
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(gemma.configuration_status()["model"], "gemini-3.8-flash")
+
+
+
+class AnswerLimitTests(unittest.TestCase):
+    def test_long_answers_are_trimmed_not_rejected(self):
+        answer = {
+            "summary": "x" * 2500,
+            "findings": "one finding as a plain string",
+            "limitations": [f"note {n}" for n in range(14)] + ["", "  "],
+            "next_steps": ["fix it"],
+            "risk_level": "review",
+        }
+
+        async def fake_generate(_prompt):
+            return json.dumps(answer)
+
+        with patch("app.gemma._generate", fake_generate):
+            explanation = asyncio.run(gemma.explain_report({"checks": []}))
+        self.assertEqual(len(explanation.summary), gemma.MAX_SUMMARY_CHARS)
+        self.assertEqual(explanation.findings, ["one finding as a plain string"])
+        self.assertEqual(explanation.limitations, [f"note {n}" for n in range(10)])
+        self.assertEqual(explanation.risk_level, "REVIEW")
+
+    def test_no_message_names_gemma_when_it_was_not_used(self):
+        source = (Path(gemma.__file__)).read_text(encoding="utf-8")
+        messages = [line for line in source.splitlines() if "GemmaProviderError(" in line and "Gemma " in line.split("(", 1)[1]]
+        self.assertEqual(messages, [])
 
 
 if __name__ == "__main__":

@@ -121,6 +121,31 @@ def _answer_text(data: dict[str, Any]) -> str:
     return text
 
 
+MAX_LIST_ITEMS = 10
+MAX_SUMMARY_CHARS = 2000
+
+
+def fit_to_limits(value: dict[str, Any], list_fields: tuple[str, ...], text_fields: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Shape an AI answer to the schema limits instead of rejecting it.
+
+    Models often return an eleventh note or one long paragraph; dropping the whole answer for
+    that would throw away a correct explanation. Lists keep their first ten non-empty strings
+    (a lone string becomes a one-item list), and text fields are cut at the length limit.
+    Content is only shortened, never added to.
+    """
+    shaped = dict(value)
+    for name in list_fields:
+        items = shaped.get(name)
+        if isinstance(items, str):
+            items = [items]
+        if isinstance(items, list):
+            shaped[name] = [str(item).strip() for item in items if str(item).strip()][:MAX_LIST_ITEMS]
+    for name in text_fields:
+        if isinstance(shaped.get(name), str):
+            shaped[name] = shaped[name].strip()[:MAX_SUMMARY_CHARS]
+    return shaped
+
+
 def _extract_json(text: str) -> dict[str, Any]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
@@ -130,9 +155,9 @@ def _extract_json(text: str) -> dict[str, Any]:
     try:
         value = json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        raise GemmaProviderError("Gemma returned non-JSON output.") from exc
+        raise GemmaProviderError("The AI model returned non-JSON output.") from exc
     if not isinstance(value, dict):
-        raise GemmaProviderError("Gemma returned a JSON value that was not an object.")
+        raise GemmaProviderError("The AI model returned a JSON value that was not an object.")
     return value
 
 
@@ -151,17 +176,17 @@ async def _generate_ollama(prompt: str) -> str:
             async with session.post(f"{url}/api/chat", json=payload) as response:
                 body = await response.text()
                 if response.status >= 400:
-                    raise GemmaProviderError(f"Local Gemma (Ollama) returned HTTP {response.status}.")
+                    raise GemmaProviderError(f"The local model (Ollama) returned HTTP {response.status}.")
     except GemmaProviderError:
         raise
     except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
-        raise GemmaProviderError("Local Gemma (Ollama) could not be reached.") from exc
+        raise GemmaProviderError("The local model (Ollama) could not be reached.") from exc
     try:
         text = json.loads(body)["message"]["content"]
     except (KeyError, TypeError, json.JSONDecodeError) as exc:
-        raise GemmaProviderError("Local Gemma (Ollama) returned an incomplete response.") from exc
+        raise GemmaProviderError("The local model (Ollama) returned an incomplete response.") from exc
     if not str(text).strip():
-        raise GemmaProviderError("Local Gemma (Ollama) returned an empty answer.")
+        raise GemmaProviderError("The local model (Ollama) returned an empty answer.")
     return str(text)
 
 
@@ -304,7 +329,9 @@ Rules: do not invent expected behavior; use only the goal. Use only the checks l
 
 
 async def create_plan(request: GemmaPlanRequest) -> GemmaPlan:
-    value = _extract_json(await _generate(_plan_prompt(request)))
+    value = fit_to_limits(
+        _extract_json(await _generate(_plan_prompt(request))), ("expectations", "limitations"), ("rationale",)
+    )
     try:
         plan = GemmaPlan.model_validate(value)
     except Exception:
@@ -313,11 +340,11 @@ async def create_plan(request: GemmaPlanRequest) -> GemmaPlan:
         try:
             plan = GemmaPlan.model_validate(core)
         except Exception as exc:
-            raise GemmaProviderError("Gemma plan did not match the required schema.") from exc
+            raise GemmaProviderError("The AI plan did not match the required schema.") from exc
         plan.limitations.append("The AI model's suggested inputs were malformed and were dropped.")
     allowed = WEBSITE_CHECK_NAMES if request.test_type == "website" else API_CHECK_NAMES
     if plan.test_type != request.test_type or any(check not in allowed for check in plan.checks):
-        raise GemmaProviderError("Gemma plan used checks outside the requested test type.")
+        raise GemmaProviderError("The AI plan used checks outside the requested test type.")
     return plan
 
 
@@ -379,17 +406,20 @@ async def explain_with_fallback(report: dict[str, Any]) -> GemmaExplanation:
     return explanation
 
 
+EXPLANATION_LISTS = ("findings", "limitations", "next_steps")
+
+
 async def explain_report(report: dict[str, Any]) -> GemmaExplanation:
     prompt = f"""Return only JSON matching this schema:
 {{"summary": "string", "findings": ["string"], "limitations": ["string"], "next_steps": ["string"], "risk_level": "HIGH|REVIEW|LOW"}}
 Explain this execution report. Use only its observed checks, evidence, statuses, and limitations. Never change its overall_status, claim unobserved facts, or imply that a failed/skipped/error check passed.
 Report JSON:
 {json.dumps(report, separators=(',', ':'))}"""
-    value = _extract_json(await _generate(prompt))
+    value = fit_to_limits(_extract_json(await _generate(prompt)), EXPLANATION_LISTS, ("summary",))
     risk = str(value.get("risk_level", "")).upper()
     value["risk_level"] = risk if risk in {"HIGH", "REVIEW", "LOW"} else "UNKNOWN"
     value["source"] = answer_source()
     try:
         return GemmaExplanation.model_validate(value)
     except Exception as exc:
-        raise GemmaProviderError("Gemma explanation did not match the required schema.") from exc
+        raise GemmaProviderError("The AI explanation did not match the required schema.") from exc
