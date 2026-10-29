@@ -1,8 +1,0 @@
-{
-  "format_version": 1,
-  "schemathesis_version": "4.32.7",
-  "schema_location": "C:\\Users\\Aditya\\AppData\\Local\\Temp\\testpilot-schema-4kw6zcu6\\openapi.json",
-  "base_url": "http://127.0.0.1:8100",
-  "created_at": "2026-10-29T19:16:36.233995+00:00",
-  "tls_verify": true
-}
