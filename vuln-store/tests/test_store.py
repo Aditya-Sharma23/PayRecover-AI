@@ -80,6 +80,12 @@ class VulnerableStoreTests(unittest.TestCase):
         self.assertNotIn("content-security-policy", response.headers)
         self.assertNotIn("x-frame-options", response.headers)
 
+    def test_recent_orders_are_listed_newest_first(self):
+        first, _ = self.pay()
+        self.bugs("allow_double_payment")
+        second, _ = self.pay()
+        self.assertEqual([o["order_id"] for o in self.client.get("/api/recent-orders").json()], [second, first])
+
     def test_unknown_bugs_are_rejected(self):
         self.assertEqual(self.client.post("/api/bugs", json={"bugs": ["rm_rf"]}).status_code, 422)
 

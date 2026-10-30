@@ -87,6 +87,18 @@ class InvestigationTests(unittest.TestCase):
         self.assertEqual(result.leaks[0].recovery_action, "capture")
         self.assertEqual(result.money_at_risk, "18.00")
 
+    def test_a_never_captured_payment_is_urgent_and_timed_from_paypal(self):
+        order = {**paypal_order(status="APPROVED", captures=()), "update_time": "2026-10-31T09:15:42Z"}
+        leak = run(claim(), order).leaks[0]
+        self.assertEqual(leak.urgency, "now")
+        self.assertEqual(leak.waiting_since.isoformat(), "2026-10-31T09:15:42+00:00")
+
+    def test_a_fake_paid_order_the_buyer_never_approved_cannot_be_invoiced(self):
+        leak = run(claim(), paypal_order(status="CREATED", captures=())).leaks[0]
+        self.assertEqual(leak.kind, "fake_paid")
+        self.assertEqual(leak.targets, [])
+        self.assertIn("Hold the shipment", leak.recovery)
+
     def test_paid_but_missing_at_paypal_is_fake_paid(self):
         result = run(claim(), None)
         self.assertEqual(kinds(result), ["fake_paid"])

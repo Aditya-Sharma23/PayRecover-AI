@@ -18,6 +18,7 @@ import os
 import re
 import tempfile
 import time
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any, Literal
@@ -236,7 +237,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
     orders[order["id"]] = {
         "order_id": order["id"], "status": "PENDING", "total": _money(total), "currency": CURRENCY,
         "items": [{**line, "unit_price": _money(line["unit_price"])} for line in lines],
-        "capture_id": None, "cart_id": request.cart_id,
+        "capture_id": None, "cart_id": request.cart_id, "created_at": datetime.now(timezone.utc).isoformat(),
     }
     save()
     return {"id": order["id"], "total": _money(total), "currency": CURRENCY}
@@ -276,6 +277,11 @@ def cancel_order(order_id: str = OrderId) -> dict[str, Any]:
 @app.get("/api/orders/{order_id}")
 def get_order(order_id: str = OrderId) -> dict[str, Any]:
     return _known_order(order_id)
+
+
+@app.get("/api/recent-orders")
+def recent_orders(limit: int = Query(default=25, ge=1, le=100)) -> list[dict[str, Any]]:
+    return list(reversed(list(orders.values())))[:limit]
 
 
 @app.get("/api/carts/{cart_id}/orders")

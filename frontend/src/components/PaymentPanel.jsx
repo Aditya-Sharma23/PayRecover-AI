@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { apiJson } from "../api/client.js";
+import { apiJson, openHtmlPage } from "../api/client.js";
 import {
-  CHECK_LABELS, RECOVERY_LABELS, RECOVERY_STATUS, STORES, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, approvalQuestion,
+  CHECK_LABELS, RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, approvalQuestion,
+  evidencePath, waitingText,
   groupChecks, investigationBody, recoveryBody,
   normalizeOrderId, orderIdProblem, sortPayloads,
 } from "../lib/payment.js";
@@ -32,6 +33,27 @@ function RecoveryOutcome({ record }) {
   </div>;
 }
 
+export function WaitingClock({ since }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span className="waiting-clock">⏱ {waitingText(since, now)}</span>;
+}
+
+export function EvidenceButton({ orderId, store }) {
+  const [error, setError] = useState(null);
+  async function open() {
+    setError(null);
+    try { await openHtmlPage(evidencePath(orderId, store)); } catch (reason) { setError(reason.message); }
+  }
+  return <>
+    <button className="secondary-button" type="button" onClick={open} title="A printable page for a PayPal dispute or chargeback">Evidence pack</button>
+    {error && <small className="notice-error">{error}</small>}
+  </>;
+}
+
 function LeakCard({ leak, orderId, store, onRecovered }) {
   const [busy, setBusy] = useState(false);
   const [record, setRecord] = useState(null);
@@ -55,9 +77,12 @@ function LeakCard({ leak, orderId, store, onRecovered }) {
       <strong>{leak.title}</strong>
       <span className="leak-amount">{leak.amount} {leak.currency}</span>
     </div>
+    <p className="leak-urgency"><span className={`badge ${URGENCY[leak.urgency]?.[1] || "skipped"}`}>{URGENCY[leak.urgency]?.[0] || leak.urgency}</span>
+      {leak.waiting_since && <WaitingClock since={leak.waiting_since} />}</p>
     <p><b>Why:</b> {leak.root_cause}</p>
     <p><b>Recover:</b> {leak.recovery}</p>
-    {!record && <button className="danger-button approve-button" type="button" disabled={busy || !leak.targets?.length} onClick={approve}>
+    {!record && !leak.targets?.length && <p className="notice" role="note">No PayPal action is possible for this leak, so there is nothing to approve: hold the shipment.</p>}
+    {!record && leak.targets?.length > 0 && <button className="danger-button approve-button" type="button" disabled={busy} onClick={approve}>
       {busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</> : `Approve: ${RECOVERY_LABELS[leak.recovery_action]} ${leak.amount} ${leak.currency}`}
     </button>}
     {record && <RecoveryOutcome record={record} />}
@@ -150,6 +175,7 @@ function Investigation({ result, onOpenReport, onRecovered }) {
       <div className="verdict-money">
         <span>Money at risk</span>
         <b>{result.money_at_risk} {result.currency}</b>
+        <EvidenceButton orderId={result.order_id} store={result.store} />
       </div>
     </div>
 

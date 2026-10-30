@@ -112,6 +112,14 @@ class StoreTests(unittest.TestCase):
         listed = self.client.get("/api/carts/cart-0002-abcd/orders").json()
         self.assertEqual(sorted(o["status"] for o in listed), ["PAID", "PENDING"])
 
+    def test_recent_orders_are_listed_newest_first(self):
+        first = self.client.post("/api/orders", json={**CART, "cart_id": "cart-0003-abcd"}).json()["id"]
+        second = self.client.post("/api/orders", json={**CART, "cart_id": "cart-0004-abcd"}).json()["id"]
+        listed = self.client.get("/api/recent-orders", params={"limit": 5}).json()
+        self.assertEqual([o["order_id"] for o in listed], [second, first])
+        self.assertTrue(listed[0]["created_at"])
+        self.assertEqual(self.client.get("/api/recent-orders", params={"limit": 0}).status_code, 422)
+
     def test_the_old_defect_switch_is_gone(self):
         self.assertEqual(self.client.get("/api/defects").status_code, 404)
         self.assertFalse(hasattr(store_app, "KNOWN_DEFECTS"))

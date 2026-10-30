@@ -25,7 +25,7 @@ export const VERDICTS = {
   review: ["Needs review", "warning", "Some checks could not be completed."],
 };
 
-export const RECOVERY_LABELS = { capture: "Capture payment", invoice: "Send invoice", refund: "Refund extra charge" };
+export const RECOVERY_LABELS = { capture: "Capture payment", invoice: "Send invoice", refund: "Refund extra charge", hold_shipment: "Hold shipment" };
 
 // Recovery outcomes: label and badge class.
 export const RECOVERY_STATUS = {
@@ -115,4 +115,42 @@ export function groupChecks(checks) {
   const groups = CHECK_GROUPS.map(([title, names]) => [title, checks.filter((check) => names.includes(check.name))]);
   const other = checks.filter((check) => !known.has(check.name));
   return [...groups, ["Other", other]].filter(([, items]) => items.length > 0);
+}
+
+// How soon to act on a leak: label and badge class.
+export const URGENCY = {
+  now: ["Act now", "failed"],
+  soon: ["Soon", "warning"],
+  normal: ["Normal", "skipped"],
+};
+
+// "Buyer approved 2h 14m ago" from PayPal's own timestamp; null when PayPal gave none.
+export function waitingText(since, now = Date.now()) {
+  if (!since) return null;
+  const minutes = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60000));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const rest = minutes % 60;
+  const span = days ? `${days}d ${hours}h` : hours ? `${hours}h ${rest}m` : `${rest}m`;
+  return `Buyer approved ${span} ago, still not captured`;
+}
+
+export const evidencePath = (orderId, store) => `/api/orders/${encodeURIComponent(orderId)}/evidence?store=${encodeURIComponent(store)}`;
+
+export const scanBody = (store, limit = 25) => ({ store, limit, explain: true });
+
+// One grid row per leak, in the scan's ranked order.
+export function scanRows(result) {
+  let rank = 0;
+  return result.items.flatMap((item) => item.leaks.map((leak) => ({
+    id: `${item.order_id}-${leak.kind}`,
+    rank: (rank += 1),
+    order_id: item.order_id,
+    leak,
+    title: leak.title,
+    amount: `${leak.amount} ${leak.currency}`,
+    urgency: leak.urgency,
+    waiting_since: leak.waiting_since,
+    action: leak.recovery_action,
+  })));
 }

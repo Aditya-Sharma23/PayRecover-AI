@@ -242,6 +242,14 @@ def _claim_check(claim: dict, summary: dict | None) -> PaymentCheck:
     )
 
 
+def _paypal_time(value: Any) -> datetime | None:
+    """PayPal timestamps look like 2026-10-31T09:15:42Z."""
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def find_leaks(
     claim: dict | None, order: dict | None, expected: Decimal | None, checks: list[PaymentCheck],
     siblings: list[dict] | None = None,
@@ -256,16 +264,24 @@ def find_leaks(
     if price_hole:
         capture_hole += " It also trusts prices sent by the browser."
     if order is None or order.get("status") not in {"APPROVED", "COMPLETED"}:
+        # PayPal only knows the buyer once they approved; without that there is nobody to invoice.
+        buyer_known = bool(((order or {}).get("payer") or {}).get("email_address"))
         return [Leak(
-            kind="fake_paid", title="Marked paid, but PayPal never received a payment",
+            kind="fake_paid", title="Marked paid, but PayPal never received a payment", urgency="soon",
             amount=_money(expected), currency=currency, root_cause=capture_hole, recovery_action="invoice",
-            recovery=f"Send the buyer a PayPal invoice for {_money(expected)} {currency}, or hold the shipment.",
-            targets=[RecoveryTarget(order_id=claim["order_id"], amount=_money(expected))],
+            recovery=(
+                f"Send the buyer a PayPal invoice for {_money(expected)} {currency}, or hold the shipment."
+                if buyer_known else
+                f"Hold the shipment: the buyer never approved this payment, so PayPal has nobody to invoice for "
+                f"{_money(expected)} {currency}. Contact the buyer or cancel the order."
+            ),
+            targets=[RecoveryTarget(order_id=claim["order_id"], amount=_money(expected))] if buyer_known else [],
         )]
     captures = [c for c in _captures(order) if c.get("status") == "COMPLETED"]
     if not captures:
         return [Leak(
-            kind="never_captured", title="Buyer approved, but the money was never captured",
+            kind="never_captured", title="Buyer approved, but the money was never captured", urgency="now",
+            waiting_since=_paypal_time(order.get("update_time") or order.get("create_time")),
             amount=_money(expected), currency=currency, root_cause=capture_hole, recovery_action="capture",
             recovery=f"Capture order {order.get('id')} at PayPal now to collect {_money(expected)} {currency}.",
             targets=[RecoveryTarget(order_id=order["id"], amount=_money(expected))],
@@ -276,7 +292,7 @@ def find_leaks(
         extra = sum((Decimal(s["captured"]) for s in charged), Decimal(0))
         names = ", ".join(s["order_id"] for s in charged)
         leaks.append(Leak(
-            kind="duplicate_charge", title=f"The same cart was charged {len(charged) + 1} times",
+            kind="duplicate_charge", title=f"The same cart was charged {len(charged) + 1} times", urgency="soon",
             amount=_money(extra), currency=currency,
             root_cause="The store does not lock a cart once it is paid, so paying again opened and charged a new order.",
             recovery_action="refund",
@@ -291,7 +307,7 @@ def find_leaks(
     if len(captures) > 1:
         extra = sum(amounts[1:], Decimal(0))
         leaks.append(Leak(
-            kind="duplicate_charge", title=f"Buyer was charged {len(captures)} times",
+            kind="duplicate_charge", title=f"Buyer was charged {len(captures)} times", urgency="soon",
             amount=_money(extra), currency=currency,
             root_cause="Capture is not idempotent: a retry created a second charge.", recovery_action="refund",
             recovery=f"Refund the extra {_money(extra)} {currency} before the buyer files a chargeback.",

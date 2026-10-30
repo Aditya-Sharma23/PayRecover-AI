@@ -17,13 +17,14 @@ import re
 import secrets
 import tempfile
 import time
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Path as PathParam, Request
+from fastapi import FastAPI, HTTPException, Path as PathParam, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -181,6 +182,7 @@ class OrderRecord(BaseModel):
     items: list[OrderLine]
     capture_id: str | None = None
     cart_id: str | None = None
+    created_at: str | None = None
 
 
 def _money(value: Decimal) -> str:
@@ -306,6 +308,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         "items": [{**line, "unit_price": _money(line["unit_price"])} for line in lines],
         "capture_id": None,
         "cart_id": request.cart_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     save_orders()
     return {"id": order["id"], "total": _money(total), "currency": CURRENCY}
@@ -350,6 +353,12 @@ def cancel_order(order_id: str = OrderId) -> dict[str, Any]:
 def get_order(order_id: str = OrderId) -> dict[str, Any]:
     """The store's own claim about an order. PayRecover checks it against PayPal."""
     return _known_order(order_id)
+
+
+@app.get("/api/recent-orders", response_model=list[OrderRecord])
+def recent_orders(limit: int = Query(default=25, ge=1, le=100)) -> list[dict[str, Any]]:
+    """The newest orders first, so a checker can scan the whole store instead of one order at a time."""
+    return list(reversed(list(orders.values())))[:limit]
 
 
 @app.get("/api/carts/{cart_id}/orders", response_model=list[OrderRecord])

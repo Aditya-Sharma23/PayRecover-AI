@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { approvalQuestion, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, sortPayloads } from "../src/lib/payment.js";
+import { approvalQuestion, evidencePath, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, scanRows, sortPayloads, waitingText } from "../src/lib/payment.js";
 
 test("the investigation body normalizes the order id", () => {
   assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
@@ -59,4 +59,19 @@ test("recovery records become readable grid rows", () => {
     id: "r1", when: "2026-10-31 09:15", order_id: "5O190127TN364715T", store: "Vulnerable", leak: "Duplicate charge",
     action: "refund", amount: "18.00 USD", status: "refunded", message: "Refunded.",
   });
+});
+
+test("the waiting clock counts from PayPal's timestamp", () => {
+  const since = "2026-10-31T09:00:00Z";
+  assert.equal(waitingText(since, Date.parse("2026-10-31T09:07:30Z")), "Buyer approved 7m ago, still not captured");
+  assert.equal(waitingText(since, Date.parse("2026-10-31T11:14:00Z")), "Buyer approved 2h 14m ago, still not captured");
+  assert.equal(waitingText(since, Date.parse("2026-11-02T12:00:00Z")), "Buyer approved 2d 3h ago, still not captured");
+  assert.equal(waitingText(null), null);
+});
+
+test("scan rows keep the ranked order and number every leak", () => {
+  const leak = (kind) => ({ kind, title: kind, amount: "1.00", currency: "USD", urgency: "now", recovery_action: "capture", targets: [{}] });
+  const rows = scanRows({ items: [{ order_id: "A", leaks: [leak("never_captured")] }, { order_id: "B", leaks: [leak("fake_paid"), leak("wrong_amount")] }] });
+  assert.deepEqual(rows.map((row) => [row.rank, row.order_id, row.leak.kind]), [[1, "A", "never_captured"], [2, "B", "fake_paid"], [3, "B", "wrong_amount"]]);
+  assert.equal(evidencePath("A1B2", "vulnerable"), "/api/orders/A1B2/evidence?store=vulnerable");
 });

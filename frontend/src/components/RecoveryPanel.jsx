@@ -1,22 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { AllCommunityModule, ModuleRegistry, colorSchemeDark, themeQuartz } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { apiJson } from "../api/client.js";
+import { gridTheme } from "../lib/grid.js";
 import { RECOVERY_LABELS, RECOVERY_STATUS, recoveryRows } from "../lib/payment.js";
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-// The dashboard's dark palette, so the grid reads as part of the page.
-const theme = themeQuartz.withPart(colorSchemeDark).withParams({
-  backgroundColor: "#11161d",
-  foregroundColor: "#e9edf5",
-  headerBackgroundColor: "#0c1117",
-  borderColor: "#252c35",
-  accentColor: "#ed2938",
-  fontFamily: "inherit",
-  fontSize: 12,
-  headerFontWeight: 700,
-});
 
 function StatusCell({ value }) {
   const [label, tone] = RECOVERY_STATUS[value] || RECOVERY_STATUS.failed;
@@ -71,7 +57,7 @@ export default function RecoveryPanel({ refreshKey }) {
     </div>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {rows.length > 0
-      ? <div className="recovery-grid"><AgGridReact theme={theme} rowData={rows} columnDefs={COLUMNS} domLayout="autoHeight"
+      ? <div className="recovery-grid"><AgGridReact theme={gridTheme} rowData={rows} columnDefs={COLUMNS} domLayout="autoHeight"
           defaultColDef={{ sortable: true, filter: true, resizable: true }} pagination paginationPageSize={10}
           paginationPageSizeSelector={false} /></div>
       : <p className="empty-state">No recoveries yet. When an investigation finds a leak, approve its recovery and it appears here.</p>}

@@ -39,6 +39,22 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Let the same cart be paid more than once | **Duplicate charge** leak, naming the other order to refund |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
+### Scan my store
+
+One click checks every recent order the store calls paid (up to 50) against PayPal. Leaks are ranked by
+urgency, then amount: an approved payment still uncollected comes first, with a live *waiting since* clock
+taken from PayPal's own timestamp (PayPal does not publish a fixed deadline for capturing an approved order,
+so PayRecover shows how long it has waited rather than inventing a countdown). Gemini writes the recovery plan
+for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice yields one refund, of the
+later charge, so approving every row never refunds the whole purchase.
+
+### Dispute-ready evidence pack
+
+Every investigation and scan row has an **Evidence pack**: a printable page, generated from a fresh read of
+the store and PayPal, with both records side by side, every check, the leaks, every recovery and its PayPal
+references, and a SHA-256 fingerprint of that evidence. Print it to PDF and attach it to a PayPal dispute or
+chargeback.
+
 ### Recovering the money
 
 Every leak comes with a recovery the merchant can approve, on the dashboard or from a Zapier message:

@@ -203,6 +203,21 @@ textarea { display: block; font-family: ui-monospace, SFMono-Regular, Consolas, 
 .recovery-totals strong { font: 700 20px 'Space Grotesk', sans-serif; color: var(--green); }
 .recovery-totals small { color: var(--text-2); font-size: 11px; }
 .recovery-grid { margin-top: 4px; }
+.verdict-money .secondary-button { margin-top: 6px; padding: 5px 10px; font-size: 11px; }
+.leak-urgency { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.waiting-clock { color: var(--amber); font-size: 12px; font-weight: 600; }
+.scan-form { display: grid; grid-template-columns: minmax(180px, .8fr) 140px auto; gap: 10px; align-items: end; margin-top: 12px; }
+.scan-form .field-label { margin: 0; }
+.scan-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.scan-stats article { display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+.scan-stats span { color: var(--muted); font-size: 11px; }
+.scan-stats strong { font: 700 20px 'Space Grotesk', sans-serif; }
+.scan-stats .risk strong { color: var(--red-soft); }
+.triage-plan { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: 9px; background: var(--panel); }
+.triage-plan p { margin: 6px 0; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+.grid-actions { display: flex; gap: 6px; align-items: center; height: 100%; }
+.grid-actions button { padding: 4px 9px; font-size: 11px; line-height: 1.4; }
+@media (max-width: 650px) { .scan-form, .scan-stats { grid-template-columns: 1fr; } }
 .recovery-grid .badge { display: inline-block; line-height: 1.6; }
 .grid-mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 @media (max-width: 650px) { .recovery-totals { grid-template-columns: 1fr; } }

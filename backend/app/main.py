@@ -3,10 +3,11 @@ import html
 import os
 import sqlite3
 from pathlib import Path
+from typing import Literal
 from urllib.parse import parse_qs
 from uuid import UUID
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Path as PathParam, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +28,8 @@ from app.schemas import (
     PaymentVerificationRequest,
     RecoveryRecord,
     RecoveryRequest,
+    ScanRequest,
+    ScanResult,
     RunComparison,
     TargetPreflightRequest,
     WebsiteRunReport,
@@ -55,7 +58,7 @@ from app.gemma import (
     create_plan,
     explain_with_fallback,
 )
-from app import investigate, notify, paypal, recovery
+from app import evidence, investigate, notify, paypal, recovery, scan
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -382,6 +385,41 @@ async def investigate_order(request: InvestigationRequest, http: Request, backgr
         # Sent after the response, so a slow or failing Zapier never delays or fails the investigation.
         background.add_task(notify.send, notify.leak_event(result, owner))
     return result
+
+
+@app.post("/api/stores/scan", response_model=ScanResult, tags=["PayPal"])
+async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanResult:
+    """Check every recent paid order of a store against PayPal and plan the recovery.
+
+    Leaks are ranked by urgency, then amount; Gemini only words the plan for that order.
+    """
+    try:
+        result = await scan.scan_store(request)
+    except investigate.StoreUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except paypal.PayPalProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    if result.leaking_orders:
+        background.add_task(notify.send, notify.scan_event(result))
+    return result
+
+
+@app.get("/api/orders/{order_id}/evidence", response_class=HTMLResponse, tags=["PayPal"])
+async def evidence_pack(
+    http: Request,
+    order_id: str = PathParam(pattern=r"^[A-Z0-9]{8,40}$"),
+    store: Literal["main", "vulnerable"] = "main",
+) -> HTMLResponse:
+    """A printable, dispute-ready evidence pack for one order, from a fresh read of the store and PayPal."""
+    try:
+        page, digest = await evidence.build(order_id, store, request_owner(http))
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except paypal.PayPalProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return HTMLResponse(page, headers={"X-Evidence-SHA256": digest, "Cache-Control": "no-store"})
 
 
 @app.post("/api/recoveries", response_model=RecoveryRecord, tags=["PayPal"])

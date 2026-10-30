@@ -3,6 +3,7 @@ import { apiJson, getToken, setToken } from "./api/client.js";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
+import ScanPanel from "./components/ScanPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
 
 const METRICS = [
@@ -60,6 +61,7 @@ export default function App() {
       <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Pay<span className="brand-accent">Recover</span> AI</span></a>
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
+        <a href="#scan"><span aria-hidden="true">⌕</span> Scan my store</a>
         <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
@@ -90,6 +92,8 @@ export default function App() {
           <span className="metric-trend">{trend}</span>
         </article>)}
       </section>
+
+      <ScanPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
 
       <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />
 

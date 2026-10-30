@@ -624,6 +624,10 @@ class Leak(BaseModel):
     recovery_action: Literal["capture", "invoice", "refund"]
     recovery: str
     targets: list[RecoveryTarget] = Field(default_factory=list)
+    # How soon to act: "now" (an approved payment still uncollected), "soon" (stop a shipment or a
+    # chargeback), "normal". waiting_since is PayPal's own timestamp for when the money became recoverable.
+    urgency: Literal["now", "soon", "normal"] = "normal"
+    waiting_since: datetime | None = None
 
 
 class Investigation(BaseModel):
@@ -686,3 +690,63 @@ class RecoveryRecord(BaseModel):
     paypal: dict[str, Any] = Field(default_factory=dict)
     verification: list[PaymentCheck] = Field(default_factory=list)
     created_at: datetime
+
+
+class ScanRequest(BaseModel):
+    """Scan a store's recent orders. Only a store name, never a URL."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    store: Literal["main", "vulnerable"] = "main"
+    limit: int = Field(default=25, ge=1, le=50)
+    explain: bool = True
+
+
+class ScanItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str
+    cart_id: str | None = None
+    created_at: str | None = None
+    store_status: str | None = None
+    total: str | None = None
+    verdict: str
+    leaks: list[Leak]
+    money_at_risk: str
+
+
+class TriageStep(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str
+    kind: str
+    amount: str
+    urgency: str
+    action: str
+    waiting_since: datetime | None = None
+    why: str
+
+
+class TriagePlan(BaseModel):
+    """The recovery plan. Its order is fixed by the scan; the AI only words it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str
+    steps: list[TriageStep]
+    source: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class ScanResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    store: str
+    scanned_at: datetime
+    orders_listed: int
+    orders_checked: int
+    leaking_orders: int
+    money_at_risk: str
+    currency: str
+    items: list[ScanItem]
+    plan: TriagePlan

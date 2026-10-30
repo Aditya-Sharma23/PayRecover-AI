@@ -21,7 +21,7 @@ from typing import Any
 
 import aiohttp
 
-from app.schemas import Investigation, RecoveryRecord
+from app.schemas import Investigation, RecoveryRecord, ScanResult
 
 APPROVAL_TTL_SECONDS = 24 * 60 * 60
 WEBHOOK_TIMEOUT_SECONDS = 8
@@ -127,6 +127,20 @@ def recovery_event(record: RecoveryRecord) -> dict[str, Any]:
         "summary": f"PayRecover {record.status.replace('_', ' ')}: {record.amount} {record.currency} "
                    f"({record.action}) for order {record.order_id}. {record.message}",
     }
+
+
+def scan_event(result: ScanResult) -> dict[str, Any]:
+    """A store scan's plan, ready to send: what to recover first, in order."""
+    lines = [result.plan.summary, ""]
+    for number, step in enumerate(result.plan.steps, 1):
+        lines.append(f"{number}. Order {step.order_id}: {step.kind.replace('_', ' ')}, {step.amount} {result.currency} "
+                     f"({step.action}, {step.urgency}) - {step.why}")
+    lines += ["", "Approve each recovery in the PayRecover dashboard."]
+    summary = (f"PayRecover scanned {result.orders_checked} paid order(s) in the {result.store} store: "
+               f"{result.leaking_orders} leaking, {result.money_at_risk} {result.currency} at risk.")
+    return {"event": "scan_done", "store": result.store, "summary": summary, "message": "\n".join(lines),
+            "money_at_risk": result.money_at_risk, "currency": result.currency,
+            "leaking_orders": result.leaking_orders, "scanned_at": result.scanned_at.isoformat()}
 
 
 async def send(event: dict[str, Any]) -> bool:
