@@ -164,13 +164,20 @@ async def _invoice(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
     if not email:
         return ("failed", "PayPal has no buyer email for this order (the buyer never approved it), so it cannot be "
                 "invoiced. Contact the buyer, or hold the shipment.", {}, [])
-    status, body = await paypal.paypal_call("POST", "/v2/invoicing/invoices", {
+    invoice = {
         "detail": {"currency_code": leak.currency, "note": f"Balance due for order {target.order_id}.",
                    "reference": target.order_id},
         "primary_recipients": [{"billing_info": {"email_address": email}}],
         "items": [{"name": f"Balance due for order {target.order_id}", "quantity": "1",
                    "unit_amount": {"currency_code": leak.currency, "value": target.amount}}],
-    }, f"payrecover-invoice-{target.order_id}")
+    }
+    status, body = await paypal.paypal_call("POST", "/v2/invoicing/invoices", invoice, f"payrecover-invoice-{target.order_id}")
+    if status in {401, 403}:
+        # A cached token keeps the permissions it was issued with; Invoicing switched on since then
+        # only shows up in a fresh token, so ask for one once before giving up.
+        paypal.forget_token()
+        status, body = await paypal.paypal_call("POST", "/v2/invoicing/invoices", invoice,
+                                                f"payrecover-invoice-{target.order_id}")
     if status in {401, 403}:
         return "failed", INVOICING_HELP, {}, []
     if status >= 400 or not isinstance(body, dict) or not body.get("href"):

@@ -84,6 +84,11 @@ async def _access_token(session: aiohttp.ClientSession) -> str:
     return token
 
 
+def forget_token() -> None:
+    """Drop the cached token, so the next call gets one with the app's current permissions."""
+    _token_cache.update(token=None, expires_at=0.0)
+
+
 async def fetch_order(order_id: str) -> dict[str, Any]:
     """GET /v2/checkout/orders/{id}. The id is validated by PaymentVerificationRequest."""
     timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
