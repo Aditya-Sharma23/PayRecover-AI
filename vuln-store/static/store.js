@@ -1,7 +1,7 @@
 // Vulnerable store checkout. Same flow as the Main store, plus demo controls for its bugs.
 // Prices are editable and sent to the server; only the trust_client_price bug makes the server use them.
 
-const state = { products: [], quantities: {}, prices: {}, cartId: "" };
+const state = { products: [], quantities: {}, prices: {}, cartId: "", storeRefused: false };
 const CART_KEY = "paytest-vuln-cart";
 const $ = (id) => document.getElementById(id);
 
@@ -89,6 +89,9 @@ async function api(path, options = {}) {
   return data;
 }
 
+// Whether a demo bug is ticked on the page (the server holds the real switch; the box mirrors it).
+const bugOn = (id) => Boolean(document.querySelector(`#bugs input[value="${id}"]`)?.checked);
+
 async function renderBugs() {
   const bugs = await api("/api/bugs");
   const box = $("bugs");
@@ -134,7 +137,11 @@ function renderButtons() {
         method: "POST",
         body: JSON.stringify({ items: lines, cart_id: state.cartId }),
       }).catch((error) => {
-        setStatus("error", error.message);
+        // The store, not PayPal, refused: say so, and keep PayPal's own error handler from relabelling it.
+        state.storeRefused = true;
+        setStatus("error", /already been paid/.test(error.message)
+          ? `${error.message} Click "Start a new cart", or tick "Let the same cart be paid more than once" to demo a double charge.`
+          : `The store refused the order: ${error.message}`);
         throw error;
       });
       showOrder({ id: order.id, status: "PENDING" });
@@ -146,9 +153,15 @@ function renderButtons() {
       try {
         const order = await api(`/api/orders/${data.orderID}/capture`, { method: "POST" });
         showOrder(order);
-        // Unlike the Main store, the cart is kept after payment, so it can be paid again.
-        if (order.status === "PAID") setStatus("paid", `Payment complete. Order ${order.order_id} is paid.`);
-        else setStatus("error", `Payment not completed (${order.status}).`);
+        if (order.status !== "PAID") {
+          setStatus("error", `Payment not completed (${order.status}).`);
+        } else if (bugOn("allow_double_payment")) {
+          // The double-payment bug keeps the paid cart, so it can be charged again.
+          setStatus("paid", `Payment complete. Order ${order.order_id} is paid. The cart is kept, so paying again charges it twice.`);
+        } else {
+          saveCartId(crypto.randomUUID());
+          setStatus("paid", `Payment complete. Order ${order.order_id} is paid. A new cart has been started.`);
+        }
       } catch (error) {
         setStatus("error", `Payment failed: ${error.message}`);
       }
@@ -159,6 +172,10 @@ function renderButtons() {
       setStatus("cancelled", "Payment cancelled. You have not been charged.");
     },
     onError(error) {
+      if (state.storeRefused) {
+        state.storeRefused = false;
+        return;
+      }
       setStatus("error", `PayPal error: ${error.message || error}`);
     },
   }).render("#paypal-buttons");
@@ -172,6 +189,11 @@ async function start() {
   });
   try {
     await renderBugs();
+    // A remembered cart that was already paid gets replaced, unless the double-payment bug is on.
+    const cartOrders = await api(`/api/carts/${state.cartId}/orders`).catch(() => []);
+    if (!bugOn("allow_double_payment") && cartOrders.some((order) => order.status === "PAID")) {
+      saveCartId(crypto.randomUUID());
+    }
     state.products = await api("/api/products");
     for (const product of state.products) {
       state.quantities[product.id] = product.id === "tee" ? 1 : 0;
