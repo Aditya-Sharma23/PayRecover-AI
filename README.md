@@ -39,6 +39,27 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Let the same cart be paid more than once | **Duplicate charge** leak, naming the other order to refund |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
+### Recovering the money
+
+Every leak comes with a recovery the merchant can approve, on the dashboard or from a Zapier message:
+
+| Leak | Recovery at PayPal (Sandbox) | Confirmed when |
+|---|---|---|
+| Never captured | Capture the approved order | PayPal shows a COMPLETED capture for the full amount |
+| Wrong amount, fake paid | Send the buyer a PayPal invoice for the missing amount | PayPal shows the invoice SENT for that amount |
+| Duplicate charge | Refund the extra capture | PayPal shows the refund COMPLETED or PENDING |
+
+The **Money recovered** panel (AG Grid) lists every recovery with totals collected, invoiced and refunded.
+Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps & Credentials > your app > Features).
+
+### Zapier: approve from your phone
+
+Set `TESTPILOT_ZAPIER_WEBHOOK_URL` (a Zapier *Catch Hook*) and `TESTPILOT_APPROVAL_SECRET` (32+ random characters)
+in `backend/.env`. PayRecover then posts a `leak_found` event for every leak, with a signed **Approve recovery** link
+that expires after 24 hours, and a `recovery_done` event after each recovery. In Zapier, forward `leak_found` by
+email, Slack or SMS, and append `recovery_done` to a Google Sheet as an audit log. Opening a link only shows a
+confirmation page; money moves when the button on it is pressed.
+
 ### Catching payment bugs
 
 For every order, PayRecover compares the store's claim with PayPal's record and reports these leaks:
@@ -63,7 +84,7 @@ flowchart LR
     B -. plan / explain only .-> G[Gemini]
     R --> S[Main store<br/>FastAPI + PayPal JS SDK]
     S --> PP[(PayPal Sandbox)]
-    P -- read-only GET --> PP
+    P -- read orders; capture, refund or invoice only after approval --> PP
 ```
 
 1. A buyer pays in the **Main store** with a PayPal Sandbox account. The store prices the cart on its server, creates the PayPal order, and captures it after approval.
@@ -74,7 +95,7 @@ flowchart LR
 
 - **Evidence decides, AI advises.** Runners and PayPal's API produce every status; Gemini's output is labelled advisory, with the model that wrote it.
 - **Sandbox only.** The PayPal API address is hard-coded to `api-m.sandbox.paypal.com`. No setting can point PayRecover at live payments.
-- **Read-only.** The verifier only reads orders. Browser runs allow GET/HEAD requests only, and the API runner sends a single GET.
+- **Nothing moves without approval.** Investigating only reads PayPal. A capture, refund or invoice runs only when the merchant approves it, is recalculated from PayPal at that moment, runs once (PayPal-Request-Id), and counts only when a fresh read of PayPal confirms it. Browser runs allow GET/HEAD requests only.
 - **No personal data in evidence.** Payer and payee details are never copied into results.
 - **SSRF-safe.** Every target address is validated and the connection pinned to it, and the browser cannot open connections of its own. See [docs/threat-model.md](docs/threat-model.md).
 

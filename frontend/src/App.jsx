@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiJson, getToken, setToken } from "./api/client.js";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
+import RecoveryPanel from "./components/RecoveryPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
 
 const METRICS = [
@@ -17,6 +18,7 @@ export default function App() {
   const [aiName, setAiName] = useState("AI");
   const [result, setResult] = useState(null);
   const [historyKey, setHistoryKey] = useState(0);
+  const [recoveryKey, setRecoveryKey] = useState(0);
   const [token, setTokenState] = useState(getToken());
   const [needsToken, setNeedsToken] = useState(false);
   const [stats, setStats] = useState(null);
@@ -59,6 +61,7 @@ export default function App() {
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
         <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
+        <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
         <a href="#findings"><span aria-hidden="true">⚠</span> Vulnerabilities</a>
         <a href="#history"><span aria-hidden="true">▤</span> Run history</a>
@@ -88,7 +91,9 @@ export default function App() {
         </article>)}
       </section>
 
-      <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} />
+      <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />
+
+      <RecoveryPanel refreshKey={`${recoveryKey}-${token}`} />
 
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Investigate an order to scan its store, or open a run from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 

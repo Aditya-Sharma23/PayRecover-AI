@@ -37,6 +37,7 @@ from app.schemas import (
     Leak,
     PaymentCheck,
     PaymentVerificationRequest,
+    RecoveryTarget,
     FULL_SCAN_CHECKS,
     WebsiteRunReport,
     WebsiteRunRequest,
@@ -100,6 +101,8 @@ async def sibling_payments(claim: dict) -> tuple[list[dict], str | None]:
         siblings.append({
             **entry, "paypal_status": order.get("status"), "captured": _money(captured),
             "capture_ids": [c.get("id") for c in completed],
+            "captures": [{"id": c.get("id"), "amount": _money(_decimal((c.get("amount") or {}).get("value")) or Decimal(0))}
+                         for c in completed],
         })
     return siblings, None
 
@@ -257,6 +260,7 @@ def find_leaks(
             kind="fake_paid", title="Marked paid, but PayPal never received a payment",
             amount=_money(expected), currency=currency, root_cause=capture_hole, recovery_action="invoice",
             recovery=f"Send the buyer a PayPal invoice for {_money(expected)} {currency}, or hold the shipment.",
+            targets=[RecoveryTarget(order_id=claim["order_id"], amount=_money(expected))],
         )]
     captures = [c for c in _captures(order) if c.get("status") == "COMPLETED"]
     if not captures:
@@ -264,6 +268,7 @@ def find_leaks(
             kind="never_captured", title="Buyer approved, but the money was never captured",
             amount=_money(expected), currency=currency, root_cause=capture_hole, recovery_action="capture",
             recovery=f"Capture order {order.get('id')} at PayPal now to collect {_money(expected)} {currency}.",
+            targets=[RecoveryTarget(order_id=order["id"], amount=_money(expected))],
         )]
     leaks = []
     charged = [s for s in siblings or [] if (_decimal(s.get("captured")) or Decimal(0)) > 0]
@@ -277,6 +282,10 @@ def find_leaks(
             recovery_action="refund",
             recovery=f"Refund {_money(extra)} {currency} from order {names} before the buyer files a chargeback, "
                      "and refuse new orders for a cart that is already paid.",
+            targets=[
+                RecoveryTarget(order_id=s["order_id"], capture_id=c["id"], amount=c["amount"])
+                for s in charged for c in s.get("captures") or []
+            ],
         ))
     amounts = [_decimal((c.get("amount") or {}).get("value")) or Decimal(0) for c in captures]
     if len(captures) > 1:
@@ -286,6 +295,10 @@ def find_leaks(
             amount=_money(extra), currency=currency,
             root_cause="Capture is not idempotent: a retry created a second charge.", recovery_action="refund",
             recovery=f"Refund the extra {_money(extra)} {currency} before the buyer files a chargeback.",
+            targets=[
+                RecoveryTarget(order_id=order["id"], capture_id=c.get("id"), amount=_money(amount))
+                for c, amount in zip(captures[1:], amounts[1:], strict=True)
+            ],
         ))
     shortfall = expected - amounts[0]
     if shortfall > 0:
@@ -298,6 +311,7 @@ def find_leaks(
             ),
             recovery_action="invoice",
             recovery=f"Send the buyer a PayPal invoice for the missing {_money(shortfall)} {currency}, and price carts on the server.",
+            targets=[RecoveryTarget(order_id=order["id"], amount=_money(shortfall))],
         ))
     return leaks
 

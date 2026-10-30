@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { groupChecks, investigationBody, orderIdProblem, sortPayloads } from "../src/lib/payment.js";
+import { approvalQuestion, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, sortPayloads } from "../src/lib/payment.js";
 
 test("the investigation body normalizes the order id", () => {
   assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
@@ -40,4 +40,23 @@ test("unescaped XSS payloads are listed first", () => {
     { id: "a", outcome: "not_reflected" }, { id: "b", outcome: "encoded" }, { id: "c", outcome: "unescaped" },
   ]).map((item) => item.id);
   assert.deepEqual(order, ["c", "b", "a"]);
+});
+
+test("an approval names the action, amount and order, and sends no amount", () => {
+  const leak = { recovery_action: "refund", amount: "18.00", currency: "USD", recovery: "Refund the extra charge." };
+  assert.match(approvalQuestion(leak, "5O190127TN364715T"), /^Refund 18.00 USD for order 5O190127TN364715T in PayPal Sandbox\?/);
+  assert.deepEqual(recoveryBody("5O190127TN364715T", "vulnerable", "duplicate_charge"), {
+    order_id: "5O190127TN364715T", store: "vulnerable", kind: "duplicate_charge", approved: true,
+  });
+});
+
+test("recovery records become readable grid rows", () => {
+  const [row] = recoveryRows([{
+    recovery_id: "r1", created_at: "2026-10-31T09:15:42.1Z", order_id: "5O190127TN364715T", store: "vulnerable",
+    kind: "duplicate_charge", action: "refund", amount: "18.00", currency: "USD", status: "refunded", message: "Refunded.",
+  }]);
+  assert.deepEqual(row, {
+    id: "r1", when: "2026-10-31 09:15", order_id: "5O190127TN364715T", store: "Vulnerable", leak: "Duplicate charge",
+    action: "refund", amount: "18.00 USD", status: "refunded", message: "Refunded.",
+  });
 });

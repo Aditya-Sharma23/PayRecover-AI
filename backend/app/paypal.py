@@ -3,7 +3,8 @@
 A store, a browser page or the AI model can claim a payment succeeded; only this
 module's view of PayPal's own record decides it. The base URL is fixed to the
 Sandbox and cannot be configured, so PayRecover can never reach live payments.
-Requests are read-only (GET), and payer details are never copied into evidence.
+Verification only reads (GET); the one write helper, paypal_call, is used by app.recovery
+after a merchant approves. Payer details are never copied into evidence.
 """
 
 import asyncio
@@ -109,6 +110,34 @@ async def fetch_order(order_id: str) -> dict[str, Any]:
     if not isinstance(order, dict):
         raise PayPalProviderError("PayPal returned order data that was not an object.")
     return order
+
+
+async def paypal_call(
+    method: str, path: str, body: dict | None = None, request_id: str | None = None
+) -> tuple[int, Any]:
+    """One Sandbox API call that may change state (capture, refund, invoice). Returns (status, JSON or None).
+
+    Only app.recovery calls this, and only after a merchant approved the action. The base URL
+    is the same fixed Sandbox address, and PayPal-Request-Id makes a retried call idempotent.
+    """
+    timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            headers = {"Authorization": f"Bearer {await _access_token(session)}", "Content-Type": "application/json"}
+            if request_id:
+                headers["PayPal-Request-Id"] = request_id
+            url = path if path.startswith(SANDBOX_API) else f"{SANDBOX_API}{path}"
+            async with session.request(method, url, json=body, headers=headers) as response:
+                text = await response.text()
+                status = response.status
+    except (PayPalConfigurationError, PayPalProviderError):
+        raise
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise PayPalProviderError("PayPal Sandbox could not be reached.") from exc
+    try:
+        return status, json.loads(text) if text.strip() else None
+    except json.JSONDecodeError:
+        return status, None
 
 
 def _decimal(value: Any) -> Decimal | None:

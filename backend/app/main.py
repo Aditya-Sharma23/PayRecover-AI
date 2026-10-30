@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+import html
 import os
 import sqlite3
 from pathlib import Path
+from urllib.parse import parse_qs
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,6 +25,8 @@ from app.schemas import (
     OpenApiImportResult,
     PaymentVerification,
     PaymentVerificationRequest,
+    RecoveryRecord,
+    RecoveryRequest,
     RunComparison,
     TargetPreflightRequest,
     WebsiteRunReport,
@@ -51,7 +55,7 @@ from app.gemma import (
     create_plan,
     explain_with_fallback,
 )
-from app import investigate, paypal
+from app import investigate, notify, paypal, recovery
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -356,7 +360,7 @@ async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerificat
 
 
 @app.post("/api/orders/investigate", response_model=Investigation, tags=["PayPal"])
-async def investigate_order(request: InvestigationRequest, http: Request) -> Investigation:
+async def investigate_order(request: InvestigationRequest, http: Request, background: BackgroundTasks) -> Investigation:
     """Run every check for one order id: the store's claim, PayPal's record, store probes,
     a full website scan of the store, and leaks.
 
@@ -369,11 +373,103 @@ async def investigate_order(request: InvestigationRequest, http: Request) -> Inv
         return await _run(JobType.WEBSITE, website, owner)
 
     try:
-        return await investigate.investigate(request, run_website)
+        result = await investigate.investigate(request, run_website)
     except paypal.PayPalConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    if result.leaks:
+        # Sent after the response, so a slow or failing Zapier never delays or fails the investigation.
+        background.add_task(notify.send, notify.leak_event(result, owner))
+    return result
+
+
+@app.post("/api/recoveries", response_model=RecoveryRecord, tags=["PayPal"])
+async def approve_recovery(request: RecoveryRequest, http: Request, background: BackgroundTasks) -> RecoveryRecord:
+    """Recover one leak after the merchant approves: capture, refund or invoice in PayPal Sandbox.
+
+    The leak and its amount are recomputed from the store and PayPal; the result is decided
+    by a fresh read of PayPal, and a recovery already done is returned instead of repeated.
+    """
+    try:
+        record = await recovery.recover(request, request_owner(http))
+    except recovery.RecoveryNotPossible as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except paypal.PayPalProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    background.add_task(notify.send, notify.recovery_event(record))
+    return record
+
+
+@app.get("/api/recoveries", tags=["PayPal"])
+def recoveries(http: Request) -> dict:
+    """The caller's recoveries, newest first, with totals collected, invoiced and refunded."""
+    return recovery.list_recoveries(request_owner(http))
+
+
+@app.get("/api/notify/status", tags=["PayPal"])
+def notify_status() -> dict[str, bool]:
+    """Whether the Zapier webhook and signed approval links are configured (never their values)."""
+    return notify.status()
+
+
+LEAK_WORDS = {
+    "never_captured": "capture a payment the store never collected",
+    "fake_paid": "invoice an order the store marked paid without payment",
+    "wrong_amount": "invoice the buyer for the amount they underpaid",
+    "duplicate_charge": "refund a duplicate charge",
+}
+
+
+def _approval_page(title: str, body: str, status_code: int = 200) -> HTMLResponse:
+    page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{html.escape(title)}</title>
+<style>body{{font-family:system-ui,sans-serif;max-width:520px;margin:10vh auto;padding:0 16px;color:#20263a;background:#f7f8fb}}
+main{{padding:24px;border:1px solid #e1e4ec;border-radius:12px;background:#fff}}button{{padding:12px 20px;border:0;border-radius:999px;
+background:#ed2938;color:#fff;font-weight:700;font-size:15px;cursor:pointer}}.ok{{color:#1d6b37}}.bad{{color:#a24045}}small{{color:#4a5068}}</style>
+</head><body><main><h1>{html.escape(title)}</h1>{body}</main></body></html>"""
+    return HTMLResponse(page, status_code=status_code, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+
+
+@app.get("/approve", response_class=HTMLResponse, include_in_schema=False)
+def approval_form(token: str = "") -> HTMLResponse:
+    """The page a Zapier approval link opens. It only asks; nothing happens until the button is pressed."""
+    try:
+        approval = notify.read_approval(token)
+    except notify.InvalidApproval as exc:
+        return _approval_page("Approval link not valid", f"<p class='bad'>{html.escape(str(exc))}</p>", 400)
+    what = LEAK_WORDS.get(approval["kind"], approval["kind"])
+    return _approval_page("Approve this recovery?", f"""
+<p>PayRecover will <strong>{html.escape(what)}</strong> for order <code>{html.escape(approval['order_id'])}</code>
+({html.escape(approval['store'])} store) in PayPal <strong>Sandbox</strong>.</p>
+<p><small>The amount is recalculated from the store and PayPal when you approve, and PayRecover checks PayPal again
+to confirm it worked. If the leak is already fixed, nothing happens.</small></p>
+<form method="post" action="/approve"><input type="hidden" name="token" value="{html.escape(token)}">
+<button type="submit">Approve recovery</button></form>""")
+
+
+@app.post("/approve", response_class=HTMLResponse, include_in_schema=False)
+async def approval_submit(http: Request, background: BackgroundTasks) -> HTMLResponse:
+    """Run the approved recovery for the owner named in the signed token."""
+    form = parse_qs((await http.body()).decode("utf-8", errors="replace"))
+    try:
+        approval = notify.read_approval((form.get("token") or [""])[0])
+        record = await recovery.recover(RecoveryRequest(
+            order_id=approval["order_id"], store=approval["store"], kind=approval["kind"], approved=True,
+        ), approval["owner"])
+    except notify.InvalidApproval as exc:
+        return _approval_page("Approval link not valid", f"<p class='bad'>{html.escape(str(exc))}</p>", 400)
+    except recovery.RecoveryNotPossible as exc:
+        return _approval_page("Nothing to recover", f"<p>{html.escape(str(exc))}</p>", 409)
+    except (paypal.PayPalConfigurationError, paypal.PayPalProviderError) as exc:
+        return _approval_page("PayPal could not be reached", f"<p class='bad'>{html.escape(str(exc))}</p>", 502)
+    background.add_task(notify.send, notify.recovery_event(record))
+    tone = "ok" if record.status in recovery.DONE_STATUSES else "bad"
+    checks = "".join(f"<li>{'✓' if c.status == 'passed' else '✗'} {html.escape(c.message)}</li>" for c in record.verification)
+    return _approval_page("Recovery done" if tone == "ok" else "Recovery not completed",
+                          f"<p class='{tone}'><strong>{html.escape(record.message)}</strong></p><ul>{checks}</ul>")
 
 
 if FRONTEND_DIST.joinpath("index.html").is_file():

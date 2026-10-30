@@ -27,6 +27,42 @@ export const VERDICTS = {
 
 export const RECOVERY_LABELS = { capture: "Capture payment", invoice: "Send invoice", refund: "Refund extra charge" };
 
+// Recovery outcomes: label and badge class.
+export const RECOVERY_STATUS = {
+  recovered: ["Recovered", "passed"],
+  invoice_sent: ["Invoice sent", "passed"],
+  refunded: ["Refunded", "passed"],
+  unverified: ["Not confirmed", "warning"],
+  failed: ["Failed", "failed"],
+};
+
+// What the merchant is asked before any money moves.
+export function approvalQuestion(leak, orderId) {
+  const verb = { capture: "Capture", invoice: "Invoice the buyer for", refund: "Refund" }[leak.recovery_action];
+  return `${verb} ${leak.amount} ${leak.currency} for order ${orderId} in PayPal Sandbox?\n\n${leak.recovery}`;
+}
+
+export const recoveryBody = (orderId, store, kind) => ({ order_id: orderId, store, kind, approved: true });
+
+const LEAK_NAMES = {
+  never_captured: "Never captured", fake_paid: "Fake paid", wrong_amount: "Wrong amount", duplicate_charge: "Duplicate charge",
+};
+
+// Grid rows for the recovery table; "when" sorts correctly as text.
+export function recoveryRows(records) {
+  return records.map((record) => ({
+    id: record.recovery_id,
+    when: record.created_at.slice(0, 16).replace("T", " "),
+    order_id: record.order_id,
+    store: record.store === "vulnerable" ? "Vulnerable" : "Main",
+    leak: LEAK_NAMES[record.kind] || record.kind,
+    action: record.action,
+    amount: `${record.amount} ${record.currency}`,
+    status: record.status,
+    message: record.message,
+  }));
+}
+
 const ORDER_ID = /^[A-Z0-9]{8,40}$/;
 
 export const normalizeOrderId = (value) => value.trim().toUpperCase();

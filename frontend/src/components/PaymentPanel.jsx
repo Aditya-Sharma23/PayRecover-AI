@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
 import {
-  CHECK_LABELS, RECOVERY_LABELS, STORES, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, groupChecks, investigationBody,
+  CHECK_LABELS, RECOVERY_LABELS, RECOVERY_STATUS, STORES, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, approvalQuestion,
+  groupChecks, investigationBody, recoveryBody,
   normalizeOrderId, orderIdProblem, sortPayloads,
 } from "../lib/payment.js";
 import { groupChecks as groupWebsiteChecks, label as websiteLabel } from "../lib/report.js";
@@ -23,19 +24,51 @@ function Record({ title, record, fields, empty }) {
   </div>;
 }
 
-function Leaks({ leaks }) {
+function RecoveryOutcome({ record }) {
+  const [label, tone] = RECOVERY_STATUS[record.status] || RECOVERY_STATUS.failed;
+  return <div className="recovery-outcome">
+    <div className="check-row-head"><strong>{record.message}</strong><span className={`badge ${tone}`}>{label}</span></div>
+    {record.verification.map((check) => <small key={check.name + check.message}>{check.status === "passed" ? "✓" : "✗"} {check.message}</small>)}
+  </div>;
+}
+
+function LeakCard({ leak, orderId, store, onRecovered }) {
+  const [busy, setBusy] = useState(false);
+  const [record, setRecord] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function approve() {
+    if (!window.confirm(approvalQuestion(leak, orderId))) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const done = await apiJson("/api/recoveries", { method: "POST", body: recoveryBody(orderId, store, leak.kind) }, "The recovery could not be completed.");
+      setRecord(done);
+      onRecovered?.(done);
+    } catch (reason) {
+      setError(reason.message);
+    } finally { setBusy(false); }
+  }
+
+  return <div className="leak-card">
+    <div className="check-row-head">
+      <strong>{leak.title}</strong>
+      <span className="leak-amount">{leak.amount} {leak.currency}</span>
+    </div>
+    <p><b>Why:</b> {leak.root_cause}</p>
+    <p><b>Recover:</b> {leak.recovery}</p>
+    {!record && <button className="danger-button approve-button" type="button" disabled={busy || !leak.targets?.length} onClick={approve}>
+      {busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</> : `Approve: ${RECOVERY_LABELS[leak.recovery_action]} ${leak.amount} ${leak.currency}`}
+    </button>}
+    {record && <RecoveryOutcome record={record} />}
+    {error && <p className="notice notice-error" role="alert">{error}</p>}
+  </div>;
+}
+
+function Leaks({ leaks, orderId, store, onRecovered }) {
   return <div className="leak-list">
-    {leaks.map((leak) => <div className="leak-card" key={leak.kind}>
-      <div className="check-row-head">
-        <strong>{leak.title}</strong>
-        <span className="leak-amount">{leak.amount} {leak.currency}</span>
-      </div>
-      <p><b>Why:</b> {leak.root_cause}</p>
-      <p><b>Recover:</b> {leak.recovery}</p>
-      <button className="secondary-button" type="button" disabled title="Recovery actions need merchant approval and are not wired up yet.">
-        {RECOVERY_LABELS[leak.recovery_action]} (needs approval)
-      </button>
-    </div>)}
+    {leaks.map((leak) => <LeakCard key={leak.kind} leak={leak} orderId={orderId} store={store} onRecovered={onRecovered} />)}
+    <small className="hint">Nothing moves until you approve. PayRecover then acts in PayPal Sandbox once and checks PayPal again to confirm it worked.</small>
   </div>;
 }
 
@@ -106,7 +139,7 @@ function WebsiteScan({ report, onOpenReport }) {
   </div>;
 }
 
-function Investigation({ result, onOpenReport }) {
+function Investigation({ result, onOpenReport, onRecovered }) {
   const [label, tone, line] = VERDICTS[result.verdict];
   return <div className="payment-result">
     <div className={`verdict-banner ${tone}`}>
@@ -120,7 +153,7 @@ function Investigation({ result, onOpenReport }) {
       </div>
     </div>
 
-    {result.leaks.length > 0 && <Leaks leaks={result.leaks} />}
+    {result.leaks.length > 0 && <Leaks leaks={result.leaks} orderId={result.order_id} store={result.store} onRecovered={onRecovered} />}
     {result.explanation && <Explanation explanation={result.explanation} />}
 
     <div className="record-grid">
@@ -145,7 +178,7 @@ function Investigation({ result, onOpenReport }) {
   </div>;
 }
 
-export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
+export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovered }) {
   const [config, setConfig] = useState(null);
   const [orderId, setOrderId] = useState("");
   const [probe, setProbe] = useState(true);
@@ -211,7 +244,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     {problem && <ul className="problem-list"><li>{problem}</li></ul>}
     {config?.configured === false && <p className="notice notice-error" role="status">Set TESTPILOT_PAYPAL_CLIENT_ID and TESTPILOT_PAYPAL_CLIENT_SECRET in backend/.env, then restart the backend.</p>}
     {error && <p className="notice notice-error" role="alert">{error}</p>}
-    {result && <Investigation result={result} onOpenReport={onOpenReport} />}
-    <p className="hint">PayPal is only read, never charged. Payer details are never shown or stored. The AI explains; the checks decide.</p>
+    {result && <Investigation result={result} onOpenReport={onOpenReport} onRecovered={onRecovered} />}
+    <p className="hint">Investigating only reads PayPal; money moves only when you approve a recovery. Payer details are never shown or stored. The AI explains; the checks decide.</p>
   </section>;
 }

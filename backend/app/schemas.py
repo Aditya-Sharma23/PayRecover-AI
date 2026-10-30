@@ -603,6 +603,16 @@ class InvestigationRequest(BaseModel):
     explain: bool = True
 
 
+class RecoveryTarget(BaseModel):
+    """Exactly what a recovery acts on: computed from PayPal's record, never taken from a request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str
+    capture_id: str | None = None
+    amount: str
+
+
 class Leak(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -613,6 +623,7 @@ class Leak(BaseModel):
     root_cause: str
     recovery_action: Literal["capture", "invoice", "refund"]
     recovery: str
+    targets: list[RecoveryTarget] = Field(default_factory=list)
 
 
 class Investigation(BaseModel):
@@ -635,3 +646,43 @@ class Investigation(BaseModel):
     money_at_risk: str
     currency: str
     explanation: GemmaExplanation | None = None
+
+
+RECOVERY_STATUSES = ("recovered", "invoice_sent", "refunded", "failed", "unverified")
+
+
+class RecoveryRequest(BaseModel):
+    """A merchant's approval to recover one leak. The amount and target are recomputed on the server."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
+    store: Literal["main", "vulnerable"] = "main"
+    kind: Literal[LEAK_KINDS]
+    approved: bool
+
+    @field_validator("approved")
+    @classmethod
+    def require_approval(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("A recovery moves money, so the merchant must approve it (approved: true).")
+        return value
+
+
+class RecoveryRecord(BaseModel):
+    """One recovery: what was done at PayPal, and whether a fresh read of PayPal confirms it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recovery_id: str
+    order_id: str
+    store: str
+    kind: str
+    action: str
+    amount: str
+    currency: str
+    status: Literal[RECOVERY_STATUSES]
+    message: str
+    paypal: dict[str, Any] = Field(default_factory=dict)
+    verification: list[PaymentCheck] = Field(default_factory=list)
+    created_at: datetime
