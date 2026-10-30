@@ -154,6 +154,15 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(recovery.list_recoveries("someone-else")["records"], [])
 
 
+    def test_clearing_removes_only_the_callers_log(self):
+        self.recover(NEVER_CAPTURED)
+        records = recovery._load()
+        recovery._save(records + [{**records[0], "recovery_id": "other", "owner": "someone-else"}])
+        self.assertEqual(recovery.clear_recoveries("local"), 1)
+        self.assertEqual(recovery.list_recoveries("local")["records"], [])
+        self.assertEqual(len(recovery.list_recoveries("someone-else")["records"]), 1)
+
+
 class RecoveryEndpointTests(unittest.TestCase):
     def test_unapproved_requests_are_rejected(self):
         response = TestClient(app).post("/api/recoveries", json={"order_id": ORDER_ID, "kind": "never_captured",

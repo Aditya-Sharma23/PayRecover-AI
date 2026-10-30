@@ -409,6 +409,12 @@ def recoveries(http: Request) -> dict:
     return recovery.list_recoveries(request_owner(http))
 
 
+@app.delete("/api/recoveries", tags=["PayPal"])
+def clear_recoveries(http: Request) -> dict[str, int]:
+    """Delete the caller's recovery log, e.g. test runs before a demo. Nothing at PayPal is undone."""
+    return {"deleted": recovery.clear_recoveries(request_owner(http))}
+
+
 @app.get("/api/notify/status", tags=["PayPal"])
 def notify_status() -> dict[str, bool]:
     """Whether the Zapier webhook and signed approval links are configured (never their values)."""

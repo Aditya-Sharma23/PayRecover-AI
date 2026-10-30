@@ -80,6 +80,14 @@ def list_recoveries(owner: str) -> dict[str, Any]:
     }
 
 
+def clear_recoveries(owner: str) -> int:
+    """Delete the caller's recovery records (only the log; nothing at PayPal changes). Returns how many."""
+    records = _load()
+    kept = [r for r in records if r.get("owner") != owner]
+    _save(kept)
+    return len(records) - len(kept)
+
+
 def _check(name: str, ok: bool, message: str, evidence: dict | None = None) -> PaymentCheck:
     return PaymentCheck(
         name=name, status=CheckStatus.PASSED if ok else CheckStatus.FAILED, message=message, evidence=evidence or {}
