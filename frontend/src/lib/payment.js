@@ -36,7 +36,7 @@ export function orderIdProblem(value) {
   return orderId && !ORDER_ID.test(orderId) ? "Order id must be 8–40 letters and digits, as shown by the store." : null;
 }
 
-// The stores PayTest can check. Their addresses are operator settings; the dashboard only picks one.
+// The stores PayRecover can check. Their addresses are operator settings; the dashboard only picks one.
 export const STORES = [
   ["main", "Main store (port 8100)"],
   ["vulnerable", "Vulnerable store, demo bugs (port 8200)"],

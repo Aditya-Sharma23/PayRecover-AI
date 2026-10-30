@@ -1,14 +1,14 @@
-"""PayTest Main store: a small, correct checkout that pays through PayPal Sandbox.
+"""PayRecover Main store: a small, correct checkout that pays through PayPal Sandbox.
 
-This is the application PayTest tests, kept separate from PayTest itself. Prices
+This is the application PayRecover tests, kept separate from PayRecover itself. Prices
 come from the server-side catalog (a price sent by the browser is ignored), the
 order is created and captured on the server, and the store records what it
-*believes* happened so PayTest can compare that belief with PayPal's own record.
+*believes* happened so PayRecover can compare that belief with PayPal's own record.
 
-The store is meant to pass every PayTest check: every page sends security headers,
+The store is meant to pass every PayRecover check: every page sends security headers,
 every response code is documented in the OpenAPI schema, orders are saved to
 a local file so they survive a restart, and a cart can be paid only once. Deliberately vulnerable stores, for showing
-PayTest catching bugs, are built separately.
+PayRecover catching bugs, are built separately.
 """
 
 import json
@@ -34,7 +34,7 @@ load_dotenv(ROOT / ".env")
 SANDBOX_API = "https://api-m.sandbox.paypal.com"
 CURRENCY = "USD"
 CATALOG = {
-    "tee": {"name": "PayTest T-shirt", "price": Decimal("18.00")},
+    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00")},
     "mug": {"name": "Evidence mug", "price": Decimal("12.50")},
     "stickers": {"name": "Sticker pack", "price": Decimal("4.99")},
 }
@@ -91,7 +91,7 @@ def _errors(*codes: int) -> dict[int, dict[str, Any]]:
     return {code: {"model": ErrorBody, "description": text[code]} for code in codes}
 
 
-app = FastAPI(title="PayTest Main store", version="2.0.0")
+app = FastAPI(title="PayRecover Main store", version="2.0.0")
 _token_cache: dict[str, Any] = {"token": None, "expires_at": 0.0}
 
 
@@ -281,7 +281,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
     body = {
         "intent": "CAPTURE",
         "purchase_units": [{
-            "description": "PayTest Main store order",
+            "description": "PayRecover Main store order",
             "amount": {
                 "currency_code": CURRENCY,
                 "value": _money(total),
@@ -348,7 +348,7 @@ def cancel_order(order_id: str = OrderId) -> dict[str, Any]:
 
 @app.get("/api/orders/{order_id}", response_model=OrderRecord, responses=_errors(404))
 def get_order(order_id: str = OrderId) -> dict[str, Any]:
-    """The store's own claim about an order. PayTest checks it against PayPal."""
+    """The store's own claim about an order. PayRecover checks it against PayPal."""
     return _known_order(order_id)
 
 

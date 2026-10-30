@@ -595,7 +595,7 @@ class InvestigationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
-    # Which operator-configured store to check; never a URL, so a request cannot aim PayTest anywhere else.
+    # Which operator-configured store to check; never a URL, so a request cannot aim PayRecover anywhere else.
     store: Literal["main", "vulnerable"] = "main"
     probe_store: bool = True
     website_checks: bool = True

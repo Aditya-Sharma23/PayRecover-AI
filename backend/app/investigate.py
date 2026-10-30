@@ -5,7 +5,7 @@ Three sources are checked against each other:
   PayPal's record     the Sandbox Orders API, through app.paypal (read-only)
   live store probes   one price-tampering attempt that creates an unapproved Sandbox order
                       (no money moves)
-  website checks      TestPilot's full website scan of the store page (Playwright, security,
+  website checks      PayRecover's full website scan of the store page (Playwright, security,
                       accessibility, contract), run through the normal runners
   XSS probe           15 inert reflected-XSS payloads in 15 parameters and the URL path
                       of the store page, reported as its own section (app.xss_probe)
@@ -374,7 +374,7 @@ Investigation JSON:
 
 
 async def scan_store(run_website: WebsiteRunner) -> WebsiteRunReport:
-    """TestPilot's full website scan of the store page, allowed past the private-address rule for this origin only."""
+    """PayRecover's full website scan of the store page, allowed past the private-address rule for this origin only."""
     url = f"{store_url()}/"
     with trusted_origin(url):
         return await run_website(WebsiteRunRequest(

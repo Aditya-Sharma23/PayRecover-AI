@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    TESTPILOT_DB_PATH=/data/testpilot.db \
+    TESTPILOT_DB_PATH=/data/payrecover.db \
     TESTPILOT_AUDIT_LOG_PATH=/data/audit.log \
     TESTPILOT_FRONTEND_DIST=/app/frontend/dist
 WORKDIR /app/backend
@@ -24,10 +24,10 @@ RUN pip install -r requirements.txt \
 COPY backend/app ./app
 COPY --from=frontend /build/dist /app/frontend/dist
 # Run as an unprivileged user; /data holds the SQLite database, audit log and screenshots.
-RUN useradd --create-home --uid 10001 testpilot \
+RUN useradd --create-home --uid 10001 payrecover \
     && mkdir -p /data \
-    && chown testpilot:testpilot /data
-USER testpilot
+    && chown payrecover:payrecover /data
+USER payrecover
 VOLUME ["/data"]
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \

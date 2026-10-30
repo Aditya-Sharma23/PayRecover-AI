@@ -1,7 +1,7 @@
-"""PayTest Vulnerable store: a deliberately broken copy of the Main store, for demos only.
+"""PayRecover Vulnerable store: a deliberately broken copy of the Main store, for demos only.
 
 It pays through the same PayPal Sandbox as the Main store but contains real bugs,
-so PayTest can be shown catching each one. Never deploy it as a real shop.
+so PayRecover can be shown catching each one. Never deploy it as a real shop.
 
 Payment bugs, switched on and off from the store page (POST /api/bugs) and saved:
   trust_client_price    charge the price the browser sends, so a buyer can edit it
@@ -37,7 +37,7 @@ load_dotenv(ROOT.parent / "main-store" / ".env")
 SANDBOX_API = "https://api-m.sandbox.paypal.com"
 CURRENCY = "USD"
 CATALOG = {
-    "tee": {"name": "PayTest T-shirt", "price": Decimal("18.00")},
+    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00")},
     "mug": {"name": "Evidence mug", "price": Decimal("12.50")},
     "stickers": {"name": "Sticker pack", "price": Decimal("4.99")},
 }
@@ -51,7 +51,7 @@ BUG_LABELS = {
     "allow_double_payment": "Let the same cart be paid more than once",
 }
 
-app = FastAPI(title="PayTest Vulnerable store", version="1.0.0")
+app = FastAPI(title="PayRecover Vulnerable store", version="1.0.0")
 _token_cache: dict[str, Any] = {"token": None, "expires_at": 0.0}
 
 
@@ -218,7 +218,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
     body = {
         "intent": "CAPTURE",
         "purchase_units": [{
-            "description": "PayTest Vulnerable store order",
+            "description": "PayRecover Vulnerable store order",
             "amount": {
                 "currency_code": CURRENCY,
                 "value": _money(total),

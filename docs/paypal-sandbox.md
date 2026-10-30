@@ -1,6 +1,6 @@
 # PayPal Sandbox setup
 
-PayTest uses PayPal **Sandbox only**. The API base `https://api-m.sandbox.paypal.com` is hard-coded in both
+PayRecover uses PayPal **Sandbox only**. The API base `https://api-m.sandbox.paypal.com` is hard-coded in both
 the Main store and the verifier, so no setting can point either at live payments.
 
 ## 1. Create the Sandbox credentials (once)
@@ -33,7 +33,7 @@ PAYPAL_CLIENT_ID=<sandbox client id>
 PAYPAL_CLIENT_SECRET=<sandbox secret>
 ```
 
-`backend/.env` (PayTest, which reads orders back from PayPal to verify them):
+`backend/.env` (PayRecover, which reads orders back from PayPal to verify them):
 
 ```
 TESTPILOT_PAYPAL_CLIENT_ID=<sandbox client id>
@@ -52,7 +52,7 @@ python -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt
 
 Open http://127.0.0.1:8100, pay with the Sandbox buyer account, and note the order id on the page.
 
-Then ask PayTest what PayPal itself recorded (backend running on port 8000):
+Then ask PayRecover what PayPal itself recorded (backend running on port 8000):
 
 ```powershell
 curl.exe -s -X POST http://127.0.0.1:8000/api/paypal/verify -H "Content-Type: application/json" `

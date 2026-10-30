@@ -1,1 +1,1 @@
-"""TestPilot AI backend application."""
+"""PayRecover AI backend application."""

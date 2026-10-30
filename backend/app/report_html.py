@@ -39,11 +39,11 @@ def render_report_html(report: dict[str, Any]) -> str:
     target = html.escape(str(report.get("target_url", "")))
     summary = html.escape(json.dumps(report.get("summary", {}), indent=2))
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>TestPilot report</title>
+<html lang="en"><head><meta charset="utf-8"><title>PayRecover report</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#20263a}}
 .status{{font-weight:700}}table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid #ddd;padding:.6rem;text-align:left;vertical-align:top}}
 pre{{white-space:pre-wrap;margin:0}}</style></head><body>
-<h1>TestPilot AI evidence report</h1><p class="status">Overall status: {status}</p>
+<h1>PayRecover AI evidence report</h1><p class="status">Overall status: {status}</p>
 <p>Target: <code>{target}</code></p><h2>Summary</h2><pre>{summary}</pre>
 <h2>Checks</h2><table><thead><tr><th>Check</th><th>Status</th><th>Message</th><th>Evidence</th></tr></thead>
 <tbody>{check_rows}</tbody></table></body></html>"""

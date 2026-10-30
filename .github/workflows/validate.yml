@@ -1,4 +1,4 @@
-name: Validate TestPilot AI
+name: Validate PayRecover AI
 
 on:
   push:
@@ -73,17 +73,17 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t testpilot-ai:ci .
+      - run: docker build -t payrecover-ai:ci .
       - name: Container starts and serves the API and dashboard
         run: |
-          docker run -d --name testpilot -p 127.0.0.1:8000:8000 testpilot-ai:ci
+          docker run -d --name payrecover -p 127.0.0.1:8000:8000 payrecover-ai:ci
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/api/health && break; sleep 2; done
-          curl -fsS http://127.0.0.1:8000/ | grep -q "TestPilot AI"
-          docker rm -f testpilot
+          curl -fsS http://127.0.0.1:8000/ | grep -q "PayRecover AI"
+          docker rm -f payrecover
       - name: Public mode refuses to start without its safeguards
         run: |
           set +e
-          docker run --rm -e TESTPILOT_PUBLIC_DEPLOYMENT=true testpilot-ai:ci timeout 30 uvicorn app.main:app --port 8001
+          docker run --rm -e TESTPILOT_PUBLIC_DEPLOYMENT=true payrecover-ai:ci timeout 30 uvicorn app.main:app --port 8001
           code=$?
           # 124 would mean it kept running until the timeout, i.e. it did start.
           if [ "$code" -eq 0 ] || [ "$code" -eq 124 ]; then echo "expected the server to refuse to start"; exit 1; fi

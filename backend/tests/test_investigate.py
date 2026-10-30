@@ -21,7 +21,7 @@ CATALOG = {"tee": Decimal("18.00"), "mug": Decimal("12.50")}
 def claim(status="PAID", total="18.00", unit_price="18.00"):
     return {
         "order_id": ORDER_ID, "status": status, "total": total, "currency": "USD",
-        "items": [{"product_id": "tee", "name": "PayTest T-shirt", "quantity": 1, "unit_price": unit_price}],
+        "items": [{"product_id": "tee", "name": "PayRecover T-shirt", "quantity": 1, "unit_price": unit_price}],
     }
 
 

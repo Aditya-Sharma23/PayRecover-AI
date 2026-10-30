@@ -202,7 +202,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport }) {
     </label>
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={website} onChange={(event) => setWebsite(event.target.checked)} />
-      Run TestPilot website checks on the store (browser, security, accessibility, API contract; about a minute)
+      Run the website checks on the store (browser, security, accessibility, API contract; about a minute)
     </label>
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={xss} onChange={(event) => setXss(event.target.checked)} />

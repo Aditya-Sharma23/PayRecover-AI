@@ -16,7 +16,7 @@ from app.url_policy import UnsafeTarget, validate_target_url
 
 PROBE_TIMEOUT_SECONDS = 6
 MAX_PROBE_BODY_BYTES = 128_000
-USER_AGENT = "TestPilot-AI-Scanner/1.0"
+USER_AGENT = "PayRecover-AI-Scanner/1.0"
 EXPOSURE_PATHS = ((".env file", "/.env"), ("Git metadata", "/.git/HEAD"), ("Backup archive", "/backup.zip"))
 ACCESS_CONTROL_PATHS = ("/admin", "/manage", "/settings", "/account", "/profile")
 LOGIN_WORDS = ("login", "log in", "sign in", "password")

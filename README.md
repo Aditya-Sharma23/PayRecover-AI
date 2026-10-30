@@ -1,18 +1,18 @@
-# PayTest AI
+# PayRecover AI
 
-**An AI-assisted testing agent that checks e-commerce checkouts and PayPal payments, and backs every verdict with evidence.**
+**An AI agent for PayPal merchants: it finds money a store has lost, proves each leak, and shows how to get it back.**
 
-Built for the PayPal AI Hackathon on top of TestPilot AI, an open-source website and API testing tool.
+Built for the PayPal AI Hackathon on top of TestPilot AI, an open-source website and API testing tool (this project was called PayTest AI until October 2026).
 
-A store's "Payment complete" page can be wrong. A browser test can pass while the money was never collected, and an AI can say a payment worked when it didn't. PayTest checks each claim against something it can trust: real browser and HTTP runners, and **PayPal's own record of the order**. The AI plans tests and explains results, but it never decides a result.
+A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, plus real browser and HTTP runners. Gemini explains every result in plain words, but it never decides a result.
 
-![CI](https://github.com/Aditya-Sharma23/PayTest-AI/actions/workflows/validate.yml/badge.svg)
+![CI](https://github.com/Aditya-Sharma23/PayRecover-AI/actions/workflows/validate.yml/badge.svg)
 
 ---
 
 ## What it does
 
-| Area | What PayTest checks |
+| Area | What PayRecover checks |
 |---|---|
 | **PayPal payments** | Reads the order straight from the PayPal Sandbox Orders API: does it exist, is it `COMPLETED`, was it **captured**, and do the order and capture amounts match what the store should have charged? |
 | **Website** | HTTP status, title, headings, console errors, links, security headers, cookies, exposed files, accessibility (axe-core), keyboard focus, response time, scripted user flows (fill, click, expect text), and screenshots on failure |
@@ -22,7 +22,7 @@ A store's "Payment complete" page can be wrong. A browser test can pass while th
 
 ### The Main store
 
-`main-store/` is the PayPal Sandbox checkout PayTest checks, built to pass every check: it prices carts on
+`main-store/` is the PayPal Sandbox checkout PayRecover checks, built to pass every check: it prices carts on
 the server and ignores any price the browser sends, marks an order paid only after PayPal captures it,
 sends a strict Content-Security-Policy and the other security headers, documents every response code in
 its OpenAPI schema, saves orders so they survive a restart, and lets each cart be paid only once.
@@ -30,9 +30,9 @@ its OpenAPI schema, saves orders so they survive a restart, and lets each cart b
 ### The Vulnerable store
 
 `vuln-store/` (port 8200) is a deliberately broken copy for demos, kept apart so the Main store stays clean.
-Tick the bugs to simulate on its page, pay, and investigate the order in PayTest with **Store: Vulnerable**:
+Tick the bugs to simulate on its page, pay, and investigate the order in PayRecover with **Store: Vulnerable**:
 
-| Bug on the page | What PayTest reports |
+| Bug on the page | What PayRecover reports |
 |---|---|
 | Charge the price the browser sends (prices are editable) | **Wrong amount** leak, and the price-tampering probe fails |
 | Show "paid" without capturing at PayPal | **Fake paid** or **Never captured** leak |
@@ -43,7 +43,7 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayTest
 
 For every order, PayRecover compares the store's claim with PayPal's record and reports these leaks:
 
-| Leak | What PayTest sees |
+| Leak | What PayRecover sees |
 |---|---|
 | Never captured | The store says `PAID`; PayPal says `APPROVED` with no capture |
 | Fake paid | The store says `PAID`; PayPal never received a payment |
@@ -56,8 +56,8 @@ For every order, PayRecover compares the store's claim with PayPal's record and 
 
 ```mermaid
 flowchart LR
-    U[Tester] --> D[PayTest dashboard<br/>React]
-    D --> B[PayTest backend<br/>FastAPI]
+    U[Tester] --> D[PayRecover dashboard<br/>React]
+    D --> B[PayRecover backend<br/>FastAPI]
     B --> R[Browser and HTTP runners<br/>Playwright, aiohttp]
     B --> P[PayPal verifier]
     B -. plan / explain only .-> G[Gemini]
@@ -68,12 +68,12 @@ flowchart LR
 
 1. A buyer pays in the **Main store** with a PayPal Sandbox account. The store prices the cart on its server, creates the PayPal order, and captures it after approval.
 2. The store records what it **believes** happened (`GET /api/orders/{id}`).
-3. PayTest asks **PayPal** what actually happened (`POST /api/paypal/verify`) and compares the two, check by check, with evidence.
+3. PayRecover asks **PayPal** what actually happened (`POST /api/paypal/verify`) and compares the two, check by check, with evidence.
 
 ### Design principles
 
 - **Evidence decides, AI advises.** Runners and PayPal's API produce every status; Gemini's output is labelled advisory, with the model that wrote it.
-- **Sandbox only.** The PayPal API address is hard-coded to `api-m.sandbox.paypal.com`. No setting can point PayTest at live payments.
+- **Sandbox only.** The PayPal API address is hard-coded to `api-m.sandbox.paypal.com`. No setting can point PayRecover at live payments.
 - **Read-only.** The verifier only reads orders. Browser runs allow GET/HEAD requests only, and the API runner sends a single GET.
 - **No personal data in evidence.** Payer and payee details are never copied into results.
 - **SSRF-safe.** Every target address is validated and the connection pinned to it, and the browser cannot open connections of its own. See [docs/threat-model.md](docs/threat-model.md).
@@ -127,7 +127,7 @@ cd frontend; npm run dev
 
 | Open | What |
 |---|---|
-| http://127.0.0.1:5173 | PayTest dashboard |
+| http://127.0.0.1:5173 | PayRecover dashboard |
 | http://127.0.0.1:8100 | Main store |
 | http://127.0.0.1:8200 | Vulnerable store (demo bugs) |
 | http://127.0.0.1:8000/docs | Backend API docs |
@@ -147,7 +147,7 @@ cd frontend; npm run dev
 ```
 backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
 frontend/     React dashboard (Vite)
-main-store/   The PayPal Sandbox checkout PayTest checks, built to pass every check
+main-store/   The PayPal Sandbox checkout PayRecover checks, built to pass every check
 vuln-store/   A deliberately vulnerable copy with switchable payment bugs, for demos only
 demo-site/    Static pages published to GitHub Pages as a public website-test target
 docs/         Setup, API contract, deployment, threat model and design decisions
@@ -176,7 +176,7 @@ GitHub Actions runs the backend, main-store, vuln-store and frontend tests and a
 
 ## Deployment
 
-The PayTest backend and dashboard ship as a single Docker image (`docker compose up --build`). A Render blueprint (`render.yaml`) is included. Public deployments refuse to start unless authentication, rate limiting, audit logging and HTTPS are configured. See [docs/deployment.md](docs/deployment.md).
+The PayRecover backend and dashboard ship as a single Docker image (`docker compose up --build`). A Render blueprint (`render.yaml`) is included. Public deployments refuse to start unless authentication, rate limiting, audit logging and HTTPS are configured. See [docs/deployment.md](docs/deployment.md).
 
 ## Roadmap
 

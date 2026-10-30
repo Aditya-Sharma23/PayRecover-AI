@@ -1,6 +1,6 @@
 # Threat model
 
-TestPilot AI makes network requests to URLs that users type in, runs a real browser against them, and sends report data to an AI model. That makes it a server-side request forgery (SSRF) tool if it is careless. This document lists what we defend against and how.
+PayRecover AI makes network requests to URLs that users type in, runs a real browser against them, and sends report data to an AI model. That makes it a server-side request forgery (SSRF) tool if it is careless. This document lists what we defend against and how.
 
 ## Assets
 

@@ -3,12 +3,12 @@
 # set TESTPILOT_PUBLIC_URL and TESTPILOT_GOOGLE_API_KEY in the dashboard.
 services:
   - type: web
-    name: testpilot-ai
+    name: payrecover-ai
     runtime: docker
     plan: starter
     healthCheckPath: /api/health
     disk:
-      name: testpilot-data
+      name: payrecover-data
       mountPath: /data
       sizeGB: 1
     envVars:
@@ -28,7 +28,9 @@ services:
         sync: false
       - key: TESTPILOT_GOOGLE_API_KEY
         sync: false
-      - key: TESTPILOT_GEMMA_MODEL
-        value: gemma-4-26b-a4b-it
+      - key: TESTPILOT_AI_MODEL
+        value: gemini-3.8-flash
+      - key: TESTPILOT_AI_FALLBACK_MODELS
+        value: gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.7-flash
       - key: FORWARDED_ALLOW_IPS
         value: "*"

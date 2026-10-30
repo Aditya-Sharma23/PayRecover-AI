@@ -1,6 +1,6 @@
-# Deploying TestPilot AI
+# Deploying PayRecover AI
 
-TestPilot AI ships as one Docker image. FastAPI serves the API and the built dashboard from the same origin, so no CORS setup is needed. Data (SQLite database, audit log and screenshots) lives in `/data`; mount a persistent volume there.
+PayRecover AI ships as one Docker image. FastAPI serves the API and the built dashboard from the same origin, so no CORS setup is needed. Data (SQLite database, audit log and screenshots) lives in `/data`; mount a persistent volume there.
 
 ## Two modes
 
@@ -52,7 +52,7 @@ docker compose up --build
 
 1. Push the repository to GitHub.
 2. In Render: **New → Blueprint**, choose the repository. `render.yaml` creates a Docker web service with a 1 GB disk at `/data` and a generated `TESTPILOT_API_TOKEN`.
-3. Set `TESTPILOT_PUBLIC_URL` to the service URL (for example `https://testpilot-ai.onrender.com`) and `TESTPILOT_GOOGLE_API_KEY` to your key.
+3. Set `TESTPILOT_PUBLIC_URL` to the service URL (for example `https://payrecover-ai.onrender.com`) and `TESTPILOT_GOOGLE_API_KEY` to your key.
 4. Deploy. Check `https://<your-service>/api/deployment/readiness` shows `"ready": true`.
 5. Open the site, expand **API token**, and paste the token from the Render environment page.
 
@@ -63,8 +63,8 @@ A persistent disk needs a paid Render plan. Without one, history is lost on each
 Fly.io, Railway, Google Cloud Run, Azure Container Apps and a plain VM all work the same way:
 
 ```bash
-docker build -t testpilot-ai .
-docker run -d -p 8000:8000 -v testpilot-data:/data \
+docker build -t payrecover-ai .
+docker run -d -p 8000:8000 -v payrecover-data:/data \
   -e TESTPILOT_PUBLIC_DEPLOYMENT=true \
   -e TESTPILOT_AUTH_ENABLED=true \
   -e TESTPILOT_API_TOKENS="alice:$(python -c 'import secrets;print(secrets.token_urlsafe(32))')" \
@@ -73,7 +73,7 @@ docker run -d -p 8000:8000 -v testpilot-data:/data \
   -e TESTPILOT_PUBLIC_URL=https://testpilot.example.org \
   -e TESTPILOT_GOOGLE_API_KEY=... \
   -e FORWARDED_ALLOW_IPS='*' \
-  testpilot-ai
+  payrecover-ai
 ```
 
 Put a TLS-terminating proxy (the platform's, Caddy or nginx) in front. Set `FORWARDED_ALLOW_IPS` to the proxy's address, or `*` when the platform proxy is the only way in. The platform must provide at least 1 GB of memory and 512 MB of shared memory for Chromium.

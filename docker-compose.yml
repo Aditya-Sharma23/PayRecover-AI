@@ -2,9 +2,9 @@
 #   docker compose up --build
 # The port is bound to 127.0.0.1 only. For a public deployment see docs/deployment.md.
 services:
-  testpilot:
+  payrecover:
     build: .
-    image: testpilot-ai:local
+    image: payrecover-ai:local
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
@@ -13,9 +13,9 @@ services:
     environment:
       TESTPILOT_PUBLIC_DEPLOYMENT: "false"
     volumes:
-      - testpilot-data:/data
+      - payrecover-data:/data
     shm_size: "512mb"
     restart: unless-stopped
 
 volumes:
-  testpilot-data:
+  payrecover-data:

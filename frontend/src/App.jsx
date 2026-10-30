@@ -191,7 +191,7 @@ export default function App() {
   const online = serviceState === "API connected";
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Main navigation">
-      <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Test<span className="brand-accent">Pilot</span> AI</span></a>
+      <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Pay<span className="brand-accent">Recover</span> AI</span></a>
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
         <a href="#scan"><span aria-hidden="true">⌕</span> New scan</a>
@@ -208,7 +208,7 @@ export default function App() {
     </aside>
     <main className="main-content" id="dashboard">
       <section className="welcome">
-        <div><p className="eyebrow">TestPilot AI · final build</p><h1>Testing &amp; Security Overview</h1><p>Website, API, security and accessibility checks in one safe runner.</p></div>
+        <div><p className="eyebrow">PayRecover AI · PayPal Sandbox</p><h1>Payment &amp; Security Overview</h1><p>Find money a store has lost on PayPal, prove each leak, and check the store for the hole behind it.</p></div>
         <div className="date-label">
           <span className={`status-pill ${online ? "online" : ""}`}><i />{serviceState}</span>
           <span className="status-pill"><i className="ai" />{aiState}</span>
@@ -285,7 +285,7 @@ export default function App() {
             {testType === "api" && <HeaderEditor rows={form.headers} onChange={(headers) => set({ headers })} />}
             <details className="token-settings" open={needsToken || undefined}>
               <summary>{needsToken ? "This server needs an API token · paste it here" : "API token (only when backend authentication is enabled)"}</summary>
-              <input type="password" className="text-input" autoComplete="off" placeholder="Paste your TestPilot API token" defaultValue={token} onBlur={(event) => saveToken(event.target.value)} />
+              <input type="password" className="text-input" autoComplete="off" placeholder="Paste your PayRecover API token" defaultValue={token} onBlur={(event) => saveToken(event.target.value)} />
               <p className="hint">Kept in this browser tab's session storage only.</p>
             </details>
           </details>
@@ -302,7 +302,7 @@ export default function App() {
       {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Run a scan, or open one from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
 
       <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={(report) => { setResult(report); setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50); }} />
-      <footer>TestPilot AI · HTTP · Playwright + axe · security probes · Schemathesis · PayPal Sandbox · {aiName}</footer>
+      <footer>PayRecover AI · HTTP · Playwright + axe · security probes · Schemathesis · PayPal Sandbox · {aiName}</footer>
     </main>
   </div>;
 }

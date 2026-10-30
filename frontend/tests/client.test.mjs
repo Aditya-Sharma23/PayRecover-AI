@@ -23,5 +23,5 @@ test("non-2xx responses throw the formatted detail", async () => {
 
 test("network failures give an actionable message", async () => {
   globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
-  await assert.rejects(apiJson("/api/health"), /Could not reach the TestPilot API/);
+  await assert.rejects(apiJson("/api/health"), /Could not reach the PayRecover API/);
 });

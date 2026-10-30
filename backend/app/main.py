@@ -80,7 +80,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="TestPilot AI API",
+    title="PayRecover AI API",
     version="2.0.0",
     description="Evidence-first software testing API with bounded website and API checks.",
     lifespan=lifespan,
@@ -344,7 +344,7 @@ def paypal_status() -> dict[str, str | bool]:
 async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerification:
     """Read one order from the PayPal Sandbox Orders API and check it against expectations.
 
-    This is the only source PayTest trusts for payment state: not the store's
+    This is the only source PayRecover trusts for payment state: not the store's
     confirmation page, and not the AI model.
     """
     try:

@@ -2,7 +2,7 @@
 
 A store, a browser page or the AI model can claim a payment succeeded; only this
 module's view of PayPal's own record decides it. The base URL is fixed to the
-Sandbox and cannot be configured, so PayTest can never reach live payments.
+Sandbox and cannot be configured, so PayRecover can never reach live payments.
 Requests are read-only (GET), and payer details are never copied into evidence.
 """
 

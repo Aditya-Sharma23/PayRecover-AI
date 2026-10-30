@@ -1,5 +1,5 @@
 // Main store checkout: the server prices the cart, creates and captures the order.
-// Element ids and data-testid values are stable so PayTest's browser checks can rely on them.
+// Element ids and data-testid values are stable so PayRecover's browser checks can rely on them.
 
 const state = { products: [], quantities: {}, cartId: "" };
 const CART_KEY = "paytest-main-cart";

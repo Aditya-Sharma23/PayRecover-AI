@@ -41,7 +41,7 @@ async function request(path, { method = "GET", body } = {}) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new Error("Could not reach the TestPilot API. Is the backend running?");
+    throw new Error("Could not reach the PayRecover API. Is the backend running?");
   }
   return response;
 }

@@ -12,7 +12,7 @@ function downloadReport(report) {
   const objectUrl = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = objectUrl;
-  link.download = `testpilot-${report.run_id}.json`;
+  link.download = `payrecover-${report.run_id}.json`;
   link.click();
   URL.revokeObjectURL(objectUrl);
 }
