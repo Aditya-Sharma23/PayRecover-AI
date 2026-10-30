@@ -286,7 +286,7 @@ CHECK_GUIDE = {
     "page_title": "page has a non-empty <title>",
     "h1": "page has exactly one main heading",
     "console_errors": "no browser console errors",
-    "same_origin_links": "inventory of links (always a warning, never a pass)",
+    "same_origin_links": "opens the page's same-site links (external ones are never opened) and fails on broken ones",
     "security_headers": "six security controls: CSP, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, clickjacking",
     "text_present": "exact visible text appears, optionally after one click (needs suggested_expected_text)",
     "accessibility": "automated axe-core accessibility rules",

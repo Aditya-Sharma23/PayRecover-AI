@@ -88,13 +88,30 @@ class RunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(statuses[CheckName.PAGE_TITLE], CheckStatus.PASSED)
         self.assertEqual(statuses[CheckName.H1], CheckStatus.PASSED)
         self.assertEqual(statuses[CheckName.CONSOLE_ERRORS], CheckStatus.PASSED)
-        self.assertEqual(statuses[CheckName.SAME_ORIGIN_LINKS], CheckStatus.WARNING)
-
         link_result = next(
             result for result in results if result.check_id == CheckName.SAME_ORIGIN_LINKS
         )
         self.assertEqual(link_result.evidence["same_origin_count"], 1)
         self.assertEqual(link_result.evidence["external_count"], 1)
+        # The fixture serves the same page for every path, so the one same-site link loads.
+        self.assertEqual(link_result.status, CheckStatus.PASSED)
+        self.assertEqual([item["url"] for item in link_result.evidence["checked"]], ["https://fixture.test/inside"])
+
+    def test_broken_same_site_links_fail_and_external_links_are_never_opened(self):
+        requested = []
+        page = (b"<html><head><title>T</title></head><body><h1>H</h1>"
+                b"<a href='/ok'>ok</a><a href='/gone#top'>gone</a><a href='/gone'>again</a>"
+                b"<a href='https://external.test/x'>out</a></body></html>")
+        results = run_fixture({"/": page, "/ok": page}, requested, checks=[CheckName.SAME_ORIGIN_LINKS])
+        links = results[CheckName.SAME_ORIGIN_LINKS]
+        self.assertEqual(links.status, CheckStatus.FAILED)
+        self.assertIn("1 of 2 same-site link(s) are broken: /gone", links.message)
+        self.assertFalse(any("external.test" in url for url in requested))
+
+    def test_a_page_without_links_passes(self):
+        page = b"<html><head><title>T</title></head><body><h1>H</h1></body></html>"
+        results = run_fixture({"/": page}, checks=[CheckName.SAME_ORIGIN_LINKS])
+        self.assertEqual(results[CheckName.SAME_ORIGIN_LINKS].status, CheckStatus.PASSED)
 
     def test_missing_h1_and_console_error_are_real_failures(self):
         results = run_fixture(

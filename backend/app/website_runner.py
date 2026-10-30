@@ -7,7 +7,7 @@ import socket
 import time
 from functools import cache
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 import aiohttp
@@ -302,6 +302,43 @@ def _redact_text(value: str) -> str:
     return re.sub(r"(https?://[^\s?\"'<>]+)\?[^\s\"'<>]*", r"\1?[redacted]", value)[:1000]
 
 
+async def _check_links(links: list[str], timeout_seconds: int) -> list[dict]:
+    """Open each same-site link once with a pinned GET; redirects are not followed."""
+    gate = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+    async def one(link: str) -> dict:
+        shown = urlunsplit(urlsplit(link)._replace(query="", fragment=""))
+        try:
+            async with gate:
+                status, _, _ = await _fetch_pinned(link, "GET", min(timeout_seconds, 10))
+        except (UnsafeTarget, aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+            return {"url": shown, "error": type(exc).__name__, "ok": False}
+        return {"url": shown, "status_code": status, "ok": status < 400}
+
+    return list(await asyncio.gather(*(one(link) for link in links)))
+
+
+async def _link_result(observations: dict, started: float) -> CheckResult:
+    checked = observations.get("link_results")
+    external = observations.get("external_link_count", 0)
+    evidence = {"same_origin_count": observations.get("same_origin_link_count", 0), "external_count": external,
+                "checked": checked or []}
+    limitations = ["Links found on the page were checked with one GET each; redirects were not followed.",
+                   "External links are never opened by the safe runner."]
+    if checked is None:
+        return await _one_check(CheckName.SAME_ORIGIN_LINKS, CheckStatus.ERROR,
+                                "The page did not load, so its links could not be checked.", evidence, started, limitations)
+    broken = [item for item in checked if not item["ok"]]
+    if not checked:
+        message, status = f"The page has no same-site links to check ({external} external link(s) not opened).", CheckStatus.PASSED
+    elif broken:
+        names = ", ".join(urlsplit(item["url"]).path or "/" for item in broken[:5])
+        message, status = f"{len(broken)} of {len(checked)} same-site link(s) are broken: {names}.", CheckStatus.FAILED
+    else:
+        message, status = f"All {len(checked)} same-site link(s) load.", CheckStatus.PASSED
+    return await _one_check(CheckName.SAME_ORIGIN_LINKS, status, message, evidence, started, limitations)
+
+
 async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
     """Execute selected checks using real observations and bounded requests."""
     target_url = str(request.url)
@@ -388,6 +425,11 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
             )
             observations["same_origin_link_count"] = sum(_same_origin(target_url, link) for link in links)
             observations["external_link_count"] = sum(not _same_origin(target_url, link) for link in links)
+            # Same-site links only, without #fragments, each once; external links are never opened.
+            observations["same_origin_links"] = list(dict.fromkeys(
+                link.split("#", 1)[0] for link in links
+                if _same_origin(target_url, link) and urlsplit(link).scheme in {"http", "https"}
+            ))
             if CheckName.ACCESSIBILITY in request.checks:
                 # page.evaluate is not subject to the page's CSP, and the script
                 # is local, so no request leaves the guarded route for it.
@@ -432,6 +474,8 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
             await playwright.stop()
     # Security probes and the contract run use the pinned HTTP client, not the browser.
     probes = {name: await _probe(name, target_url) for name in request.checks if name in PROBE_CHECKS}
+    if CheckName.SAME_ORIGIN_LINKS in request.checks and "same_origin_links" in observations:
+        observations["link_results"] = await _check_links(observations["same_origin_links"], request.timeout_seconds)
 
     results: list[CheckResult] = []
     for name in request.checks:
@@ -458,7 +502,7 @@ async def run_website_checks(request: WebsiteRunRequest) -> list[CheckResult]:
             passed = not errors
             results.append(await _one_check(name, CheckStatus.PASSED if passed else CheckStatus.FAILED, "No browser console errors were observed." if passed else f"Observed {len(errors)} browser console error(s).", {"errors": errors}, started))
         elif name == CheckName.SAME_ORIGIN_LINKS:
-            results.append(await _one_check(name, CheckStatus.WARNING, "Link inventory captured; no expected link count was supplied.", {"same_origin_count": observations.get("same_origin_link_count", 0), "external_count": observations.get("external_link_count", 0)}, started, ["Links were counted but not followed."]))
+            results.append(await _link_result(observations, started))
         elif name == CheckName.SECURITY_HEADERS:
             policy = evaluate_security_headers(observations.get("headers", {}), urlsplit(target_url).scheme)
             applicable = len(policy["present"]) + len(policy["missing"])
