@@ -51,6 +51,8 @@ class EventTests(unittest.TestCase):
         self.assertEqual(event["event"], "leak_found")
         self.assertEqual(event["money_at_risk"], "18.00")
         self.assertTrue(event["leaks"][0]["approve_url"].startswith("https://payrecover.example/approve?token="))
+        self.assertIn("1. Never captured (18.00 USD)", event["message"])
+        self.assertIn("Approve: https://payrecover.example/approve?token=", event["message"])
 
     def test_nothing_is_sent_without_an_https_webhook(self):
         with patch.dict(os.environ, {"TESTPILOT_ZAPIER_WEBHOOK_URL": "http://hooks.zapier.com/x"}):

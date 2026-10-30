@@ -93,13 +93,30 @@ def leak_event(result: Investigation, owner: str) -> dict[str, Any]:
             "action": leak.recovery_action, "recovery": leak.recovery, "root_cause": leak.root_cause,
             "approve_url": approval_url(token) if token else None,
         })
+    summary = (f"PayRecover found {len(leaks)} leak(s) on order {result.order_id}: "
+               f"{result.money_at_risk} {result.currency} at risk.")
     return {
         "event": "leak_found", "order_id": result.order_id, "store": result.store,
         "money_at_risk": result.money_at_risk, "currency": result.currency, "leaks": leaks,
-        "summary": f"PayRecover found {len(leaks)} leak(s) on order {result.order_id}: "
-                   f"{result.money_at_risk} {result.currency} at risk.",
+        "summary": summary,
+        "message": _leak_message(summary, leaks),
         "checked_at": result.checked_at.isoformat(),
     }
+
+
+def _leak_message(summary: str, leaks: list[dict[str, Any]]) -> str:
+    """A ready-to-send plain-text message, so a Zap needs only this one field in its email or chat step."""
+    lines = [summary, ""]
+    for number, leak in enumerate(leaks, 1):
+        lines += [
+            f"{number}. {leak['title']} ({leak['amount']} {leak['currency']})",
+            f"   Why: {leak['root_cause']}",
+            f"   Fix: {leak['recovery']}",
+            f"   Approve: {leak['approve_url']}" if leak["approve_url"] else "   Approve it in the PayRecover dashboard.",
+            "",
+        ]
+    lines.append("Nothing moves until you approve. PayRecover then checks PayPal again to confirm it worked.")
+    return "\n".join(lines)
 
 
 def recovery_event(record: RecoveryRecord) -> dict[str, Any]:
@@ -107,6 +124,8 @@ def recovery_event(record: RecoveryRecord) -> dict[str, Any]:
         "event": "recovery_done", "recovery_id": record.recovery_id, "order_id": record.order_id, "store": record.store,
         "kind": record.kind, "action": record.action, "amount": record.amount, "currency": record.currency,
         "status": record.status, "message": record.message, "created_at": record.created_at.isoformat(),
+        "summary": f"PayRecover {record.status.replace('_', ' ')}: {record.amount} {record.currency} "
+                   f"({record.action}) for order {record.order_id}. {record.message}",
     }
 
 
