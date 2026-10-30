@@ -38,8 +38,8 @@ export function orderIdProblem(value) {
 
 // The stores PayRecover can check. Their addresses are operator settings; the dashboard only picks one.
 export const STORES = [
-  ["main", "Main store (port 8100)"],
-  ["vulnerable", "Vulnerable store, demo bugs (port 8200)"],
+  ["main", "Main store (demo)"],
+  ["vulnerable", "Vulnerable store (demo bugs)"],
 ];
 
 export const investigationBody = (value, { store = "main", probe = true, website = true, xss = true, explain = true } = {}) => ({
