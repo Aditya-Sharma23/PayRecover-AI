@@ -93,6 +93,21 @@ class InvestigationTests(unittest.TestCase):
         self.assertEqual(leak.urgency, "now")
         self.assertEqual(leak.waiting_since.isoformat(), "2026-10-31T09:15:42+00:00")
 
+    def test_a_refunded_order_is_not_a_never_captured_leak(self):
+        order = paypal_order()
+        order["purchase_units"][0]["payments"]["captures"][0]["status"] = "REFUNDED"
+        result = run(claim(), order)
+        self.assertEqual(result.leaks, [])
+        self.assertEqual(result.money_at_risk, "0.00")
+
+    def test_a_partly_refunded_capture_still_counts_as_collected(self):
+        order = paypal_order()
+        order["purchase_units"][0]["payments"]["captures"][0]["status"] = "PARTIALLY_REFUNDED"
+        self.assertEqual(run(claim(), order).leaks, [])
+        short = paypal_order(amount="10.00", captures=("10.00",))
+        short["purchase_units"][0]["payments"]["captures"][0]["status"] = "PARTIALLY_REFUNDED"
+        self.assertEqual(kinds(run(claim(), short)), ["wrong_amount"])
+
     def test_a_fake_paid_order_the_buyer_never_approved_cannot_be_invoiced(self):
         leak = run(claim(), paypal_order(status="CREATED", captures=())).leaks[0]
         self.assertEqual(leak.kind, "fake_paid")

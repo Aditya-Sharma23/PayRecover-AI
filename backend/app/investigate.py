@@ -277,7 +277,12 @@ def find_leaks(
             ),
             targets=[RecoveryTarget(order_id=claim["order_id"], amount=_money(expected))] if buyer_known else [],
         )]
-    captures = [c for c in _captures(order) if c.get("status") == "COMPLETED"]
+    # A partly refunded capture still collected money, so it counts as a capture here.
+    captures = [c for c in _captures(order) if c.get("status") in {"COMPLETED", "PARTIALLY_REFUNDED"}]
+    if not captures and any(c.get("status") == "REFUNDED" for c in _captures(order)):
+        # The money was collected and then deliberately returned (for example, a duplicate charge
+        # PayRecover refunded). That is not a leak, and capturing again is impossible anyway.
+        return []
     if not captures:
         return [Leak(
             kind="never_captured", title="Buyer approved, but the money was never captured", urgency="now",
