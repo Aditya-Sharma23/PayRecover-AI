@@ -1,0 +1,3422 @@
+{
+  "components": {
+    "schemas": {
+      "AIExplanation": {
+        "properties": {
+          "findings": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Findings",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Next Steps",
+            "type": "array"
+          },
+          "risk_level": {
+            "default": "UNKNOWN",
+            "enum": [
+              "HIGH",
+              "REVIEW",
+              "LOW",
+              "UNKNOWN"
+            ],
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "source": {
+            "default": "AI",
+            "title": "Source",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "findings",
+          "limitations",
+          "next_steps"
+        ],
+        "title": "AIExplanation",
+        "type": "object"
+      },
+      "AIExplanationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebsiteRunReport"
+              },
+              {
+                "$ref": "#/components/schemas/ApiRunReport"
+              }
+            ],
+            "title": "Report"
+          }
+        },
+        "required": [
+          "report"
+        ],
+        "title": "AIExplanationRequest",
+        "type": "object"
+      },
+      "AIPlan": {
+        "description": "The AI model's reviewable proposal. Suggested inputs are drafts the user must confirm.",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckName"
+            },
+            "maxItems": 17,
+            "minItems": 1,
+            "title": "Checks",
+            "type": "array"
+          },
+          "expectations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Expectations",
+            "type": "array"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "rationale": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "suggested_expected_text": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Expected Text"
+          },
+          "suggested_flow_steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FlowStep"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Flow Steps"
+          },
+          "suggested_json_assertions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/JsonAssertion"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Json Assertions"
+          },
+          "test_type": {
+            "pattern": "^(website|api)$",
+            "title": "Test Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal",
+          "test_type",
+          "checks",
+          "expectations",
+          "limitations",
+          "rationale"
+        ],
+        "title": "AIPlan",
+        "type": "object"
+      },
+      "AIPlanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized": {
+            "title": "Authorized",
+            "type": "boolean"
+          },
+          "goal": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Goal",
+            "type": "string"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          },
+          "test_type": {
+            "default": "website",
+            "pattern": "^(website|api)$",
+            "title": "Test Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal",
+          "authorized"
+        ],
+        "title": "AIPlanRequest",
+        "type": "object"
+      },
+      "ApiRunReport": {
+        "additionalProperties": false,
+        "description": "Evidence report for one bounded API request.",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "overall_status": {
+            "$ref": "#/components/schemas/OverallStatus"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SummaryCounts"
+          },
+          "target_url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Target Url",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "target_url",
+          "started_at",
+          "finished_at",
+          "overall_status",
+          "summary",
+          "checks"
+        ],
+        "title": "ApiRunReport",
+        "type": "object"
+      },
+      "ApiRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_confirmed": {
+            "title": "Authorization Confirmed",
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckName"
+            },
+            "maxItems": 9,
+            "minItems": 1,
+            "title": "Checks",
+            "type": "array"
+          },
+          "expected_content_type": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Content Type"
+          },
+          "expected_json_example": {
+            "title": "Expected Json Example"
+          },
+          "expected_status_code": {
+            "default": 200,
+            "maximum": 599.0,
+            "minimum": 100.0,
+            "title": "Expected Status Code",
+            "type": "integer"
+          },
+          "json_assertions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/JsonAssertion"
+                },
+                "maxItems": 20,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Json Assertions"
+          },
+          "max_response_bytes": {
+            "default": 2000000,
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Max Response Bytes",
+            "type": "integer"
+          },
+          "max_response_time_ms": {
+            "default": 5000,
+            "maximum": 60000.0,
+            "minimum": 1.0,
+            "title": "Max Response Time Ms",
+            "type": "integer"
+          },
+          "request_headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 10,
+            "title": "Request Headers",
+            "type": "object"
+          },
+          "response_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Schema"
+          },
+          "timeout_seconds": {
+            "default": 20,
+            "maximum": 60.0,
+            "minimum": 3.0,
+            "title": "Timeout Seconds",
+            "type": "integer"
+          },
+          "url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "authorization_confirmed",
+          "checks"
+        ],
+        "title": "ApiRunRequest",
+        "type": "object"
+      },
+      "CheckChange": {
+        "additionalProperties": false,
+        "properties": {
+          "base_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Status"
+          },
+          "change": {
+            "enum": [
+              "fixed",
+              "regressed",
+              "changed",
+              "unchanged",
+              "added",
+              "removed"
+            ],
+            "title": "Change",
+            "type": "string"
+          },
+          "check_id": {
+            "title": "Check Id",
+            "type": "string"
+          },
+          "head_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Status"
+          }
+        },
+        "required": [
+          "check_id",
+          "base_status",
+          "head_status",
+          "change"
+        ],
+        "title": "CheckChange",
+        "type": "object"
+      },
+      "CheckName": {
+        "enum": [
+          "http_status",
+          "page_title",
+          "h1",
+          "console_errors",
+          "same_origin_links",
+          "security_headers",
+          "text_present",
+          "accessibility",
+          "user_flow",
+          "response_time",
+          "response_headers",
+          "body_not_empty",
+          "keyboard_focus",
+          "cookie_flags",
+          "exposed_resources",
+          "active_probes",
+          "openapi_contract",
+          "api_status",
+          "api_response_time",
+          "api_content_type",
+          "api_redirects",
+          "api_response_size",
+          "api_json_assertions",
+          "api_json_schema",
+          "api_json_shape"
+        ],
+        "title": "CheckName",
+        "type": "string"
+      },
+      "CheckResult": {
+        "additionalProperties": false,
+        "properties": {
+          "check_id": {
+            "$ref": "#/components/schemas/CheckName"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CheckStatus"
+          }
+        },
+        "required": [
+          "check_id",
+          "status",
+          "message"
+        ],
+        "title": "CheckResult",
+        "type": "object"
+      },
+      "CheckStatus": {
+        "enum": [
+          "passed",
+          "failed",
+          "warning",
+          "skipped",
+          "error"
+        ],
+        "title": "CheckStatus",
+        "type": "string"
+      },
+      "FlowStep": {
+        "additionalProperties": false,
+        "description": "One user-specified browser action or assertion in a multi-step flow.",
+        "properties": {
+          "action": {
+            "enum": [
+              "click",
+              "fill",
+              "press",
+              "wait_for",
+              "expect_text",
+              "expect_url"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "selector": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selector"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "FlowStep",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Investigation": {
+        "additionalProperties": false,
+        "description": "The full answer for one order. Leaks come only from checks, never from the AI model.",
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "expected_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Total"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AIExplanation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leaks": {
+            "items": {
+              "$ref": "#/components/schemas/Leak"
+            },
+            "title": "Leaks",
+            "type": "array"
+          },
+          "money_at_risk": {
+            "title": "Money At Risk",
+            "type": "string"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paypal_order": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paypal Order"
+          },
+          "store": {
+            "default": "main",
+            "title": "Store",
+            "type": "string"
+          },
+          "store_claim": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Claim"
+          },
+          "store_url": {
+            "title": "Store Url",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "healthy",
+              "leaking",
+              "review"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "website_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebsiteRunReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "xss_scan": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xss Scan"
+          }
+        },
+        "required": [
+          "order_id",
+          "verdict",
+          "checked_at",
+          "store_url",
+          "checks",
+          "leaks",
+          "money_at_risk",
+          "currency"
+        ],
+        "title": "Investigation",
+        "type": "object"
+      },
+      "InvestigationRequest": {
+        "additionalProperties": false,
+        "description": "One order id; every check is derived from the store's claim and PayPal's record.",
+        "properties": {
+          "explain": {
+            "default": true,
+            "title": "Explain",
+            "type": "boolean"
+          },
+          "order_id": {
+            "pattern": "^[A-Z0-9]{8,40}$",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "probe_store": {
+            "default": true,
+            "title": "Probe Store",
+            "type": "boolean"
+          },
+          "store": {
+            "default": "main",
+            "enum": [
+              "main",
+              "vulnerable"
+            ],
+            "title": "Store",
+            "type": "string"
+          },
+          "website_checks": {
+            "default": true,
+            "title": "Website Checks",
+            "type": "boolean"
+          },
+          "xss_probe": {
+            "default": true,
+            "title": "Xss Probe",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "title": "InvestigationRequest",
+        "type": "object"
+      },
+      "JobRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "job_type": {
+            "$ref": "#/components/schemas/JobType"
+          },
+          "report_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          }
+        },
+        "required": [
+          "job_id",
+          "job_type",
+          "status",
+          "created_at"
+        ],
+        "title": "JobRecord",
+        "type": "object"
+      },
+      "JobRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "api": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiRunRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "job_type": {
+            "$ref": "#/components/schemas/JobType"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebsiteRunRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job_type"
+        ],
+        "title": "JobRequest",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "completed",
+          "failed",
+          "cancelled"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobType": {
+        "enum": [
+          "website",
+          "api"
+        ],
+        "title": "JobType",
+        "type": "string"
+      },
+      "JsonAssertion": {
+        "additionalProperties": false,
+        "description": "An explicit, user-written condition on one field of a JSON response.",
+        "properties": {
+          "expected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "operator": {
+            "enum": [
+              "exists",
+              "not_exists",
+              "equals",
+              "not_equals",
+              "contains",
+              "type",
+              "length"
+            ],
+            "title": "Operator",
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "operator"
+        ],
+        "title": "JsonAssertion",
+        "type": "object"
+      },
+      "Leak": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "never_captured",
+              "fake_paid",
+              "wrong_amount",
+              "duplicate_charge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "recovery": {
+            "title": "Recovery",
+            "type": "string"
+          },
+          "recovery_action": {
+            "enum": [
+              "capture",
+              "invoice",
+              "refund"
+            ],
+            "title": "Recovery Action",
+            "type": "string"
+          },
+          "root_cause": {
+            "title": "Root Cause",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryTarget"
+            },
+            "title": "Targets",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "urgency": {
+            "default": "normal",
+            "enum": [
+              "now",
+              "soon",
+              "normal"
+            ],
+            "title": "Urgency",
+            "type": "string"
+          },
+          "waiting_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting Since"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "amount",
+          "currency",
+          "root_cause",
+          "recovery_action",
+          "recovery"
+        ],
+        "title": "Leak",
+        "type": "object"
+      },
+      "OpenApiImportRequest": {
+        "additionalProperties": false,
+        "description": "An OpenAPI document to turn into reviewable API check suggestions.",
+        "properties": {
+          "base_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "spec": {
+            "maxLength": 500000,
+            "minLength": 2,
+            "title": "Spec",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "title": "OpenApiImportRequest",
+        "type": "object"
+      },
+      "OpenApiImportResult": {
+        "additionalProperties": false,
+        "properties": {
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/OpenApiOperation"
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "version",
+          "base_url",
+          "operations"
+        ],
+        "title": "OpenApiImportResult",
+        "type": "object"
+      },
+      "OpenApiOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Content Type"
+          },
+          "expected_status_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Status Code"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "response_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Schema"
+          },
+          "runnable": {
+            "title": "Runnable",
+            "type": "boolean"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "operation_id",
+          "method",
+          "path",
+          "summary",
+          "url",
+          "runnable"
+        ],
+        "title": "OpenApiOperation",
+        "type": "object"
+      },
+      "OverallStatus": {
+        "enum": [
+          "passed",
+          "failed",
+          "warning",
+          "error",
+          "blocked",
+          "inconclusive"
+        ],
+        "title": "OverallStatus",
+        "type": "string"
+      },
+      "PaymentCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CheckStatus"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "message"
+        ],
+        "title": "PaymentCheck",
+        "type": "object"
+      },
+      "PaymentVerification": {
+        "additionalProperties": false,
+        "description": "PayPal's answer, checked. `verified` is true only when every check passed.",
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "order_id",
+          "verified",
+          "source",
+          "checked_at",
+          "checks"
+        ],
+        "title": "PaymentVerification",
+        "type": "object"
+      },
+      "PaymentVerificationRequest": {
+        "additionalProperties": false,
+        "description": "What a test expects PayPal's own record of one Sandbox order to show.",
+        "properties": {
+          "expected_amount": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{1,10}(\\.\\d{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Amount"
+          },
+          "expected_currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Expected Currency",
+            "type": "string"
+          },
+          "expected_status": {
+            "default": "COMPLETED",
+            "enum": [
+              "CREATED",
+              "SAVED",
+              "APPROVED",
+              "VOIDED",
+              "COMPLETED",
+              "PAYER_ACTION_REQUIRED"
+            ],
+            "title": "Expected Status",
+            "type": "string"
+          },
+          "order_id": {
+            "pattern": "^[A-Z0-9]{8,40}$",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "require_capture": {
+            "default": true,
+            "title": "Require Capture",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "title": "PaymentVerificationRequest",
+        "type": "object"
+      },
+      "RecoveryList": {
+        "description": "The caller's recoveries, newest first, with totals by outcome.",
+        "properties": {
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/RecoveryTotals"
+          }
+        },
+        "required": [
+          "records",
+          "totals"
+        ],
+        "title": "RecoveryList",
+        "type": "object"
+      },
+      "RecoveryRecord": {
+        "additionalProperties": false,
+        "description": "One recovery: what was done at PayPal, and whether a fresh read of PayPal confirms it.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paypal": {
+            "additionalProperties": true,
+            "title": "Paypal",
+            "type": "object"
+          },
+          "recovery_id": {
+            "title": "Recovery Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "recovered",
+              "invoice_sent",
+              "refunded",
+              "failed",
+              "unverified"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "store": {
+            "title": "Store",
+            "type": "string"
+          },
+          "verification": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentCheck"
+            },
+            "title": "Verification",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recovery_id",
+          "order_id",
+          "store",
+          "kind",
+          "action",
+          "amount",
+          "currency",
+          "status",
+          "message",
+          "created_at"
+        ],
+        "title": "RecoveryRecord",
+        "type": "object"
+      },
+      "RecoveryRequest": {
+        "additionalProperties": false,
+        "description": "A merchant's approval to recover one leak. The amount and target are recomputed on the server.",
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "never_captured",
+              "fake_paid",
+              "wrong_amount",
+              "duplicate_charge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "order_id": {
+            "pattern": "^[A-Z0-9]{8,40}$",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "store": {
+            "default": "main",
+            "enum": [
+              "main",
+              "vulnerable"
+            ],
+            "title": "Store",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "kind",
+          "approved"
+        ],
+        "title": "RecoveryRequest",
+        "type": "object"
+      },
+      "RecoveryTarget": {
+        "additionalProperties": false,
+        "description": "Exactly what a recovery acts on: computed from PayPal's record, never taken from a request.",
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "capture_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Id"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "amount"
+        ],
+        "title": "RecoveryTarget",
+        "type": "object"
+      },
+      "RecoveryTotals": {
+        "properties": {
+          "collected": {
+            "title": "Collected",
+            "type": "string"
+          },
+          "invoiced": {
+            "title": "Invoiced",
+            "type": "string"
+          },
+          "refunded": {
+            "title": "Refunded",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collected",
+          "invoiced",
+          "refunded"
+        ],
+        "title": "RecoveryTotals",
+        "type": "object"
+      },
+      "RunComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "base_run_id": {
+            "format": "uuid",
+            "title": "Base Run Id",
+            "type": "string"
+          },
+          "base_status": {
+            "title": "Base Status",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/CheckChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "fixes": {
+            "title": "Fixes",
+            "type": "integer"
+          },
+          "head_run_id": {
+            "format": "uuid",
+            "title": "Head Run Id",
+            "type": "string"
+          },
+          "head_status": {
+            "title": "Head Status",
+            "type": "string"
+          },
+          "regressions": {
+            "title": "Regressions",
+            "type": "integer"
+          },
+          "same_target": {
+            "title": "Same Target",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_run_id",
+          "head_run_id",
+          "base_status",
+          "head_status",
+          "same_target",
+          "changes",
+          "regressions",
+          "fixes"
+        ],
+        "title": "RunComparison",
+        "type": "object"
+      },
+      "ScanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "cart_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cart Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "leaks": {
+            "items": {
+              "$ref": "#/components/schemas/Leak"
+            },
+            "title": "Leaks",
+            "type": "array"
+          },
+          "money_at_risk": {
+            "title": "Money At Risk",
+            "type": "string"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "store_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Status"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "verdict",
+          "leaks",
+          "money_at_risk"
+        ],
+        "title": "ScanItem",
+        "type": "object"
+      },
+      "ScanRequest": {
+        "additionalProperties": false,
+        "description": "Scan a store's recent orders. Only a store name, never a URL.",
+        "properties": {
+          "explain": {
+            "default": true,
+            "title": "Explain",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 25,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "store": {
+            "default": "main",
+            "enum": [
+              "main",
+              "vulnerable"
+            ],
+            "title": "Store",
+            "type": "string"
+          }
+        },
+        "title": "ScanRequest",
+        "type": "object"
+      },
+      "ScanResult": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScanItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "leaking_orders": {
+            "title": "Leaking Orders",
+            "type": "integer"
+          },
+          "money_at_risk": {
+            "title": "Money At Risk",
+            "type": "string"
+          },
+          "orders_checked": {
+            "title": "Orders Checked",
+            "type": "integer"
+          },
+          "orders_listed": {
+            "title": "Orders Listed",
+            "type": "integer"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/TriagePlan"
+          },
+          "scanned_at": {
+            "format": "date-time",
+            "title": "Scanned At",
+            "type": "string"
+          },
+          "store": {
+            "title": "Store",
+            "type": "string"
+          }
+        },
+        "required": [
+          "store",
+          "scanned_at",
+          "orders_listed",
+          "orders_checked",
+          "leaking_orders",
+          "money_at_risk",
+          "currency",
+          "items",
+          "plan"
+        ],
+        "title": "ScanResult",
+        "type": "object"
+      },
+      "SummaryCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Errors",
+            "type": "integer"
+          },
+          "failed": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "passed": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Passed",
+            "type": "integer"
+          },
+          "skipped": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "warnings": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Warnings",
+            "type": "integer"
+          }
+        },
+        "title": "SummaryCounts",
+        "type": "object"
+      },
+      "TargetPreflightRequest": {
+        "additionalProperties": false,
+        "description": "Request a DNS and URL policy preflight only; this does not run checks.",
+        "properties": {
+          "authorization_confirmed": {
+            "title": "Authorization Confirmed",
+            "type": "boolean"
+          },
+          "url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "authorization_confirmed"
+        ],
+        "title": "TargetPreflightRequest",
+        "type": "object"
+      },
+      "TriagePlan": {
+        "additionalProperties": false,
+        "description": "The recovery plan. Its order is fixed by the scan; the AI only words it.",
+        "properties": {
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/TriageStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "steps",
+          "source"
+        ],
+        "title": "TriagePlan",
+        "type": "object"
+      },
+      "TriageStep": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "urgency": {
+            "title": "Urgency",
+            "type": "string"
+          },
+          "waiting_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting Since"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "kind",
+          "amount",
+          "urgency",
+          "action",
+          "why"
+        ],
+        "title": "TriageStep",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebsiteRunReport": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "overall_status": {
+            "$ref": "#/components/schemas/OverallStatus"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SummaryCounts"
+          },
+          "target_url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Target Url",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "target_url",
+          "started_at",
+          "finished_at",
+          "overall_status",
+          "summary",
+          "checks"
+        ],
+        "title": "WebsiteRunReport",
+        "type": "object"
+      },
+      "WebsiteRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_confirmed": {
+            "title": "Authorization Confirmed",
+            "type": "boolean"
+          },
+          "capture_screenshot_on_failure": {
+            "default": false,
+            "title": "Capture Screenshot On Failure",
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckName"
+            },
+            "maxItems": 17,
+            "minItems": 1,
+            "title": "Checks",
+            "type": "array"
+          },
+          "click_selector": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Click Selector"
+          },
+          "expected_text": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Text"
+          },
+          "flow_steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FlowStep"
+                },
+                "maxItems": 10,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Steps"
+          },
+          "max_links": {
+            "default": 10,
+            "maximum": 25.0,
+            "minimum": 0.0,
+            "title": "Max Links",
+            "type": "integer"
+          },
+          "max_load_time_ms": {
+            "default": 5000,
+            "maximum": 60000.0,
+            "minimum": 100.0,
+            "title": "Max Load Time Ms",
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "default": 20,
+            "maximum": 60.0,
+            "minimum": 3.0,
+            "title": "Timeout Seconds",
+            "type": "integer"
+          },
+          "url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "authorization_confirmed",
+          "checks"
+        ],
+        "title": "WebsiteRunRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "description": "API token; required only when TESTPILOT_AUTH_ENABLED=true.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "PayRecover finds money a store has lost on PayPal (payments never captured, marked paid without payment, charged too little, or charged twice), proves each leak against PayPal's own record, and recovers it through PayPal after the merchant approves. PayPal Sandbox only.",
+    "title": "PayRecover AI API",
+    "version": "2.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/ai/explain": {
+      "post": {
+        "description": "Explain a report with the AI model, or with a built-in summary when it is unavailable.\n\nNeither can change the report's result, and the risk level never drops below\nwhat the check statuses imply.",
+        "operationId": "ai_explain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIExplanationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIExplanation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ai Explain",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/ai/plan": {
+      "post": {
+        "description": "Use the AI model to structure a goal without executing or inventing evidence.",
+        "operationId": "ai_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ai Plan",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/ai/status": {
+      "get": {
+        "description": "Return non-secret AI configuration state: model, family name and provider.",
+        "operationId": "ai_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "title": "Response Ai Status",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ai Status",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/artifacts/{artifact_id}": {
+      "get": {
+        "description": "Return one opt-in failure screenshot referenced by one of the caller's reports.",
+        "operationId": "artifact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artifact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Artifact",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/checks": {
+      "get": {
+        "description": "List every check name per test type, and the one-URL full-scan preset.",
+        "operationId": "check_catalog",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "title": "Response Check Catalog",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Check Catalog",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "description": "Totals for the dashboard cards, from the caller's stored runs.",
+        "operationId": "dashboard",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Dashboard",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Dashboard",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/deployment/readiness": {
+      "get": {
+        "description": "Report whether the public-deployment gates are satisfied.",
+        "operationId": "deployment_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Deployment Status",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Deployment Status",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "description": "Return a stable, non-sensitive service health response.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "description": "List the caller's recent background jobs.",
+        "operationId": "jobs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/JobRecord"
+                  },
+                  "title": "Response Jobs",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Jobs",
+        "tags": [
+          "jobs"
+        ]
+      },
+      "post": {
+        "description": "Queue a bounded deterministic test without blocking the API request.",
+        "operationId": "submit_job",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "operationId": "job_status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Job Status",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancel_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/me": {
+      "get": {
+        "description": "Return who the caller is and the policies that apply to their data.",
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Me",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/notify/status": {
+      "get": {
+        "description": "Whether the Zapier webhook and signed approval links are configured (never their values).",
+        "operationId": "notify_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Notify Status",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notify Status",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/openapi/import": {
+      "post": {
+        "description": "Turn an OpenAPI document into reviewable GET check suggestions; nothing is executed.",
+        "operationId": "openapi_import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenApiImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApiImportResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Openapi Import",
+        "tags": [
+          "API tests"
+        ]
+      }
+    },
+    "/api/orders/investigate": {
+      "post": {
+        "description": "Run every check for one order id: the store's claim, PayPal's record, store probes,\na full website scan of the store, and leaks.\n\nLeaks and money at risk come from the checks alone; the AI model only explains them. The\nwebsite scan is saved to run history like any other run.",
+        "operationId": "investigate_order",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Investigation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Investigate Order",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/orders/{order_id}/evidence": {
+      "get": {
+        "description": "A printable, dispute-ready evidence pack for one order, from a fresh read of the store and PayPal.",
+        "operationId": "evidence_pack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z0-9]{8,40}$",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "store",
+            "required": false,
+            "schema": {
+              "default": "main",
+              "enum": [
+                "main",
+                "vulnerable"
+              ],
+              "title": "Store",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence Pack",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/paypal/status": {
+      "get": {
+        "description": "Return non-secret PayPal Sandbox configuration state.",
+        "operationId": "paypal_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "title": "Response Paypal Status",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Paypal Status",
+        "tags": [
+          "PayPal"
+        ]
+      }
+    },
+    "/api/paypal/verify": {
+      "post": {
+        "description": "Read one order from the PayPal Sandbox Orders API and check it against expectations.\n\nThis is the only source PayRecover trusts for payment state: not the store's\nconfirmation page, and not the AI model.",
+        "operationId": "paypal_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentVerification"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paypal Verify",
+        "tags": [
+          "PayPal"
+        ]
+      }
+    },
+    "/api/recoveries": {
+      "delete": {
+        "description": "Delete the caller's recovery log, e.g. test runs before a demo. Nothing at PayPal is undone.",
+        "operationId": "clear_recoveries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Clear Recoveries",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clear Recoveries",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "get": {
+        "description": "The caller's recoveries, newest first, with totals collected, invoiced and refunded.",
+        "operationId": "list_recoveries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Recoveries",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "post": {
+        "description": "Recover one leak after the merchant approves: capture, refund or invoice in PayPal Sandbox.\n\nThe leak and its amount are recomputed from the store and PayPal; the result is decided\nby a fresh read of PayPal, and a recovery already done is returned instead of repeated.",
+        "operationId": "approve_recovery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Recovery",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/runs": {
+      "delete": {
+        "description": "Delete all of the caller's stored runs and their screenshots.",
+        "operationId": "clear_runs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Clear Runs",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clear Runs",
+        "tags": [
+          "run history"
+        ]
+      },
+      "get": {
+        "description": "List the caller's recent redacted run summaries.",
+        "operationId": "runs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Runs",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Runs",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/runs/compare": {
+      "get": {
+        "description": "Compare two stored runs check by check; nothing is re-run.",
+        "operationId": "compare_runs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "base",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Base",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "head",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Head",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunComparison"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare Runs",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/runs/{run_id}": {
+      "delete": {
+        "description": "Delete one stored run and its screenshot.",
+        "operationId": "remove_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Remove Run",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Run",
+        "tags": [
+          "run history"
+        ]
+      },
+      "get": {
+        "description": "Return one previously stored canonical report.",
+        "operationId": "run_detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Detail",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/runs/{run_id}/html": {
+      "get": {
+        "description": "Render one stored report as escaped, evidence-only HTML.",
+        "operationId": "run_html",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Html",
+        "tags": [
+          "run history"
+        ]
+      }
+    },
+    "/api/stores/scan": {
+      "post": {
+        "description": "Check every recent paid order of a store against PayPal and plan the recovery.\n\nLeaks are ranked by urgency, then amount; Gemini only words the plan for that order.",
+        "operationId": "scan_store",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan Store",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/targets/preflight": {
+      "post": {
+        "description": "Check URL policy and public DNS addresses without connecting to target.",
+        "operationId": "target_preflight",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetPreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "title": "Response Target Preflight",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Target Preflight",
+        "tags": [
+          "website tests"
+        ]
+      }
+    },
+    "/api/tests/api": {
+      "post": {
+        "description": "Run one bounded authorized API GET and return observed evidence.",
+        "operationId": "run_api",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiRunReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Api",
+        "tags": [
+          "API tests"
+        ]
+      }
+    },
+    "/api/tests/website": {
+      "post": {
+        "description": "Run bounded deterministic website checks and return their evidence.",
+        "operationId": "run_website",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteRunReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Website",
+        "tags": [
+          "website tests"
+        ]
+      }
+    }
+  },
+  "security": [
+    {},
+    {
+      "bearerAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "PayRecover backend",
+      "url": "http://127.0.0.1:8000"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Find money a store has lost on PayPal, rank it, recover it after approval, and export dispute-ready evidence.",
+      "name": "PayRecover"
+    },
+    {
+      "description": "Read one PayPal Sandbox order and check it against expectations.",
+      "name": "PayPal"
+    },
+    {
+      "description": "Gemini plans checks and explains results; it never decides a result.",
+      "name": "AI"
+    },
+    {
+      "description": "Bounded, read-only website checks.",
+      "name": "website tests"
+    },
+    {
+      "description": "Bounded API checks and OpenAPI import.",
+      "name": "API tests"
+    },
+    {
+      "description": "Background runs.",
+      "name": "jobs"
+    },
+    {
+      "description": "Stored runs, comparisons and reports.",
+      "name": "run history"
+    },
+    {
+      "description": "Health, readiness and caller details.",
+      "name": "system"
+    }
+  ]
+}

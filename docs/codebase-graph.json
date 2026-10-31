@@ -244,6 +244,11 @@
       "type": "py"
     },
     {
+      "id": "backend/tests/test_openapi_export.py",
+      "label": "test_openapi_export.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/test_openapi_import.py",
       "label": "test_openapi_import.py",
       "type": "py"
@@ -342,6 +347,11 @@
       "id": "docs/implementation-plan.md",
       "label": "implementation-plan.md",
       "type": "md"
+    },
+    {
+      "id": "docs/openapi.json",
+      "label": "openapi.json",
+      "type": "json"
     },
     {
       "id": "docs/paypal-sandbox.md",
@@ -492,6 +502,11 @@
       "id": "render.yaml",
       "label": "render.yaml",
       "type": "yaml"
+    },
+    {
+      "id": "scripts/export_openapi.py",
+      "label": "export_openapi.py",
+      "type": "py"
     },
     {
       "id": "scripts/generate_graph.py",
@@ -1148,6 +1163,11 @@
     {
       "source": "frontend/tests/requestBody.test.mjs",
       "target": "frontend/src/lib/requestBody.js",
+      "type": "imports"
+    },
+    {
+      "source": "scripts/export_openapi.py",
+      "target": "backend/app/main.py",
       "type": "imports"
     }
   ]

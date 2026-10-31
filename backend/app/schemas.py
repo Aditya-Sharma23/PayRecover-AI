@@ -750,3 +750,16 @@ class ScanResult(BaseModel):
     currency: str
     items: list[ScanItem]
     plan: TriagePlan
+
+
+class RecoveryTotals(BaseModel):
+    collected: str
+    invoiced: str
+    refunded: str
+
+
+class RecoveryList(BaseModel):
+    """The caller's recoveries, newest first, with totals by outcome."""
+
+    records: list[RecoveryRecord]
+    totals: RecoveryTotals

@@ -26,6 +26,7 @@ from app.schemas import (
     OpenApiImportResult,
     PaymentVerification,
     PaymentVerificationRequest,
+    RecoveryList,
     RecoveryRecord,
     RecoveryRequest,
     ScanRequest,
@@ -86,10 +87,34 @@ async def lifespan(_app: FastAPI):
     await job_manager.close()
 
 
+OPENAPI_TAGS = [
+    {"name": "PayRecover", "description": "Find money a store has lost on PayPal, rank it, recover it after "
+                                          "approval, and export dispute-ready evidence."},
+    {"name": "PayPal", "description": "Read one PayPal Sandbox order and check it against expectations."},
+    {"name": "AI", "description": "Gemini plans checks and explains results; it never decides a result."},
+    {"name": "website tests", "description": "Bounded, read-only website checks."},
+    {"name": "API tests", "description": "Bounded API checks and OpenAPI import."},
+    {"name": "jobs", "description": "Background runs."},
+    {"name": "run history", "description": "Stored runs, comparisons and reports."},
+    {"name": "system", "description": "Health, readiness and caller details."},
+]
+
+
+def _operation_id(route) -> str:
+    """Operation ids are the Python function names, so generated SDK methods read like scan_store()."""
+    return route.name
+
+
 app = FastAPI(
     title="PayRecover AI API",
     version="2.0.0",
-    description="Evidence-first software testing API with bounded website and API checks.",
+    description=(
+        "PayRecover finds money a store has lost on PayPal (payments never captured, marked paid without "
+        "payment, charged too little, or charged twice), proves each leak against PayPal's own record, and "
+        "recovers it through PayPal after the merchant approves. PayPal Sandbox only."
+    ),
+    openapi_tags=OPENAPI_TAGS,
+    generate_unique_id_function=_operation_id,
     lifespan=lifespan,
 )
 
@@ -362,7 +387,7 @@ async def paypal_verify(request: PaymentVerificationRequest) -> PaymentVerificat
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.post("/api/orders/investigate", response_model=Investigation, tags=["PayPal"])
+@app.post("/api/orders/investigate", response_model=Investigation, tags=["PayRecover"])
 async def investigate_order(request: InvestigationRequest, http: Request, background: BackgroundTasks) -> Investigation:
     """Run every check for one order id: the store's claim, PayPal's record, store probes,
     a full website scan of the store, and leaks.
@@ -387,7 +412,7 @@ async def investigate_order(request: InvestigationRequest, http: Request, backgr
     return result
 
 
-@app.post("/api/stores/scan", response_model=ScanResult, tags=["PayPal"])
+@app.post("/api/stores/scan", response_model=ScanResult, tags=["PayRecover"])
 async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanResult:
     """Check every recent paid order of a store against PayPal and plan the recovery.
 
@@ -406,7 +431,7 @@ async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanR
     return result
 
 
-@app.get("/api/orders/{order_id}/evidence", response_class=HTMLResponse, tags=["PayPal"])
+@app.get("/api/orders/{order_id}/evidence", response_class=HTMLResponse, tags=["PayRecover"])
 async def evidence_pack(
     http: Request,
     order_id: str = PathParam(pattern=r"^[A-Z0-9]{8,40}$"),
@@ -422,7 +447,7 @@ async def evidence_pack(
     return HTMLResponse(page, headers={"X-Evidence-SHA256": digest, "Cache-Control": "no-store"})
 
 
-@app.post("/api/recoveries", response_model=RecoveryRecord, tags=["PayPal"])
+@app.post("/api/recoveries", response_model=RecoveryRecord, tags=["PayRecover"])
 async def approve_recovery(request: RecoveryRequest, http: Request, background: BackgroundTasks) -> RecoveryRecord:
     """Recover one leak after the merchant approves: capture, refund or invoice in PayPal Sandbox.
 
@@ -441,19 +466,19 @@ async def approve_recovery(request: RecoveryRequest, http: Request, background: 
     return record
 
 
-@app.get("/api/recoveries", tags=["PayPal"])
-def recoveries(http: Request) -> dict:
+@app.get("/api/recoveries", response_model=RecoveryList, tags=["PayRecover"])
+def list_recoveries(http: Request) -> dict:
     """The caller's recoveries, newest first, with totals collected, invoiced and refunded."""
     return recovery.list_recoveries(request_owner(http))
 
 
-@app.delete("/api/recoveries", tags=["PayPal"])
+@app.delete("/api/recoveries", tags=["PayRecover"])
 def clear_recoveries(http: Request) -> dict[str, int]:
     """Delete the caller's recovery log, e.g. test runs before a demo. Nothing at PayPal is undone."""
     return {"deleted": recovery.clear_recoveries(request_owner(http))}
 
 
-@app.get("/api/notify/status", tags=["PayPal"])
+@app.get("/api/notify/status", tags=["PayRecover"])
 def notify_status() -> dict[str, bool]:
     """Whether the Zapier webhook and signed approval links are configured (never their values)."""
     return notify.status()
@@ -514,6 +539,29 @@ async def approval_submit(http: Request, background: BackgroundTasks) -> HTMLRes
     checks = "".join(f"<li>{'✓' if c.status == 'passed' else '✗'} {html.escape(c.message)}</li>" for c in record.verification)
     return _approval_page("Recovery done" if tone == "ok" else "Recovery not completed",
                           f"<p class='{tone}'><strong>{html.escape(record.message)}</strong></p><ul>{checks}</ul>")
+
+
+def _openapi() -> dict:
+    """The OpenAPI description, with a server address and the optional token login, for SDK generators."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+
+    schema = get_openapi(title=app.title, version=app.version, description=app.description,
+                         routes=app.routes, tags=OPENAPI_TAGS)
+    schema["servers"] = [{"url": os.environ.get("TESTPILOT_PUBLIC_URL", "").strip().rstrip("/") or "http://127.0.0.1:8000",
+                          "description": "PayRecover backend"}]
+    schema.setdefault("components", {})["securitySchemes"] = {
+        "bearerAuth": {"type": "http", "scheme": "bearer",
+                       "description": "API token; required only when TESTPILOT_AUTH_ENABLED=true."},
+    }
+    # An empty requirement first: a local server without authentication accepts calls with no token.
+    schema["security"] = [{}, {"bearerAuth": []}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = _openapi
 
 
 if FRONTEND_DIST.joinpath("index.html").is_file():

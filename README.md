@@ -63,6 +63,15 @@ which PayPal generates with [APIMatic](https://www.apimatic.io/). The SDK is loc
 `backend/app/paypal_sdk.py` and returns PayPal's JSON unchanged, so every check works on PayPal's own record.
 Invoicing is not part of the SDK yet, so invoices still use PayPal's Invoicing REST API directly.
 
+### PayRecover's own API, ready for APIMatic
+
+PayRecover's OpenAPI description is exported to [`docs/openapi.json`](docs/openapi.json): clean operation names
+(`scan_store`, `investigate_order`, `approve_recovery`, `list_recoveries`, `evidence_pack`), a server address and the
+optional bearer-token login. Import it into [APIMatic](https://www.apimatic.io/) to generate PayRecover SDKs (Python,
+TypeScript and more) and an API portal, so a store or another AI agent can scan and recover in a few lines.
+After changing an endpoint, run `backend\.venv\Scripts\python scripts\export_openapi.py`; a test fails while the
+committed file is out of date.
+
 ### Recovering the money
 
 Every leak comes with a recovery the merchant can approve, on the dashboard or from a Zapier message:
