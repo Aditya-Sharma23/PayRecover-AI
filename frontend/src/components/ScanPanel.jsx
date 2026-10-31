@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { apiJson } from "../api/client.js";
 import { gridTheme } from "../lib/grid.js";
@@ -84,6 +84,12 @@ export default function ScanPanel({ onRecovered }) {
 
   const context = useMemo(() => ({ outcomes, approve, store: result?.store || store }), [outcomes, result, store]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The grid does not watch its context, so redraw the Recover cells whenever an approval changes state.
+  const grid = useRef(null);
+  useEffect(() => {
+    grid.current?.api?.refreshCells({ columns: ["id"], force: true });
+  }, [context]);
+
   return <section className="panel" id="scan" aria-labelledby="scan-heading">
     <div className="section-heading">
       <div><p className="eyebrow">PayRecover · whole store</p><h2 id="scan-heading">Scan my store</h2></div>
@@ -118,8 +124,8 @@ export default function ScanPanel({ onRecovered }) {
         {result.plan.notes.length > 0 && <small className="hint">{result.plan.notes.join(" ")}</small>}
       </div>
       {rows.length > 0
-        ? <div className="recovery-grid"><AgGridReact theme={gridTheme} rowData={rows} columnDefs={COLUMNS} context={context}
-            getRowId={({ data }) => data.id} domLayout="autoHeight" rowHeight={44}
+        ? <div className="recovery-grid"><AgGridReact ref={grid} theme={gridTheme} rowData={rows} columnDefs={COLUMNS} context={context}
+            getRowId={({ data }) => data.id} domLayout="autoHeight" rowHeight={44} suppressColumnVirtualisation
             defaultColDef={{ sortable: true, filter: true, resizable: true }} /></div>
         : <p className="empty-state">No leaks: every paid order in this store matches PayPal&apos;s record.</p>}
     </>}
