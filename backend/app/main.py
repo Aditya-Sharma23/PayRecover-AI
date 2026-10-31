@@ -210,6 +210,7 @@ def jobs(http: Request, limit: int = 20) -> list[JobRecord]:
 
 @app.get("/api/jobs/{job_id}", response_model=JobRecord, tags=["jobs"])
 def job_status(job_id: UUID, http: Request) -> JobRecord:
+    """Return one background run's status and, once finished, its report."""
     record = job_manager.get(job_id, request_owner(http))
     if record is None:
         raise HTTPException(status_code=404, detail="Job was not found.")
@@ -218,6 +219,7 @@ def job_status(job_id: UUID, http: Request) -> JobRecord:
 
 @app.post("/api/jobs/{job_id}/cancel", response_model=JobRecord, tags=["jobs"])
 async def cancel_job(job_id: UUID, http: Request) -> JobRecord:
+    """Cancel a background run that has not finished yet."""
     record = await job_manager.cancel(job_id, request_owner(http))
     if record is None:
         raise HTTPException(status_code=404, detail="Job was not found.")
@@ -541,6 +543,18 @@ async def approval_submit(http: Request, background: BackgroundTasks) -> HTMLRes
                           f"<p class='{tone}'><strong>{html.escape(record.message)}</strong></p><ul>{checks}</ul>")
 
 
+def _drop_field_titles(node, top: bool = False) -> None:
+    """Remove the per-field titles pydantic adds; SDK generators read them as clashing type names."""
+    if isinstance(node, dict):
+        if not top and isinstance(node.get("title"), str):
+            del node["title"]
+        for value in node.values():
+            _drop_field_titles(value)
+    elif isinstance(node, list):
+        for value in node:
+            _drop_field_titles(value)
+
+
 def _openapi() -> dict:
     """The OpenAPI description, with a server address and the optional token login, for SDK generators."""
     if app.openapi_schema:
@@ -557,6 +571,9 @@ def _openapi() -> dict:
     }
     # An empty requirement first: a local server without authentication accepts calls with no token.
     schema["security"] = [{}, {"bearerAuth": []}]
+    for model in schema["components"].get("schemas", {}).values():
+        _drop_field_titles(model, top=True)
+    _drop_field_titles(schema["paths"])
     app.openapi_schema = schema
     return schema
 

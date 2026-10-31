@@ -8,7 +8,6 @@
               "type": "string"
             },
             "maxItems": 10,
-            "title": "Findings",
             "type": "array"
           },
           "limitations": {
@@ -16,7 +15,6 @@
               "type": "string"
             },
             "maxItems": 10,
-            "title": "Limitations",
             "type": "array"
           },
           "next_steps": {
@@ -24,7 +22,6 @@
               "type": "string"
             },
             "maxItems": 10,
-            "title": "Next Steps",
             "type": "array"
           },
           "risk_level": {
@@ -35,18 +32,15 @@
               "LOW",
               "UNKNOWN"
             ],
-            "title": "Risk Level",
             "type": "string"
           },
           "source": {
             "default": "AI",
-            "title": "Source",
             "type": "string"
           },
           "summary": {
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Summary",
             "type": "string"
           }
         },
@@ -70,8 +64,7 @@
               {
                 "$ref": "#/components/schemas/ApiRunReport"
               }
-            ],
-            "title": "Report"
+            ]
           }
         },
         "required": [
@@ -89,7 +82,6 @@
             },
             "maxItems": 17,
             "minItems": 1,
-            "title": "Checks",
             "type": "array"
           },
           "expectations": {
@@ -98,11 +90,9 @@
             },
             "maxItems": 10,
             "minItems": 1,
-            "title": "Expectations",
             "type": "array"
           },
           "goal": {
-            "title": "Goal",
             "type": "string"
           },
           "limitations": {
@@ -110,13 +100,11 @@
               "type": "string"
             },
             "maxItems": 10,
-            "title": "Limitations",
             "type": "array"
           },
           "rationale": {
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Rationale",
             "type": "string"
           },
           "suggested_expected_text": {
@@ -128,8 +116,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Suggested Expected Text"
+            ]
           },
           "suggested_flow_steps": {
             "anyOf": [
@@ -143,8 +130,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Suggested Flow Steps"
+            ]
           },
           "suggested_json_assertions": {
             "anyOf": [
@@ -158,12 +144,10 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Suggested Json Assertions"
+            ]
           },
           "test_type": {
             "pattern": "^(website|api)$",
-            "title": "Test Type",
             "type": "string"
           }
         },
@@ -182,13 +166,11 @@
         "additionalProperties": false,
         "properties": {
           "authorized": {
-            "title": "Authorized",
             "type": "boolean"
           },
           "goal": {
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Goal",
             "type": "string"
           },
           "target_url": {
@@ -202,13 +184,11 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Target Url"
+            ]
           },
           "test_type": {
             "default": "website",
             "pattern": "^(website|api)$",
-            "title": "Test Type",
             "type": "string"
           }
         },
@@ -227,12 +207,10 @@
             "items": {
               "$ref": "#/components/schemas/CheckResult"
             },
-            "title": "Checks",
             "type": "array"
           },
           "finished_at": {
             "format": "date-time",
-            "title": "Finished At",
             "type": "string"
           },
           "overall_status": {
@@ -240,17 +218,14 @@
           },
           "run_id": {
             "format": "uuid",
-            "title": "Run Id",
             "type": "string"
           },
           "schema_version": {
             "default": "1.0",
-            "title": "Schema Version",
             "type": "string"
           },
           "started_at": {
             "format": "date-time",
-            "title": "Started At",
             "type": "string"
           },
           "summary": {
@@ -260,7 +235,6 @@
             "format": "uri",
             "maxLength": 2083,
             "minLength": 1,
-            "title": "Target Url",
             "type": "string"
           },
           "warnings": {
@@ -268,7 +242,6 @@
               "type": "string"
             },
             "maxItems": 50,
-            "title": "Warnings",
             "type": "array"
           }
         },
@@ -288,7 +261,6 @@
         "additionalProperties": false,
         "properties": {
           "authorization_confirmed": {
-            "title": "Authorization Confirmed",
             "type": "boolean"
           },
           "checks": {
@@ -297,7 +269,6 @@
             },
             "maxItems": 9,
             "minItems": 1,
-            "title": "Checks",
             "type": "array"
           },
           "expected_content_type": {
@@ -310,17 +281,13 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Content Type"
+            ]
           },
-          "expected_json_example": {
-            "title": "Expected Json Example"
-          },
+          "expected_json_example": {},
           "expected_status_code": {
             "default": 200,
             "maximum": 599.0,
             "minimum": 100.0,
-            "title": "Expected Status Code",
             "type": "integer"
           },
           "json_assertions": {
@@ -336,21 +303,18 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Json Assertions"
+            ]
           },
           "max_response_bytes": {
             "default": 2000000,
             "maximum": 2000000.0,
             "minimum": 1.0,
-            "title": "Max Response Bytes",
             "type": "integer"
           },
           "max_response_time_ms": {
             "default": 5000,
             "maximum": 60000.0,
             "minimum": 1.0,
-            "title": "Max Response Time Ms",
             "type": "integer"
           },
           "request_headers": {
@@ -358,7 +322,6 @@
               "type": "string"
             },
             "maxProperties": 10,
-            "title": "Request Headers",
             "type": "object"
           },
           "response_schema": {
@@ -370,21 +333,18 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Response Schema"
+            ]
           },
           "timeout_seconds": {
             "default": 20,
             "maximum": 60.0,
             "minimum": 3.0,
-            "title": "Timeout Seconds",
             "type": "integer"
           },
           "url": {
             "format": "uri",
             "maxLength": 2083,
             "minLength": 1,
-            "title": "Url",
             "type": "string"
           }
         },
@@ -407,8 +367,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Base Status"
+            ]
           },
           "change": {
             "enum": [
@@ -419,11 +378,9 @@
               "added",
               "removed"
             ],
-            "title": "Change",
             "type": "string"
           },
           "check_id": {
-            "title": "Check Id",
             "type": "string"
           },
           "head_status": {
@@ -434,8 +391,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Head Status"
+            ]
           }
         },
         "required": [
@@ -493,12 +449,10 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Duration Ms"
+            ]
           },
           "evidence": {
             "additionalProperties": true,
-            "title": "Evidence",
             "type": "object"
           },
           "limitations": {
@@ -506,13 +460,11 @@
               "type": "string"
             },
             "maxItems": 20,
-            "title": "Limitations",
             "type": "array"
           },
           "message": {
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Message",
             "type": "string"
           },
           "status": {
@@ -551,7 +503,6 @@
               "expect_text",
               "expect_url"
             ],
-            "title": "Action",
             "type": "string"
           },
           "selector": {
@@ -564,8 +515,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Selector"
+            ]
           },
           "value": {
             "anyOf": [
@@ -576,8 +526,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Value"
+            ]
           }
         },
         "required": [
@@ -592,7 +541,6 @@
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             },
-            "title": "Detail",
             "type": "array"
           }
         },
@@ -605,18 +553,15 @@
         "properties": {
           "checked_at": {
             "format": "date-time",
-            "title": "Checked At",
             "type": "string"
           },
           "checks": {
             "items": {
               "$ref": "#/components/schemas/PaymentCheck"
             },
-            "title": "Checks",
             "type": "array"
           },
           "currency": {
-            "title": "Currency",
             "type": "string"
           },
           "expected_total": {
@@ -627,8 +572,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Total"
+            ]
           },
           "explanation": {
             "anyOf": [
@@ -644,15 +588,12 @@
             "items": {
               "$ref": "#/components/schemas/Leak"
             },
-            "title": "Leaks",
             "type": "array"
           },
           "money_at_risk": {
-            "title": "Money At Risk",
             "type": "string"
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           },
           "paypal_order": {
@@ -664,12 +605,10 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Paypal Order"
+            ]
           },
           "store": {
             "default": "main",
-            "title": "Store",
             "type": "string"
           },
           "store_claim": {
@@ -681,11 +620,9 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Store Claim"
+            ]
           },
           "store_url": {
-            "title": "Store Url",
             "type": "string"
           },
           "verdict": {
@@ -694,7 +631,6 @@
               "leaking",
               "review"
             ],
-            "title": "Verdict",
             "type": "string"
           },
           "website_report": {
@@ -716,8 +652,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Xss Scan"
+            ]
           }
         },
         "required": [
@@ -739,17 +674,14 @@
         "properties": {
           "explain": {
             "default": true,
-            "title": "Explain",
             "type": "boolean"
           },
           "order_id": {
             "pattern": "^[A-Z0-9]{8,40}$",
-            "title": "Order Id",
             "type": "string"
           },
           "probe_store": {
             "default": true,
-            "title": "Probe Store",
             "type": "boolean"
           },
           "store": {
@@ -758,17 +690,14 @@
               "main",
               "vulnerable"
             ],
-            "title": "Store",
             "type": "string"
           },
           "website_checks": {
             "default": true,
-            "title": "Website Checks",
             "type": "boolean"
           },
           "xss_probe": {
             "default": true,
-            "title": "Xss Probe",
             "type": "boolean"
           }
         },
@@ -783,7 +712,6 @@
         "properties": {
           "created_at": {
             "format": "date-time",
-            "title": "Created At",
             "type": "string"
           },
           "error": {
@@ -794,8 +722,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Error"
+            ]
           },
           "finished_at": {
             "anyOf": [
@@ -806,12 +733,10 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Finished At"
+            ]
           },
           "job_id": {
             "format": "uuid",
-            "title": "Job Id",
             "type": "string"
           },
           "job_type": {
@@ -826,8 +751,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Report Id"
+            ]
           },
           "started_at": {
             "anyOf": [
@@ -838,8 +762,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Started At"
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/JobStatus"
@@ -852,8 +775,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Target Url"
+            ]
           }
         },
         "required": [
@@ -938,8 +860,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected"
+            ]
           },
           "operator": {
             "enum": [
@@ -951,13 +872,11 @@
               "type",
               "length"
             ],
-            "title": "Operator",
             "type": "string"
           },
           "path": {
             "maxLength": 200,
             "minLength": 1,
-            "title": "Path",
             "type": "string"
           }
         },
@@ -972,11 +891,9 @@
         "additionalProperties": false,
         "properties": {
           "amount": {
-            "title": "Amount",
             "type": "string"
           },
           "currency": {
-            "title": "Currency",
             "type": "string"
           },
           "kind": {
@@ -986,11 +903,9 @@
               "wrong_amount",
               "duplicate_charge"
             ],
-            "title": "Kind",
             "type": "string"
           },
           "recovery": {
-            "title": "Recovery",
             "type": "string"
           },
           "recovery_action": {
@@ -999,22 +914,18 @@
               "invoice",
               "refund"
             ],
-            "title": "Recovery Action",
             "type": "string"
           },
           "root_cause": {
-            "title": "Root Cause",
             "type": "string"
           },
           "targets": {
             "items": {
               "$ref": "#/components/schemas/RecoveryTarget"
             },
-            "title": "Targets",
             "type": "array"
           },
           "title": {
-            "title": "Title",
             "type": "string"
           },
           "urgency": {
@@ -1024,7 +935,6 @@
               "soon",
               "normal"
             ],
-            "title": "Urgency",
             "type": "string"
           },
           "waiting_since": {
@@ -1036,8 +946,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Waiting Since"
+            ]
           }
         },
         "required": [
@@ -1067,13 +976,11 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Base Url"
+            ]
           },
           "spec": {
             "maxLength": 500000,
             "minLength": 2,
-            "title": "Spec",
             "type": "string"
           }
         },
@@ -1094,29 +1001,24 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Base Url"
+            ]
           },
           "operations": {
             "items": {
               "$ref": "#/components/schemas/OpenApiOperation"
             },
-            "title": "Operations",
             "type": "array"
           },
           "title": {
-            "title": "Title",
             "type": "string"
           },
           "version": {
-            "title": "Version",
             "type": "string"
           },
           "warnings": {
             "items": {
               "type": "string"
             },
-            "title": "Warnings",
             "type": "array"
           }
         },
@@ -1140,8 +1042,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Content Type"
+            ]
           },
           "expected_status_code": {
             "anyOf": [
@@ -1151,19 +1052,15 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Status Code"
+            ]
           },
           "method": {
-            "title": "Method",
             "type": "string"
           },
           "operation_id": {
-            "title": "Operation Id",
             "type": "string"
           },
           "path": {
-            "title": "Path",
             "type": "string"
           },
           "reason": {
@@ -1174,8 +1071,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Reason"
+            ]
           },
           "response_schema": {
             "anyOf": [
@@ -1186,15 +1082,12 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Response Schema"
+            ]
           },
           "runnable": {
-            "title": "Runnable",
             "type": "boolean"
           },
           "summary": {
-            "title": "Summary",
             "type": "string"
           },
           "url": {
@@ -1205,8 +1098,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Url"
+            ]
           }
         },
         "required": [
@@ -1237,17 +1129,14 @@
         "properties": {
           "evidence": {
             "additionalProperties": true,
-            "title": "Evidence",
             "type": "object"
           },
           "message": {
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Message",
             "type": "string"
           },
           "name": {
-            "title": "Name",
             "type": "string"
           },
           "status": {
@@ -1268,14 +1157,12 @@
         "properties": {
           "checked_at": {
             "format": "date-time",
-            "title": "Checked At",
             "type": "string"
           },
           "checks": {
             "items": {
               "$ref": "#/components/schemas/PaymentCheck"
             },
-            "title": "Checks",
             "type": "array"
           },
           "order": {
@@ -1287,19 +1174,15 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Order"
+            ]
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           },
           "source": {
-            "title": "Source",
             "type": "string"
           },
           "verified": {
-            "title": "Verified",
             "type": "boolean"
           }
         },
@@ -1326,13 +1209,11 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Amount"
+            ]
           },
           "expected_currency": {
             "default": "USD",
             "pattern": "^[A-Z]{3}$",
-            "title": "Expected Currency",
             "type": "string"
           },
           "expected_status": {
@@ -1345,17 +1226,14 @@
               "COMPLETED",
               "PAYER_ACTION_REQUIRED"
             ],
-            "title": "Expected Status",
             "type": "string"
           },
           "order_id": {
             "pattern": "^[A-Z0-9]{8,40}$",
-            "title": "Order Id",
             "type": "string"
           },
           "require_capture": {
             "default": true,
-            "title": "Require Capture",
             "type": "boolean"
           }
         },
@@ -1372,7 +1250,6 @@
             "items": {
               "$ref": "#/components/schemas/RecoveryRecord"
             },
-            "title": "Records",
             "type": "array"
           },
           "totals": {
@@ -1391,41 +1268,32 @@
         "description": "One recovery: what was done at PayPal, and whether a fresh read of PayPal confirms it.",
         "properties": {
           "action": {
-            "title": "Action",
             "type": "string"
           },
           "amount": {
-            "title": "Amount",
             "type": "string"
           },
           "created_at": {
             "format": "date-time",
-            "title": "Created At",
             "type": "string"
           },
           "currency": {
-            "title": "Currency",
             "type": "string"
           },
           "kind": {
-            "title": "Kind",
             "type": "string"
           },
           "message": {
-            "title": "Message",
             "type": "string"
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           },
           "paypal": {
             "additionalProperties": true,
-            "title": "Paypal",
             "type": "object"
           },
           "recovery_id": {
-            "title": "Recovery Id",
             "type": "string"
           },
           "status": {
@@ -1436,18 +1304,15 @@
               "failed",
               "unverified"
             ],
-            "title": "Status",
             "type": "string"
           },
           "store": {
-            "title": "Store",
             "type": "string"
           },
           "verification": {
             "items": {
               "$ref": "#/components/schemas/PaymentCheck"
             },
-            "title": "Verification",
             "type": "array"
           }
         },
@@ -1471,7 +1336,6 @@
         "description": "A merchant's approval to recover one leak. The amount and target are recomputed on the server.",
         "properties": {
           "approved": {
-            "title": "Approved",
             "type": "boolean"
           },
           "kind": {
@@ -1481,12 +1345,10 @@
               "wrong_amount",
               "duplicate_charge"
             ],
-            "title": "Kind",
             "type": "string"
           },
           "order_id": {
             "pattern": "^[A-Z0-9]{8,40}$",
-            "title": "Order Id",
             "type": "string"
           },
           "store": {
@@ -1495,7 +1357,6 @@
               "main",
               "vulnerable"
             ],
-            "title": "Store",
             "type": "string"
           }
         },
@@ -1512,7 +1373,6 @@
         "description": "Exactly what a recovery acts on: computed from PayPal's record, never taken from a request.",
         "properties": {
           "amount": {
-            "title": "Amount",
             "type": "string"
           },
           "capture_id": {
@@ -1523,11 +1383,9 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Capture Id"
+            ]
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           }
         },
@@ -1541,15 +1399,12 @@
       "RecoveryTotals": {
         "properties": {
           "collected": {
-            "title": "Collected",
             "type": "string"
           },
           "invoiced": {
-            "title": "Invoiced",
             "type": "string"
           },
           "refunded": {
-            "title": "Refunded",
             "type": "string"
           }
         },
@@ -1566,39 +1421,31 @@
         "properties": {
           "base_run_id": {
             "format": "uuid",
-            "title": "Base Run Id",
             "type": "string"
           },
           "base_status": {
-            "title": "Base Status",
             "type": "string"
           },
           "changes": {
             "items": {
               "$ref": "#/components/schemas/CheckChange"
             },
-            "title": "Changes",
             "type": "array"
           },
           "fixes": {
-            "title": "Fixes",
             "type": "integer"
           },
           "head_run_id": {
             "format": "uuid",
-            "title": "Head Run Id",
             "type": "string"
           },
           "head_status": {
-            "title": "Head Status",
             "type": "string"
           },
           "regressions": {
-            "title": "Regressions",
             "type": "integer"
           },
           "same_target": {
-            "title": "Same Target",
             "type": "boolean"
           }
         },
@@ -1626,8 +1473,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Cart Id"
+            ]
           },
           "created_at": {
             "anyOf": [
@@ -1637,22 +1483,18 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Created At"
+            ]
           },
           "leaks": {
             "items": {
               "$ref": "#/components/schemas/Leak"
             },
-            "title": "Leaks",
             "type": "array"
           },
           "money_at_risk": {
-            "title": "Money At Risk",
             "type": "string"
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           },
           "store_status": {
@@ -1663,8 +1505,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Store Status"
+            ]
           },
           "total": {
             "anyOf": [
@@ -1674,11 +1515,9 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Total"
+            ]
           },
           "verdict": {
-            "title": "Verdict",
             "type": "string"
           }
         },
@@ -1697,14 +1536,12 @@
         "properties": {
           "explain": {
             "default": true,
-            "title": "Explain",
             "type": "boolean"
           },
           "limit": {
             "default": 25,
             "maximum": 50.0,
             "minimum": 1.0,
-            "title": "Limit",
             "type": "integer"
           },
           "store": {
@@ -1713,7 +1550,6 @@
               "main",
               "vulnerable"
             ],
-            "title": "Store",
             "type": "string"
           }
         },
@@ -1724,30 +1560,24 @@
         "additionalProperties": false,
         "properties": {
           "currency": {
-            "title": "Currency",
             "type": "string"
           },
           "items": {
             "items": {
               "$ref": "#/components/schemas/ScanItem"
             },
-            "title": "Items",
             "type": "array"
           },
           "leaking_orders": {
-            "title": "Leaking Orders",
             "type": "integer"
           },
           "money_at_risk": {
-            "title": "Money At Risk",
             "type": "string"
           },
           "orders_checked": {
-            "title": "Orders Checked",
             "type": "integer"
           },
           "orders_listed": {
-            "title": "Orders Listed",
             "type": "integer"
           },
           "plan": {
@@ -1755,11 +1585,9 @@
           },
           "scanned_at": {
             "format": "date-time",
-            "title": "Scanned At",
             "type": "string"
           },
           "store": {
-            "title": "Store",
             "type": "string"
           }
         },
@@ -1783,31 +1611,26 @@
           "errors": {
             "default": 0,
             "minimum": 0.0,
-            "title": "Errors",
             "type": "integer"
           },
           "failed": {
             "default": 0,
             "minimum": 0.0,
-            "title": "Failed",
             "type": "integer"
           },
           "passed": {
             "default": 0,
             "minimum": 0.0,
-            "title": "Passed",
             "type": "integer"
           },
           "skipped": {
             "default": 0,
             "minimum": 0.0,
-            "title": "Skipped",
             "type": "integer"
           },
           "warnings": {
             "default": 0,
             "minimum": 0.0,
-            "title": "Warnings",
             "type": "integer"
           }
         },
@@ -1819,14 +1642,12 @@
         "description": "Request a DNS and URL policy preflight only; this does not run checks.",
         "properties": {
           "authorization_confirmed": {
-            "title": "Authorization Confirmed",
             "type": "boolean"
           },
           "url": {
             "format": "uri",
             "maxLength": 2083,
             "minLength": 1,
-            "title": "Url",
             "type": "string"
           }
         },
@@ -1845,22 +1666,18 @@
             "items": {
               "type": "string"
             },
-            "title": "Notes",
             "type": "array"
           },
           "source": {
-            "title": "Source",
             "type": "string"
           },
           "steps": {
             "items": {
               "$ref": "#/components/schemas/TriageStep"
             },
-            "title": "Steps",
             "type": "array"
           },
           "summary": {
-            "title": "Summary",
             "type": "string"
           }
         },
@@ -1876,23 +1693,18 @@
         "additionalProperties": false,
         "properties": {
           "action": {
-            "title": "Action",
             "type": "string"
           },
           "amount": {
-            "title": "Amount",
             "type": "string"
           },
           "kind": {
-            "title": "Kind",
             "type": "string"
           },
           "order_id": {
-            "title": "Order Id",
             "type": "string"
           },
           "urgency": {
-            "title": "Urgency",
             "type": "string"
           },
           "waiting_since": {
@@ -1904,11 +1716,9 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Waiting Since"
+            ]
           },
           "why": {
-            "title": "Why",
             "type": "string"
           }
         },
@@ -1926,12 +1736,9 @@
       "ValidationError": {
         "properties": {
           "ctx": {
-            "title": "Context",
             "type": "object"
           },
-          "input": {
-            "title": "Input"
-          },
+          "input": {},
           "loc": {
             "items": {
               "anyOf": [
@@ -1943,15 +1750,12 @@
                 }
               ]
             },
-            "title": "Location",
             "type": "array"
           },
           "msg": {
-            "title": "Message",
             "type": "string"
           },
           "type": {
-            "title": "Error Type",
             "type": "string"
           }
         },
@@ -1970,12 +1774,10 @@
             "items": {
               "$ref": "#/components/schemas/CheckResult"
             },
-            "title": "Checks",
             "type": "array"
           },
           "finished_at": {
             "format": "date-time",
-            "title": "Finished At",
             "type": "string"
           },
           "overall_status": {
@@ -1983,17 +1785,14 @@
           },
           "run_id": {
             "format": "uuid",
-            "title": "Run Id",
             "type": "string"
           },
           "schema_version": {
             "default": "1.0",
-            "title": "Schema Version",
             "type": "string"
           },
           "started_at": {
             "format": "date-time",
-            "title": "Started At",
             "type": "string"
           },
           "summary": {
@@ -2003,7 +1802,6 @@
             "format": "uri",
             "maxLength": 2083,
             "minLength": 1,
-            "title": "Target Url",
             "type": "string"
           },
           "warnings": {
@@ -2011,7 +1809,6 @@
               "type": "string"
             },
             "maxItems": 50,
-            "title": "Warnings",
             "type": "array"
           }
         },
@@ -2031,12 +1828,10 @@
         "additionalProperties": false,
         "properties": {
           "authorization_confirmed": {
-            "title": "Authorization Confirmed",
             "type": "boolean"
           },
           "capture_screenshot_on_failure": {
             "default": false,
-            "title": "Capture Screenshot On Failure",
             "type": "boolean"
           },
           "checks": {
@@ -2045,7 +1840,6 @@
             },
             "maxItems": 17,
             "minItems": 1,
-            "title": "Checks",
             "type": "array"
           },
           "click_selector": {
@@ -2058,8 +1852,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Click Selector"
+            ]
           },
           "expected_text": {
             "anyOf": [
@@ -2071,8 +1864,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Expected Text"
+            ]
           },
           "flow_steps": {
             "anyOf": [
@@ -2087,35 +1879,30 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Flow Steps"
+            ]
           },
           "max_links": {
             "default": 10,
             "maximum": 25.0,
             "minimum": 0.0,
-            "title": "Max Links",
             "type": "integer"
           },
           "max_load_time_ms": {
             "default": 5000,
             "maximum": 60000.0,
             "minimum": 100.0,
-            "title": "Max Load Time Ms",
             "type": "integer"
           },
           "timeout_seconds": {
             "default": 20,
             "maximum": 60.0,
             "minimum": 3.0,
-            "title": "Timeout Seconds",
             "type": "integer"
           },
           "url": {
             "format": "uri",
             "maxLength": 2083,
             "minLength": 1,
-            "title": "Url",
             "type": "string"
           }
         },
@@ -2246,7 +2033,6 @@
                       }
                     ]
                   },
-                  "title": "Response Ai Status",
                   "type": "object"
                 }
               }
@@ -2271,7 +2057,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Artifact Id",
               "type": "string"
             }
           }
@@ -2317,7 +2102,6 @@
                     },
                     "type": "array"
                   },
-                  "title": "Response Check Catalog",
                   "type": "object"
                 }
               }
@@ -2343,7 +2127,6 @@
                   "additionalProperties": {
                     "type": "integer"
                   },
-                  "title": "Response Dashboard",
                   "type": "object"
                 }
               }
@@ -2367,7 +2150,6 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Deployment Status",
                   "type": "object"
                 }
               }
@@ -2393,7 +2175,6 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "title": "Response Health",
                   "type": "object"
                 }
               }
@@ -2418,7 +2199,6 @@
             "required": false,
             "schema": {
               "default": 20,
-              "title": "Limit",
               "type": "integer"
             }
           }
@@ -2431,7 +2211,6 @@
                   "items": {
                     "$ref": "#/components/schemas/JobRecord"
                   },
-                  "title": "Response Jobs",
                   "type": "array"
                 }
               }
@@ -2497,6 +2276,7 @@
     },
     "/api/jobs/{job_id}": {
       "get": {
+        "description": "Return one background run's status and, once finished, its report.",
         "operationId": "job_status",
         "parameters": [
           {
@@ -2505,7 +2285,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Job Id",
               "type": "string"
             }
           }
@@ -2540,6 +2319,7 @@
     },
     "/api/jobs/{job_id}/cancel": {
       "post": {
+        "description": "Cancel a background run that has not finished yet.",
         "operationId": "cancel_job",
         "parameters": [
           {
@@ -2548,7 +2328,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Job Id",
               "type": "string"
             }
           }
@@ -2591,7 +2370,6 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Me",
                   "type": "object"
                 }
               }
@@ -2617,7 +2395,6 @@
                   "additionalProperties": {
                     "type": "boolean"
                   },
-                  "title": "Response Notify Status",
                   "type": "object"
                 }
               }
@@ -2726,7 +2503,6 @@
             "required": true,
             "schema": {
               "pattern": "^[A-Z0-9]{8,40}$",
-              "title": "Order Id",
               "type": "string"
             }
           },
@@ -2740,7 +2516,6 @@
                 "main",
                 "vulnerable"
               ],
-              "title": "Store",
               "type": "string"
             }
           }
@@ -2792,7 +2567,6 @@
                       }
                     ]
                   },
-                  "title": "Response Paypal Status",
                   "type": "object"
                 }
               }
@@ -2860,7 +2634,6 @@
                   "additionalProperties": {
                     "type": "integer"
                   },
-                  "title": "Response Clear Recoveries",
                   "type": "object"
                 }
               }
@@ -2946,7 +2719,6 @@
                   "additionalProperties": {
                     "type": "integer"
                   },
-                  "title": "Response Clear Runs",
                   "type": "object"
                 }
               }
@@ -2969,7 +2741,6 @@
             "required": false,
             "schema": {
               "default": 20,
-              "title": "Limit",
               "type": "integer"
             }
           }
@@ -2983,7 +2754,6 @@
                     "additionalProperties": true,
                     "type": "object"
                   },
-                  "title": "Response Runs",
                   "type": "array"
                 }
               }
@@ -3018,7 +2788,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Base",
               "type": "string"
             }
           },
@@ -3028,7 +2797,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Head",
               "type": "string"
             }
           }
@@ -3072,7 +2840,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Run Id",
               "type": "string"
             }
           }
@@ -3085,7 +2852,6 @@
                   "additionalProperties": {
                     "type": "boolean"
                   },
-                  "title": "Response Remove Run",
                   "type": "object"
                 }
               }
@@ -3118,7 +2884,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Run Id",
               "type": "string"
             }
           }
@@ -3160,7 +2925,6 @@
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Run Id",
               "type": "string"
             }
           }
@@ -3264,7 +3028,6 @@
                       }
                     ]
                   },
-                  "title": "Response Target Preflight",
                   "type": "object"
                 }
               }
