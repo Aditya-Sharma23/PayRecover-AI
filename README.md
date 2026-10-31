@@ -36,7 +36,7 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 |---|---|
 | Charge the price the browser sends (prices are editable) | **Wrong amount** leak, and the price-tampering probe fails |
 | Show "paid" without capturing at PayPal | **Fake paid** or **Never captured** leak |
-| Let the same cart be paid more than once | **Duplicate charge** leak, naming the other order to refund |
+| Let the same cart be paid multiple times | **Duplicate charge** leak, naming the other order to refund |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
 ### Scan my store

@@ -49,7 +49,7 @@ BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_paym
 BUG_LABELS = {
     "trust_client_price": "Charge the price the browser sends (buyer can edit prices)",
     "confirm_without_capture": "Show “paid” without capturing the money at PayPal",
-    "allow_double_payment": "Let the same cart be paid more than once",
+    "allow_double_payment": "Let the same cart be paid multiple times",
 }
 
 app = FastAPI(title="PayRecover Vulnerable store", version="1.0.0")

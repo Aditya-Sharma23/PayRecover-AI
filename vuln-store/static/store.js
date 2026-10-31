@@ -140,7 +140,7 @@ function renderButtons() {
         // The store, not PayPal, refused: say so, and keep PayPal's own error handler from relabelling it.
         state.storeRefused = true;
         setStatus("error", /already been paid/.test(error.message)
-          ? `${error.message} Click "Start a new cart", or tick "Let the same cart be paid more than once" to demo a double charge.`
+          ? `${error.message} Click "Start a new cart", or tick "Let the same cart be paid multiple times" to demo a duplicate charge.`
           : `The store refused the order: ${error.message}`);
         throw error;
       });
@@ -157,7 +157,7 @@ function renderButtons() {
           setStatus("error", `Payment not completed (${order.status}).`);
         } else if (bugOn("allow_double_payment")) {
           // The double-payment bug keeps the paid cart, so it can be charged again.
-          setStatus("paid", `Payment complete. Order ${order.order_id} is paid. The cart is kept, so paying again charges it twice.`);
+          setStatus("paid", `Payment complete. Order ${order.order_id} is paid. The cart is kept, so every new payment charges it again.`);
         } else {
           saveCartId(crypto.randomUUID());
           setStatus("paid", `Payment complete. Order ${order.order_id} is paid. A new cart has been started.`);
