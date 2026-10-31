@@ -63,12 +63,40 @@ which PayPal generates with [APIMatic](https://www.apimatic.io/). The SDK is loc
 `backend/app/paypal_sdk.py` and returns PayPal's JSON unchanged, so every check works on PayPal's own record.
 Invoicing is not part of the SDK yet, so invoices still use PayPal's Invoicing REST API directly.
 
-### PayRecover's own API, ready for APIMatic
+### PayRecover's own SDK and API portal (APIMatic)
 
 PayRecover's OpenAPI description is exported to [`docs/openapi.json`](docs/openapi.json): clean operation names
 (`scan_store`, `investigate_order`, `approve_recovery`, `list_recoveries`, `evidence_pack`), a server address and the
-optional bearer-token login. Import it into [APIMatic](https://www.apimatic.io/) to generate PayRecover SDKs (Python,
-TypeScript and more) and an API portal, so a store or another AI agent can scan and recover in a few lines.
+optional bearer-token login. It passes APIMatic's validation with no errors (SDK generation readiness 100/100).
+From it, [APIMatic](https://www.apimatic.io/) generates PayRecover SDKs for Python, TypeScript and C#, and an API
+portal with the reference, SDK guides and a getting-started page, so a store or another AI agent can scan and
+recover in a few lines:
+
+```python
+from pay_recover_ai_api import PayRecoverAiApiClient
+
+with PayRecoverAiApiClient(base_url="http://127.0.0.1:8000") as client:
+    scan = client.pay_recover.scan_store({"store": "main", "limit": 25})
+    print(f"{scan.leaking_orders} leaking orders, {scan.money_at_risk} {scan.currency} at risk")
+
+    for item in scan.items:
+        for leak in item.leaks:
+            # Only after the merchant approves; the leak is recomputed and verified against PayPal.
+            record = client.pay_recover.approve_recovery(
+                {"order_id": item.order_id, "store": "main", "kind": leak.kind, "approved": True}
+            )
+            print(record.status, record.message)
+```
+
+To build the SDKs and portal yourself (Node.js 24+):
+
+```bash
+npm install -g @apimatic/cli@2
+apimatic quickstart                # in an empty folder; give it docs/openapi.json
+apimatic sdk generate -l python    # or typescript / csharp
+apimatic portal generate           # static portal files you can host
+```
+
 After changing an endpoint, run `backend\.venv\Scripts\python scripts\export_openapi.py`; a test fails while the
 committed file is out of date.
 
