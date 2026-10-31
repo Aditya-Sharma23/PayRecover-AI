@@ -4,7 +4,7 @@
 
 Built for the PayPal AI Hackathon on top of TestPilot AI, an open-source website and API testing tool (this project was called PayTest AI until October 2026).
 
-A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, plus real browser and HTTP runners. Gemini explains every result in plain words, but it never decides a result.
+A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, read through PayPal's official Server SDK, plus real browser and HTTP runners. Gemini explains every result in plain words, but it never decides a result.
 
 ![CI](https://github.com/Aditya-Sharma23/PayRecover-AI/actions/workflows/validate.yml/badge.svg)
 
@@ -55,6 +55,14 @@ the store and PayPal, with both records side by side, every check, the leaks, ev
 references, and a SHA-256 fingerprint of that evidence. Print it to PDF and attach it to a PayPal dispute or
 chargeback.
 
+### Built on PayPal's Server SDK (APIMatic)
+
+PayRecover reads orders, captures missed payments and refunds duplicate charges through
+[PayPal's official Python Server SDK](https://github.com/paypal/PayPal-Python-Server-SDK) (`paypal-server-sdk`),
+which PayPal generates with [APIMatic](https://www.apimatic.io/). The SDK is locked to Sandbox in
+`backend/app/paypal_sdk.py` and returns PayPal's JSON unchanged, so every check works on PayPal's own record.
+Invoicing is not part of the SDK yet, so invoices still use PayPal's Invoicing REST API directly.
+
 ### Recovering the money
 
 Every leak comes with a recovery the merchant can approve, on the dashboard or from a Zapier message:
@@ -96,7 +104,7 @@ flowchart LR
     U[Tester] --> D[PayRecover dashboard<br/>React]
     D --> B[PayRecover backend<br/>FastAPI]
     B --> R[Browser and HTTP runners<br/>Playwright, aiohttp]
-    B --> P[PayPal verifier]
+    B --> P[PayPal Server SDK<br/>APIMatic-generated]
     B -. plan / explain only .-> G[Gemini]
     R --> S[Main store<br/>FastAPI + PayPal JS SDK]
     S --> PP[(PayPal Sandbox)]

@@ -103,9 +103,7 @@ def _issue(body: Any, status: int) -> str:
 
 async def _capture(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
     target = leak.targets[0]
-    status, body = await paypal.paypal_call(
-        "POST", f"/v2/checkout/orders/{target.order_id}/capture", {}, f"payrecover-capture-{target.order_id}"
-    )
+    status, body = await paypal.capture_order(target.order_id, f"payrecover-capture-{target.order_id}")
     if status >= 400:
         return "failed", f"PayPal refused the capture ({_issue(body, status)}). An approval expires after a few hours.", {}, []
     order = await paypal.fetch_order(target.order_id)
@@ -128,18 +126,16 @@ async def _capture(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
 async def _refund(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
     refunds, checks = [], []
     for target in leak.targets:
-        status, body = await paypal.paypal_call(
-            "POST", f"/v2/payments/captures/{target.capture_id}/refund",
-            {"amount": {"value": target.amount, "currency_code": leak.currency},
-             "note_to_payer": "Refund of a duplicate charge, found by PayRecover."},
-            f"payrecover-refund-{target.capture_id}",
+        status, body = await paypal.refund_capture(
+            target.capture_id, target.amount, leak.currency,
+            "Refund of a duplicate charge, found by PayRecover.", f"payrecover-refund-{target.capture_id}",
         )
         if status >= 400:
             checks.append(_check("refund_accepted", False, f"PayPal refused the refund of capture {target.capture_id} "
                                  f"({_issue(body, status)}).", {"capture_id": target.capture_id}))
             continue
         refund_id = (body or {}).get("id")
-        _, fresh = await paypal.paypal_call("GET", f"/v2/payments/refunds/{refund_id}")
+        _, fresh = await paypal.get_refund(refund_id)
         state = (fresh or {}).get("status")
         refunds.append({"capture_id": target.capture_id, "refund_id": refund_id, "status": state})
         checks.append(_check("refund_confirmed", state in {"COMPLETED", "PENDING"},

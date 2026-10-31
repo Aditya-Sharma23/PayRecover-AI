@@ -64,6 +64,17 @@ class FakePayPal:
             return 200, {"status": "SENT", "amount": {"value": "17.00", "currency_code": "USD"}}
         raise AssertionError(f"unexpected PayPal call {method} {path}")
 
+    # The PayPal Server SDK functions app.recovery uses; they record calls in the same shape.
+    async def capture(self, order_id, request_id):
+        return await self.call("POST", f"/v2/checkout/orders/{order_id}/capture", None, request_id)
+
+    async def refund(self, capture_id, amount, currency, note, request_id):
+        body = {"amount": {"value": amount, "currency_code": currency}, "note_to_payer": note}
+        return await self.call("POST", f"/v2/payments/captures/{capture_id}/refund", body, request_id)
+
+    async def get_refund(self, refund_id):
+        return await self.call("GET", f"/v2/payments/refunds/{refund_id}")
+
     async def fetch(self, order_id):
         unit = {"amount": {"currency_code": "USD", "value": "18.00"}}
         if self.captured:
@@ -92,6 +103,9 @@ class RecoveryTests(unittest.TestCase):
         with (
             patch("app.investigate.investigate", fake_investigate),
             patch("app.paypal.paypal_call", paypal.call),
+            patch("app.paypal.capture_order", paypal.capture),
+            patch("app.paypal.refund_capture", paypal.refund),
+            patch("app.paypal.get_refund", paypal.get_refund),
             patch("app.paypal.fetch_order", paypal.fetch),
         ):
             return asyncio.run(recovery.recover(request, "local")), paypal
