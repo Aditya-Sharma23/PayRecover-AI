@@ -116,7 +116,7 @@ A destination blocked at run time produces a `blocked` report with every check `
 
 ## AI (Gemini)
 
-`POST /api/ai/plan` `{"goal", "target_url", "test_type": "website"|"api", "authorized": true}` → `{goal, test_type, checks, expectations, limitations, rationale, suggested_expected_text, suggested_flow_steps, suggested_json_assertions}`. Suggestions are drafts for the user to review; plans with checks from another test type are rejected, and malformed suggestions are dropped with a note. `POST /api/ai/explain` `{"report": {…}}` → `{summary, findings, limitations, next_steps}`, advisory only. `503` when no AI key is configured, `502` when the provider fails after its retries and fallback models. `GET /api/ai/status` shows provider, model and family name (`Gemini`, `Gemma` or `AI`), never the key. An explanation's `source` names the model that wrote it, for example `Gemini (gemini-3.7-flash)`.
+`POST /api/ai/plan` `{"goal", "target_url", "test_type": "website"|"api", "authorized": true}` → `{goal, test_type, checks, expectations, limitations, rationale, suggested_expected_text, suggested_flow_steps, suggested_json_assertions}`. Suggestions are drafts for the user to review; plans with checks from another test type are rejected, and malformed suggestions are dropped with a note. `POST /api/ai/explain` `{"report": {…}}` → `{summary, findings, limitations, next_steps}`, advisory only. `503` when no AI key is configured, `502` when the provider fails after its retries and fallback models. `GET /api/ai/status` shows provider, model and family name (`Gemini` or `AI`), never the key. An explanation's `source` names the model that wrote it, for example `Gemini (gemini-3.7-flash)`.
 
 ## Added in the final build
 

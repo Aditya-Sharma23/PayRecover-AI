@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from app import contract_runner, security_checks
 from app.api_runner import matches_json_shape
-from app.gemma import builtin_explanation, explain_with_fallback, risk_level
+from app.ai import builtin_explanation, explain_with_fallback, risk_level
 from app.schemas import (
     API_CHECK_NAMES,
     FULL_SCAN_CHECKS,
@@ -177,9 +177,9 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(explanation.source, "Built-in summary")
         self.assertIn("Potentially exposed .env file", explanation.findings[0])
 
-    def test_explain_falls_back_when_gemma_is_not_configured(self):
+    def test_explain_falls_back_when_the_ai_is_not_configured(self):
         data = report([{"check_id": "h1", "status": "failed", "message": "0 headings", "evidence": {}}])
-        with patch.dict("os.environ", {"TESTPILOT_GOOGLE_API_KEY": "", "GEMINI_API_KEY": "", "TESTPILOT_GEMMA_PROVIDER": "google"}):
+        with patch.dict("os.environ", {"TESTPILOT_GOOGLE_API_KEY": "", "GEMINI_API_KEY": "", "TESTPILOT_AI_PROVIDER": "google"}):
             explanation = asyncio.run(explain_with_fallback(data))
         self.assertEqual(explanation.source, "Built-in summary")
         self.assertEqual(explanation.risk_level, "REVIEW")

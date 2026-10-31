@@ -3,7 +3,7 @@
 Short records of choices that shape the code. Newest last.
 
 1. **Evidence decides, AI advises.** Gemini drafts plans and explains reports; deterministic runners produce every status, and the schema validator derives the overall status from check records. A report cannot claim "passed" without passing checks.
-2. **Gemini through Google's Generative Language API by default** (`gemini-3.8-flash`, with `TESTPILOT_AI_FALLBACK_MODELS` tried when it is busy; the project started on Gemma 4, which still works). An Ollama adapter (`TESTPILOT_AI_PROVIDER=ollama`) covers local inference. Reasoning ("thought") parts are ignored.
+2. **Gemini through Google's Generative Language API by default** (`gemini-3.8-flash`, with `TESTPILOT_AI_FALLBACK_MODELS` tried when it is busy). An Ollama adapter (`TESTPILOT_AI_PROVIDER=ollama`) covers local inference. Reasoning ("thought") parts are ignored.
 3. **The backend fetches everything for the browser.** Playwright intercepts every request and serves it from an aiohttp client pinned to validated public addresses. This is what makes SSRF and DNS-rebinding protection hold for a real browser. Chromium additionally gets no DNS, a dead proxy and no WebRTC UDP.
 4. **Read-only by construction.** Only GET/HEAD reach the network from the browser, and the API runner sends a single GET with no redirects. Flows can click and type, but form submissions cannot change data. OpenAPI import marks non-GET operations as not runnable.
 5. **Never store secrets the user typed.** Request header values and flow `fill` values are used once and only their presence or length is recorded.

@@ -500,7 +500,7 @@ class RunComparison(BaseModel):
     fixes: int
 
 
-class GemmaPlanRequest(BaseModel):
+class AIPlanRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     goal: str = Field(min_length=1, max_length=2000)
@@ -516,7 +516,7 @@ class GemmaPlanRequest(BaseModel):
         return value
 
 
-class GemmaPlan(BaseModel):
+class AIPlan(BaseModel):
     """The AI model's reviewable proposal. Suggested inputs are drafts the user must confirm."""
 
     model_config = ConfigDict(extra="ignore")
@@ -569,13 +569,13 @@ class PaymentVerification(BaseModel):
     order: dict[str, Any] | None = None
 
 
-class GemmaExplanationRequest(BaseModel):
+class AIExplanationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     report: WebsiteRunReport | ApiRunReport
 
 
-class GemmaExplanation(BaseModel):
+class AIExplanation(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     summary: str = Field(min_length=1, max_length=2000)
@@ -649,7 +649,7 @@ class Investigation(BaseModel):
     leaks: list[Leak]
     money_at_risk: str
     currency: str
-    explanation: GemmaExplanation | None = None
+    explanation: AIExplanation | None = None
 
 
 RECOVERY_STATUSES = ("recovered", "invoice_sent", "refunded", "failed", "unverified")

@@ -28,10 +28,10 @@ from typing import Any
 
 import aiohttp
 
-from app import gemma, paypal, xss_probe
+from app import ai, paypal, xss_probe
 from app.schemas import (
     CheckStatus,
-    GemmaExplanation,
+    AIExplanation,
     Investigation,
     InvestigationRequest,
     Leak,
@@ -345,7 +345,7 @@ def _risk(leaks: list[Leak], checks: list[PaymentCheck], xss_status: str | None 
     return "LOW"
 
 
-def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> GemmaExplanation:
+def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> AIExplanation:
     leaks = result["leaks"]
     if leaks:
         summary = (
@@ -367,7 +367,7 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
     limitations = ["The AI model was not used; this summary was built from the check records only."]
     if reason:
         limitations.append(reason[:300])
-    return GemmaExplanation(
+    return AIExplanation(
         summary=summary,
         findings=[f"{c['name']}: {c['message']}" for c in problems][:10],
         limitations=limitations,
@@ -382,7 +382,7 @@ def builtin_explanation(result: dict[str, Any], reason: str | None = None) -> Ge
     )
 
 
-async def explain(result: dict[str, Any]) -> GemmaExplanation:
+async def explain(result: dict[str, Any]) -> AIExplanation:
     """The AI model explains for a merchant in plain words; the deterministic risk is a floor it cannot lower."""
     floor = builtin_explanation(result).risk_level
     prompt = f"""Return only JSON matching this schema:
@@ -391,14 +391,14 @@ You are helping a small online merchant. Explain this payment investigation in p
 Investigation JSON:
 {json.dumps(result, separators=(',', ':'), default=str)}"""
     try:
-        value = gemma.fit_to_limits(
-            gemma._extract_json(await gemma._generate(prompt)), gemma.EXPLANATION_LISTS, ("summary",)
+        value = ai.fit_to_limits(
+            ai._extract_json(await ai._generate(prompt)), ai.EXPLANATION_LISTS, ("summary",)
         )
         risk = str(value.get("risk_level", "")).upper()
         value["risk_level"] = risk if risk in {"HIGH", "REVIEW", "LOW"} else "UNKNOWN"
-        value["source"] = gemma.answer_source()
-        explanation = GemmaExplanation.model_validate(value)
-    except (gemma.GemmaConfigurationError, gemma.GemmaProviderError) as exc:
+        value["source"] = ai.answer_source()
+        explanation = AIExplanation.model_validate(value)
+    except (ai.AIConfigurationError, ai.AIProviderError) as exc:
         return builtin_explanation(result, str(exc))
     except Exception:
         return builtin_explanation(result, "The AI explanation did not match the required schema.")

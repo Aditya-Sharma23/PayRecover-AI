@@ -84,4 +84,4 @@ Run **one instance**. Rate limiting, the job queue and SQLite are per process. S
 
 ## A local model instead of Google's API
 
-Set `TESTPILOT_AI_PROVIDER=ollama`, `TESTPILOT_OLLAMA_URL` (default `http://127.0.0.1:11434`) and `TESTPILOT_AI_MODEL` (for example `gemma4`) to use a local Ollama server instead.
+Set `TESTPILOT_AI_PROVIDER=ollama`, `TESTPILOT_OLLAMA_URL` (default `http://127.0.0.1:11434`) and `TESTPILOT_AI_MODEL` (for example `llama3.2`) to use a local Ollama server instead.

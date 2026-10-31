@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from app import gemma, scan
+from app import ai, scan
 from app.schemas import Investigation, Leak, RecoveryTarget, ScanRequest
 
 
@@ -48,7 +48,7 @@ def run_scan(explain=False, generate=None):
 
     patches = [patch("app.scan.recent_orders", fake_recent), patch("app.investigate.investigate", fake_investigate)]
     if generate:
-        patches.append(patch("app.gemma._generate", generate))
+        patches.append(patch("app.ai._generate", generate))
     for p in patches:
         p.start()
     try:
@@ -98,7 +98,7 @@ class ScanTests(unittest.TestCase):
 
     def test_gemini_failing_still_gives_a_plan(self):
         async def generate(_prompt):
-            raise gemma.GemmaProviderError("busy")
+            raise ai.AIProviderError("busy")
 
         result, _ = run_scan(explain=True, generate=generate)
         self.assertEqual(result.plan.source, "Built-in summary")

@@ -16,10 +16,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.schemas import (
     ApiRunReport,
     ApiRunRequest,
-    GemmaExplanation,
-    GemmaExplanationRequest,
-    GemmaPlan,
-    GemmaPlanRequest,
+    AIExplanation,
+    AIExplanationRequest,
+    AIPlan,
+    AIPlanRequest,
     Investigation,
     InvestigationRequest,
     OpenApiImportRequest,
@@ -51,9 +51,9 @@ from app.storage import (
     retention_policy,
     save_report,
 )
-from app.gemma import (
-    GemmaConfigurationError,
-    GemmaProviderError,
+from app.ai import (
+    AIConfigurationError,
+    AIProviderError,
     configuration_status,
     create_plan,
     explain_with_fallback,
@@ -157,7 +157,7 @@ def dashboard(http: Request) -> dict[str, int]:
 
 
 @app.get("/api/ai/status", tags=["AI"])
-def gemma_status() -> dict[str, str | bool]:
+def ai_status() -> dict[str, str | bool]:
     """Return non-secret AI configuration state: model, family name and provider."""
     return configuration_status()
 
@@ -320,19 +320,19 @@ def run_html(run_id: UUID, http: Request) -> str:
     return render_report_html(_owned_report(run_id, http))
 
 
-@app.post("/api/ai/plan", response_model=GemmaPlan, tags=["AI"])
-async def gemma_plan(request: GemmaPlanRequest) -> GemmaPlan:
+@app.post("/api/ai/plan", response_model=AIPlan, tags=["AI"])
+async def ai_plan(request: AIPlanRequest) -> AIPlan:
     """Use the AI model to structure a goal without executing or inventing evidence."""
     try:
         return await create_plan(request)
-    except GemmaConfigurationError as exc:
+    except AIConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except GemmaProviderError as exc:
+    except AIProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.post("/api/ai/explain", response_model=GemmaExplanation, tags=["AI"])
-async def gemma_explain(request: GemmaExplanationRequest) -> GemmaExplanation:
+@app.post("/api/ai/explain", response_model=AIExplanation, tags=["AI"])
+async def ai_explain(request: AIExplanationRequest) -> AIExplanation:
     """Explain a report with the AI model, or with a built-in summary when it is unavailable.
 
     Neither can change the report's result, and the risk level never drops below

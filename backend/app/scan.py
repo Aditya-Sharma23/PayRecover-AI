@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from app import gemma, investigate
+from app import ai, investigate
 from app.schemas import InvestigationRequest, ScanItem, ScanRequest, ScanResult, TriagePlan, TriageStep
 
 MAX_CONCURRENT = 4
@@ -78,14 +78,14 @@ Write "why": exactly {len(steps)} short reasons, one per leak in the same order,
 Use only these facts. Never add, drop or reorder leaks, and never change an amount. Recoveries need the merchant's approval.
 Leaks: {json.dumps(facts, default=str)}"""
     try:
-        value = gemma.fit_to_limits(gemma._extract_json(await gemma._generate(prompt)), (), ("summary",))
+        value = ai.fit_to_limits(ai._extract_json(await ai._generate(prompt)), (), ("summary",))
         reasons = value.get("why")
         if not isinstance(reasons, list) or len(reasons) != len(steps) or not str(value.get("summary", "")).strip():
-            raise gemma.GemmaProviderError("The AI plan did not keep one reason per leak.")
-    except (gemma.GemmaConfigurationError, gemma.GemmaProviderError) as exc:
+            raise ai.AIProviderError("The AI plan did not keep one reason per leak.")
+    except (ai.AIConfigurationError, ai.AIProviderError) as exc:
         return builtin_plan(steps, money, currency, str(exc)[:300])
     worded = [step.model_copy(update={"why": str(reason).strip()[:400] or step.why}) for step, reason in zip(steps, reasons, strict=True)]
-    return TriagePlan(summary=str(value["summary"]).strip(), steps=worded, source=gemma.answer_source(), notes=[])
+    return TriagePlan(summary=str(value["summary"]).strip(), steps=worded, source=ai.answer_source(), notes=[])
 
 
 async def scan_store(request: ScanRequest) -> ScanResult:

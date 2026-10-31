@@ -1,8 +1,18 @@
 {
   "schema": "testpilot-codebase-graph/v1",
   "generated_by": "scripts/generate_graph.py",
-  "root": "TestPilotAI",
+  "root": "Paytest",
   "nodes": [
+    {
+      "id": ".claude/launch.json",
+      "label": "launch.json",
+      "type": "json"
+    },
+    {
+      "id": ".claude/settings.local.json",
+      "label": "settings.local.json",
+      "type": "json"
+    },
     {
       "id": ".github/workflows/demo-site.yml",
       "label": "demo-site.yml",
@@ -14,8 +24,33 @@
       "type": "yml"
     },
     {
+      "id": "backend/.schemathesis/default/cache/crashes/GET_api_bugs_allow_header_conformance_558f8477.json",
+      "label": "GET_api_bugs_allow_header_conformance_558f8477.json",
+      "type": "json"
+    },
+    {
+      "id": "backend/.schemathesis/default/cache/crashes/GET_api_defects_allow_header_conformance_d27dffc6.json",
+      "label": "GET_api_defects_allow_header_conformance_d27dffc6.json",
+      "type": "json"
+    },
+    {
+      "id": "backend/.schemathesis/default/cache/crashes/GET_api_orders_order_id_status_code_conformance_01cc7686.json",
+      "label": "GET_api_orders_order_id_status_code_conformance_01cc7686.json",
+      "type": "json"
+    },
+    {
+      "id": "backend/.schemathesis/default/cache/crashes/manifest.json",
+      "label": "manifest.json",
+      "type": "json"
+    },
+    {
       "id": "backend/app/__init__.py",
       "label": "__init__.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/ai.py",
+      "label": "ai.py",
       "type": "py"
     },
     {
@@ -34,8 +69,18 @@
       "type": "py"
     },
     {
+      "id": "backend/app/contract_runner.py",
+      "label": "contract_runner.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/deployment.py",
       "label": "deployment.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/evidence.py",
+      "label": "evidence.py",
       "type": "py"
     },
     {
@@ -44,8 +89,8 @@
       "type": "py"
     },
     {
-      "id": "backend/app/gemma.py",
-      "label": "gemma.py",
+      "id": "backend/app/investigate.py",
+      "label": "investigate.py",
       "type": "py"
     },
     {
@@ -59,13 +104,38 @@
       "type": "py"
     },
     {
+      "id": "backend/app/notify.py",
+      "label": "notify.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/openapi_import.py",
       "label": "openapi_import.py",
       "type": "py"
     },
     {
+      "id": "backend/app/paypal.py",
+      "label": "paypal.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/paypal_sdk.py",
+      "label": "paypal_sdk.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/recovery.py",
+      "label": "recovery.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/report_html.py",
       "label": "report_html.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/scan.py",
+      "label": "scan.py",
       "type": "py"
     },
     {
@@ -76,6 +146,16 @@
     {
       "id": "backend/app/security.py",
       "label": "security.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/security_checks.py",
+      "label": "security_checks.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/static_a11y.py",
+      "label": "static_a11y.py",
       "type": "py"
     },
     {
@@ -94,6 +174,11 @@
       "type": "py"
     },
     {
+      "id": "backend/app/xss_probe.py",
+      "label": "xss_probe.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/__init__.py",
       "label": "__init__.py",
       "type": "py"
@@ -101,6 +186,11 @@
     {
       "id": "backend/tests/isolation.py",
       "label": "isolation.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_ai.py",
+      "label": "test_ai.py",
       "type": "py"
     },
     {
@@ -124,8 +214,8 @@
       "type": "py"
     },
     {
-      "id": "backend/tests/test_gemma.py",
-      "label": "test_gemma.py",
+      "id": "backend/tests/test_evidence.py",
+      "label": "test_evidence.py",
       "type": "py"
     },
     {
@@ -134,13 +224,43 @@
       "type": "py"
     },
     {
+      "id": "backend/tests/test_investigate.py",
+      "label": "test_investigate.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/test_jobs.py",
       "label": "test_jobs.py",
       "type": "py"
     },
     {
+      "id": "backend/tests/test_merged_checks.py",
+      "label": "test_merged_checks.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_notify.py",
+      "label": "test_notify.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/test_openapi_import.py",
       "label": "test_openapi_import.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_paypal.py",
+      "label": "test_paypal.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_paypal_sdk.py",
+      "label": "test_paypal_sdk.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_recovery.py",
+      "label": "test_recovery.py",
       "type": "py"
     },
     {
@@ -156,6 +276,11 @@
     {
       "id": "backend/tests/test_runner_integration.py",
       "label": "test_runner_integration.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_scan.py",
+      "label": "test_scan.py",
       "type": "py"
     },
     {
@@ -179,6 +304,11 @@
       "type": "py"
     },
     {
+      "id": "backend/tests/test_xss_probe.py",
+      "label": "test_xss_probe.py",
+      "type": "py"
+    },
+    {
       "id": "demo-site/broken.html",
       "label": "broken.html",
       "type": "html"
@@ -199,8 +329,28 @@
       "type": "md"
     },
     {
+      "id": "docs/decisions.md",
+      "label": "decisions.md",
+      "type": "md"
+    },
+    {
+      "id": "docs/deployment.md",
+      "label": "deployment.md",
+      "type": "md"
+    },
+    {
       "id": "docs/implementation-plan.md",
       "label": "implementation-plan.md",
+      "type": "md"
+    },
+    {
+      "id": "docs/paypal-sandbox.md",
+      "label": "paypal-sandbox.md",
+      "type": "md"
+    },
+    {
+      "id": "docs/threat-model.md",
+      "label": "threat-model.md",
       "type": "md"
     },
     {
@@ -219,11 +369,6 @@
       "type": "json"
     },
     {
-      "id": "frontend/report.css",
-      "label": "report.css",
-      "type": "css"
-    },
-    {
       "id": "frontend/src/api/client.js",
       "label": "client.js",
       "type": "js"
@@ -234,18 +379,18 @@
       "type": "jsx"
     },
     {
-      "id": "frontend/src/components/Editors.jsx",
-      "label": "Editors.jsx",
-      "type": "jsx"
-    },
-    {
       "id": "frontend/src/components/HistoryPanel.jsx",
       "label": "HistoryPanel.jsx",
       "type": "jsx"
     },
     {
-      "id": "frontend/src/components/OpenApiImport.jsx",
-      "label": "OpenApiImport.jsx",
+      "id": "frontend/src/components/PaymentPanel.jsx",
+      "label": "PaymentPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/RecoveryPanel.jsx",
+      "label": "RecoveryPanel.jsx",
       "type": "jsx"
     },
     {
@@ -254,9 +399,24 @@
       "type": "jsx"
     },
     {
-      "id": "frontend/src/features.css",
-      "label": "features.css",
-      "type": "css"
+      "id": "frontend/src/components/ScanPanel.jsx",
+      "label": "ScanPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/lib/grid.js",
+      "label": "grid.js",
+      "type": "js"
+    },
+    {
+      "id": "frontend/src/lib/payment.js",
+      "label": "payment.js",
+      "type": "js"
+    },
+    {
+      "id": "frontend/src/lib/report.js",
+      "label": "report.js",
+      "type": "js"
     },
     {
       "id": "frontend/src/lib/requestBody.js",
@@ -279,6 +439,16 @@
       "type": "mjs"
     },
     {
+      "id": "frontend/tests/payment.test.mjs",
+      "label": "payment.test.mjs",
+      "type": "mjs"
+    },
+    {
+      "id": "frontend/tests/report.test.mjs",
+      "label": "report.test.mjs",
+      "type": "mjs"
+    },
+    {
       "id": "frontend/tests/requestBody.test.mjs",
       "label": "requestBody.test.mjs",
       "type": "mjs"
@@ -289,9 +459,29 @@
       "type": "js"
     },
     {
-      "id": "memory.md",
-      "label": "memory.md",
-      "type": "md"
+      "id": "main-store/static/index.html",
+      "label": "index.html",
+      "type": "html"
+    },
+    {
+      "id": "main-store/static/store.css",
+      "label": "store.css",
+      "type": "css"
+    },
+    {
+      "id": "main-store/static/store.js",
+      "label": "store.js",
+      "type": "js"
+    },
+    {
+      "id": "main-store/store_app.py",
+      "label": "store_app.py",
+      "type": "py"
+    },
+    {
+      "id": "main-store/tests/test_store.py",
+      "label": "test_store.py",
+      "type": "py"
     },
     {
       "id": "README.md",
@@ -312,9 +502,39 @@
       "id": "steps.md",
       "label": "steps.md",
       "type": "md"
+    },
+    {
+      "id": "vuln-store/static/index.html",
+      "label": "index.html",
+      "type": "html"
+    },
+    {
+      "id": "vuln-store/static/store.css",
+      "label": "store.css",
+      "type": "css"
+    },
+    {
+      "id": "vuln-store/static/store.js",
+      "label": "store.js",
+      "type": "js"
+    },
+    {
+      "id": "vuln-store/store_app.py",
+      "label": "store_app.py",
+      "type": "py"
+    },
+    {
+      "id": "vuln-store/tests/test_store.py",
+      "label": "test_store.py",
+      "type": "py"
     }
   ],
   "edges": [
+    {
+      "source": "backend/app/ai.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
     {
       "source": "backend/app/api_runner.py",
       "target": "backend/app/schemas.py",
@@ -336,8 +556,18 @@
       "type": "imports"
     },
     {
+      "source": "backend/app/contract_runner.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/app/deployment.py",
       "target": "backend/app/security.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/evidence.py",
+      "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
@@ -366,8 +596,13 @@
       "type": "imports"
     },
     {
-      "source": "backend/app/gemma.py",
+      "source": "backend/app/investigate.py",
       "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/investigate.py",
+      "target": "backend/app/url_policy.py",
       "type": "imports"
     },
     {
@@ -387,6 +622,11 @@
     },
     {
       "source": "backend/app/main.py",
+      "target": "backend/app/ai.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/main.py",
       "target": "backend/app/compare.py",
       "type": "imports"
     },
@@ -398,11 +638,6 @@
     {
       "source": "backend/app/main.py",
       "target": "backend/app/execution.py",
-      "type": "imports"
-    },
-    {
-      "source": "backend/app/main.py",
-      "target": "backend/app/gemma.py",
       "type": "imports"
     },
     {
@@ -441,13 +676,33 @@
       "type": "imports"
     },
     {
+      "source": "backend/app/notify.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/app/openapi_import.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/paypal.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/recovery.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
       "source": "backend/app/report_html.py",
       "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/scan.py",
+      "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
@@ -458,6 +713,16 @@
     {
       "source": "backend/app/security.py",
       "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/security_checks.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/security_checks.py",
+      "target": "backend/app/website_runner.py",
       "type": "imports"
     },
     {
@@ -472,12 +737,32 @@
     },
     {
       "source": "backend/app/website_runner.py",
+      "target": "backend/app/static_a11y.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/website_runner.py",
       "target": "backend/app/storage.py",
       "type": "imports"
     },
     {
       "source": "backend/app/website_runner.py",
       "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/xss_probe.py",
+      "target": "backend/app/security_checks.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_ai.py",
+      "target": "backend/app/ai.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_ai.py",
+      "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
@@ -526,12 +811,12 @@
       "type": "imports"
     },
     {
-      "source": "backend/tests/test_gemma.py",
-      "target": "backend/app/gemma.py",
+      "source": "backend/tests/test_evidence.py",
+      "target": "backend/app/main.py",
       "type": "imports"
     },
     {
-      "source": "backend/tests/test_gemma.py",
+      "source": "backend/tests/test_evidence.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
     },
@@ -556,6 +841,21 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_investigate.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_investigate.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_investigate.py",
+      "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_jobs.py",
       "target": "backend/app/jobs.py",
       "type": "imports"
@@ -571,12 +871,82 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/ai.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/api_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/static_a11y.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/storage.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/app/website_runner.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_merged_checks.py",
+      "target": "backend/tests/test_runner_integration.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_notify.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_notify.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_openapi_import.py",
       "target": "backend/app/openapi_import.py",
       "type": "imports"
     },
     {
       "source": "backend/tests/test_openapi_import.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_paypal.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_paypal.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_recovery.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_recovery.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
     },
@@ -608,6 +978,11 @@
     {
       "source": "backend/tests/test_runner_integration.py",
       "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_scan.py",
+      "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
@@ -647,17 +1022,22 @@
     },
     {
       "source": "frontend/src/App.jsx",
-      "target": "frontend/src/components/Editors.jsx",
-      "type": "imports"
-    },
-    {
-      "source": "frontend/src/App.jsx",
       "target": "frontend/src/components/HistoryPanel.jsx",
       "type": "imports"
     },
     {
       "source": "frontend/src/App.jsx",
-      "target": "frontend/src/components/OpenApiImport.jsx",
+      "target": "frontend/src/components/PaymentPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/RecoveryPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/ScanPanel.jsx",
       "type": "imports"
     },
     {
@@ -666,28 +1046,78 @@
       "type": "imports"
     },
     {
-      "source": "frontend/src/App.jsx",
-      "target": "frontend/src/lib/requestBody.js",
-      "type": "imports"
-    },
-    {
-      "source": "frontend/src/components/Editors.jsx",
-      "target": "frontend/src/lib/requestBody.js",
-      "type": "imports"
-    },
-    {
       "source": "frontend/src/components/HistoryPanel.jsx",
       "target": "frontend/src/api/client.js",
       "type": "imports"
     },
     {
-      "source": "frontend/src/components/OpenApiImport.jsx",
+      "source": "frontend/src/components/HistoryPanel.jsx",
+      "target": "frontend/src/lib/report.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/PaymentPanel.jsx",
       "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/PaymentPanel.jsx",
+      "target": "frontend/src/lib/payment.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/PaymentPanel.jsx",
+      "target": "frontend/src/lib/report.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/RecoveryPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/RecoveryPanel.jsx",
+      "target": "frontend/src/lib/grid.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/RecoveryPanel.jsx",
+      "target": "frontend/src/lib/payment.js",
       "type": "imports"
     },
     {
       "source": "frontend/src/components/ReportView.jsx",
       "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ReportView.jsx",
+      "target": "frontend/src/lib/report.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ScanPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ScanPanel.jsx",
+      "target": "frontend/src/lib/grid.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ScanPanel.jsx",
+      "target": "frontend/src/lib/payment.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ScanPanel.jsx",
+      "target": "frontend/src/components/PaymentPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/lib/report.js",
+      "target": "frontend/src/lib/requestBody.js",
       "type": "imports"
     },
     {
@@ -701,18 +1131,18 @@
       "type": "imports"
     },
     {
-      "source": "frontend/src/main.jsx",
-      "target": "frontend/src/features.css",
-      "type": "imports"
-    },
-    {
-      "source": "frontend/src/main.jsx",
-      "target": "frontend/report.css",
-      "type": "imports"
-    },
-    {
       "source": "frontend/tests/client.test.mjs",
       "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/tests/payment.test.mjs",
+      "target": "frontend/src/lib/payment.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/tests/report.test.mjs",
+      "target": "frontend/src/lib/report.js",
       "type": "imports"
     },
     {

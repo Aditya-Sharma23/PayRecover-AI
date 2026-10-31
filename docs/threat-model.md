@@ -24,7 +24,7 @@ PayRecover AI makes network requests to URLs that users type in, runs a real bro
 | Token guessing / timing | Tokens ≥ 32 characters in public mode; comparison of SHA-256 digests with `hmac.compare_digest`; rate limiting | `test_security`, `test_deployment` |
 | XSS through target-controlled evidence | React escapes all text; HTML report escapes every value and embeds screenshots as data URIs; accessibility help links are shown only for `https://dequeuniversity.com/`; strict CSP on app responses | `test_report_html` |
 | Untrusted page tampering with in-page checks | Recorded as a limitation on the accessibility check; status checks that matter (HTTP status, console) are observed from outside the page | — |
-| AI inventing results | The AI model never executes anything; plans are validated against the allowed checks; the overall status is derived by the schema validator from check records only; explanations are labelled advisory | `test_gemma`, `test_schemas` |
+| AI inventing results | The AI model never executes anything; plans are validated against the allowed checks; the overall status is derived by the schema validator from check records only; explanations are labelled advisory | `test_ai`, `test_schemas` |
 | Unsafe public deployment | Public mode refuses to start without auth, strong tokens, rate limiting, audit logging, HTTPS and secrets outside the image; runs move into isolated worker processes | `test_server_refuses_to_start_when_public_gates_fail` |
 
 ## Out of scope / residual risk
