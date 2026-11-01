@@ -104,7 +104,15 @@ async def run(method: str, params: dict[str, Any]) -> Any:
         except Exception as exc:  # requests errors from PayPal, raised by the toolkit
             raise _error(exc, method) from exc
 
-    result = await asyncio.to_thread(call)
+    try:
+        result = await asyncio.to_thread(call)
+    except ToolkitError as exc:
+        if exc.status not in {401, 403}:
+            raise
+        # The cached client may hold a token issued before the app's features changed: retry once with a fresh one.
+        _api.cache_clear()
+        api = _api(client_id, secret)
+        result = await asyncio.to_thread(call)
     if isinstance(result, str):
         try:
             return json.loads(result)

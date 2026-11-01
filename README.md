@@ -2,9 +2,9 @@
 
 **An AI agent for PayPal merchants: it finds money a store has lost, proves each leak, and shows how to get it back.**
 
-Built for the PayPal AI Hackathon on top of TestPilot AI, an open-source website and API testing tool (this project was called PayTest AI until October 2026).
+Built for the PayPal AI Hackathon. It extends an earlier open-source project of mine, a website and API testing tool, with PayPal-specific checks and recovery.
 
-A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, read through PayPal's official Server SDK, plus real browser and HTTP runners. Gemini explains every result in plain words, but it never decides a result.
+A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, read through PayPal's official Server SDK and Agent Toolkit. Gemini explains every result in plain words, but it never decides a result, and no money moves until the merchant approves.
 
 ![CI](https://github.com/Aditya-Sharma23/PayRecover-AI/actions/workflows/validate.yml/badge.svg)
 
@@ -12,12 +12,18 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 
 ## What it does
 
+1. **Finds the leak.** Scans every recent order a store calls paid and compares it with PayPal: never captured, fake paid, wrong amount, duplicate charge, and payments PayPal took that the store never recorded.
+2. **Proves it.** Each leak comes with both records side by side and a printable, fingerprinted evidence pack.
+3. **Recovers the money.** After the merchant approves, PayRecover captures the missed payment, refunds the duplicate or invoices the shortfall, then confirms the result with a fresh read of PayPal.
+4. **Defends disputes.** Reads PayPal disputes, re-checks the disputed order, and drafts an answer (send evidence or accept the claim) for the merchant to approve.
+5. **Checks the store itself.** A security and website scan catches holes that could let money leak later.
+
 | Area | What PayRecover checks |
 |---|---|
 | **PayPal payments** | Reads the order straight from the PayPal Sandbox Orders API: does it exist, is it `COMPLETED`, was it **captured**, and do the order and capture amounts match what the store should have charged? |
-| **Website** | HTTP status, title, headings, console errors, links, security headers, cookies, exposed files, accessibility (axe-core), keyboard focus, response time, scripted user flows (fill, click, expect text), and screenshots on failure |
-| **API** | Status, response time, content type, redirects, size, JSON assertions, JSON Schema, response shape, and OpenAPI contract tests (Schemathesis) |
-| **AI (Gemini)** | Turns a plain-English goal into a test plan you review before it runs, and explains a finished report or order investigation in plain words. It never changes a result. |
+| **AI (Gemini)** | Explains a finished order investigation or scan in plain words, writes recovery plans and dispute drafts, and answers questions in a chat that calls PayPal's Agent Toolkit. It never changes a result. |
+| **Website** | HTTP status, security headers, reflected XSS, price tampering, cookies, exposed files, accessibility (axe-core), console errors, links, scripted user flows, and screenshots on failure |
+| **API** | Status, response time, content type, JSON assertions, JSON Schema, and OpenAPI contract tests (Schemathesis) |
 | **History** | Saved runs, side-by-side comparison (fixed / regressed), and self-contained HTML reports |
 
 ### The Main store
@@ -264,6 +270,8 @@ On macOS or Linux, use `.venv/bin/` instead of `.venv\Scripts\`.
 
 Copy `backend/.env.example` to `backend/.env`, and `main-store/.env.example` to `main-store/.env`, then fill in your Sandbox **Client ID** and **Secret**. Full steps, including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
 
+Environment variables keep the `TESTPILOT_` prefix from the project's earlier name; it is only a prefix and is not shown to users.
+
 Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. Everything else works without it.
 
 The Vulnerable store reuses `main-store/.env`, so it needs no keys of its own.
@@ -353,7 +361,8 @@ The PayRecover backend and dashboard ship as a single Docker image (`docker comp
 - [ ] Playwright checkout scenarios (success and cancellation) driven from the dashboard
 - [x] One order id runs every check: store claim, PayPal record, price probe, website scan
 - [x] Gemini explanations with retries and fallback models
-- [ ] Webhook signature verification check
+- [x] Verified PayPal webhooks (signature checked before any event is read)
+- [x] Dispute defender, scan, recovery and evidence pack
 - [ ] Hosted demo (Render) and remote browser sessions (Kernel)
 
 ## Documentation
