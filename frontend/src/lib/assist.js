@@ -61,8 +61,9 @@ export const EXAMPLE_QUESTIONS = [
 
 // Alerts: where they go, and how each kind is labelled in the feed.
 export const ALERT_EVENTS = {
-  leak_found: ["Leak found", "failed"],
-  scan_done: ["Scan", "job-running"],
+  leak_found: ["Money leaking", "failed"],
+  money_leaking: ["Money leaking", "failed"],
+  store_vulnerable: ["Vulnerable", "warning"],
   recovery_done: ["Recovered", "passed"],
   dispute_opened: ["Dispute", "warning"],
   unrecorded_payment: ["Not recorded", "failed"],
@@ -81,3 +82,10 @@ export function timeAgo(when, now = Date.now()) {
   const hours = Math.round(minutes / 60);
   return hours < 24 ? `${hours} h ago` : `${Math.round(hours / 24)} d ago`;
 }
+
+// A scan's overall result: red when money leaks, orange when it does not but the store has holes, green when clear.
+export const SCAN_VERDICTS = {
+  leaking: ["Money leaking", "verdict-red", "PayRecover found payments that do not match PayPal. Approve the recoveries below."],
+  vulnerable: ["No money leaking, but the store is vulnerable", "verdict-orange", "Every paid order matches PayPal, but these holes could let money leak. Fix them before they cost you."],
+  clear: ["All clear", "verdict-green", "Every paid order matches PayPal and the store passed the security checks."],
+};

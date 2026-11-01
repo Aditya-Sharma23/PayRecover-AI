@@ -166,6 +166,17 @@ Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps &
 
 ### Alerts: dashboard, email and Zapier
 
+Every scan ends with one of three results. The scan also runs a store-wide security check once (price tampering,
+reflected XSS, security headers), so a store can be judged even when no money has leaked yet:
+
+| Result | When | Alert |
+|---|---|---|
+| 🔴 **Money leaking** | At least one payment does not match PayPal | Sent at once, with the amounts, approve links, and the holes that let it happen |
+| 🟠 **No leak, but vulnerable** | Every payment matches PayPal, but the store has a hole that could let money leak | Sent at once, with what to fix |
+| 🟢 **All clear** | Payments match PayPal and the store passes the security checks | Shown on the dashboard only; nothing is sent |
+
+An order investigation follows the same rule: red for a leak, orange when its probes find a hole.
+
 PayRecover tells the merchant when money leaks, a payment goes unrecorded, a dispute opens or a recovery
 finishes, in three layers set in the dashboard's **Alerts** card:
 

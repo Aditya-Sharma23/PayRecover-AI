@@ -70,7 +70,7 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, disputes, evidence, investigate, notify, paypal, paypal_toolkit,
+from app import (agent, alerts, disputes, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
                  recovery, scan, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
@@ -420,9 +420,13 @@ async def investigate_order(request: InvestigationRequest, http: Request, backgr
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    # Sent after the response, so a slow or failing alert channel never delays or fails the investigation.
+    security = store_security.from_investigation(result)
     if result.leaks:
-        # Sent after the response, so a slow or failing Zapier never delays or fails the investigation.
         background.add_task(alerts.deliver, notify.leak_event(result, owner), owner)
+    elif security.findings:
+        background.add_task(alerts.deliver, notify.vulnerable_event(
+            result.store, security, f"PayRecover checked order {result.order_id}."), owner)
     return result
 
 
@@ -442,8 +446,16 @@ async def scan_store(request: ScanRequest, http: Request, background: Background
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if request.check_paypal_side:
         result.unrecorded = await unrecorded.find(request.store)
-    if result.leaking_orders:
+    if request.check_security:
+        result.security = await store_security.check(request.store)
+    result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
+    # Red when money is leaking, orange when it is not but the store has holes; an all-clear scan sends nothing.
+    if result.verdict == "leaking":
         background.add_task(alerts.deliver, notify.scan_event(result), request_owner(http))
+    elif result.verdict == "vulnerable":
+        background.add_task(alerts.deliver, notify.vulnerable_event(
+            result.store, result.security, f"PayRecover checked {result.orders_checked} paid order(s)."),
+            request_owner(http))
     return result
 
 

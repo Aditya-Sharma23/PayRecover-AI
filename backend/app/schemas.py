@@ -701,6 +701,7 @@ class ScanRequest(BaseModel):
     limit: int = Field(default=25, ge=1, le=50)
     explain: bool = True
     check_paypal_side: bool = True
+    check_security: bool = True
 
 
 class ScanItem(BaseModel):
@@ -753,6 +754,9 @@ class ScanResult(BaseModel):
     plan: TriagePlan
     # Payments PayPal completed for this store that the store never recorded (PayPal's side of the scan).
     unrecorded: "UnrecordedReport | None" = None
+    # The store-wide security check, and the overall result: money leaking, no leak but vulnerable, or all clear.
+    security: "StoreSecurity | None" = None
+    verdict: Literal["leaking", "vulnerable", "clear"] | None = None
 
 
 class RecoveryTotals(BaseModel):
@@ -895,8 +899,6 @@ class AgentReply(BaseModel):
     source: str
 
 
-ScanResult.model_rebuild()
-
 
 class AlertSettings(BaseModel):
     """Where one user's alerts go, besides the dashboard feed."""
@@ -915,6 +917,7 @@ class AlertItem(BaseModel):
     order_id: str | None = None
     dispute_id: str | None = None
     store: str | None = None
+    severity: Literal["red", "orange"] | None = None
     created_at: datetime
     channels: dict[str, str] = Field(default_factory=dict)
 
@@ -924,3 +927,24 @@ class AlertsView(BaseModel):
     alerts: list[AlertItem]
     email_available: bool
     zapier_default: bool
+
+
+class SecurityFinding(BaseModel):
+    """One hole in the store that could let money leak, found by PayRecover's store checks."""
+
+    name: Literal["price_tampering", "xss", "security_headers"]
+    severity: Literal["high", "medium"]
+    title: str
+    detail: str
+    fix: str
+
+
+class StoreSecurity(BaseModel):
+    """The store-wide security check that runs with a scan: price tampering, reflected XSS, security headers."""
+
+    checked: bool
+    findings: list[SecurityFinding] = Field(default_factory=list)
+    note: str | None = None
+
+
+ScanResult.model_rebuild()

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, timeAgo } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, timeAgo } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -39,7 +39,7 @@ test("alert settings send empty fields as null", () => {
 });
 
 test("alerts are labelled, with unknown kinds kept readable", () => {
-  assert.deepEqual(alertLabel("leak_found"), ["Leak found", "failed"]);
+  assert.deepEqual(alertLabel("leak_found"), ["Money leaking", "failed"]);
   assert.deepEqual(alertLabel("new_kind"), ["new kind", "skipped"]);
 });
 
@@ -49,4 +49,11 @@ test("alert times read as minutes, hours or days ago", () => {
   assert.equal(timeAgo("2026-11-02T11:55:00Z", now), "5 min ago");
   assert.equal(timeAgo("2026-11-02T09:00:00Z", now), "3 h ago");
   assert.equal(timeAgo("2026-10-31T12:00:00Z", now), "2 d ago");
+});
+
+test("each scan verdict has a title, a colour and an explanation", () => {
+  assert.deepEqual(Object.keys(SCAN_VERDICTS), ["leaking", "vulnerable", "clear"]);
+  assert.equal(SCAN_VERDICTS.vulnerable[1], "verdict-orange");
+  assert.deepEqual(alertLabel("store_vulnerable"), ["Vulnerable", "warning"]);
+  assert.deepEqual(alertLabel("money_leaking"), ["Money leaking", "failed"]);
 });

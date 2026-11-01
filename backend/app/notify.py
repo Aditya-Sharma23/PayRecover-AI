@@ -21,7 +21,14 @@ from typing import Any
 
 import aiohttp
 
-from app.schemas import DisputeCase, Investigation, RecoveryRecord, ScanResult, UnrecordedPayment
+from app.schemas import (
+    DisputeCase,
+    Investigation,
+    RecoveryRecord,
+    ScanResult,
+    StoreSecurity,
+    UnrecordedPayment,
+)
 
 APPROVAL_TTL_SECONDS = 24 * 60 * 60
 WEBHOOK_TIMEOUT_SECONDS = 8
@@ -96,10 +103,10 @@ def leak_event(result: Investigation, owner: str) -> dict[str, Any]:
     summary = (f"PayRecover found {len(leaks)} leak(s) on order {result.order_id}: "
                f"{result.money_at_risk} {result.currency} at risk.")
     return {
-        "event": "leak_found", "order_id": result.order_id, "store": result.store,
+        "event": "leak_found", "severity": "red", "order_id": result.order_id, "store": result.store,
         "money_at_risk": result.money_at_risk, "currency": result.currency, "leaks": leaks,
         "summary": summary,
-        "message": _leak_message(summary, leaks),
+        "message": "MONEY LEAKING\n\n" + _leak_message(summary, leaks),
         "checked_at": result.checked_at.isoformat(),
     }
 
@@ -129,19 +136,39 @@ def recovery_event(record: RecoveryRecord) -> dict[str, Any]:
     }
 
 
+def _security_lines(security: StoreSecurity | None, heading: str) -> list[str]:
+    if not security or not security.findings:
+        return []
+    lines = ["", heading]
+    for finding in security.findings:
+        lines += [f"- {finding.title} ({finding.severity} risk): {finding.detail}", f"  Fix: {finding.fix}"]
+    return lines
+
+
 def scan_event(result: ScanResult) -> dict[str, Any]:
-    """A store scan's plan, ready to send: what to recover first, in order."""
-    lines = [result.plan.summary, ""]
+    """Red alert: a store scan found money leaking. The plan says what to recover first, in order."""
+    lines = ["MONEY LEAKING", "", result.plan.summary, ""]
     for number, step in enumerate(result.plan.steps, 1):
         lines.append(f"{number}. Order {step.order_id}: {step.kind.replace('_', ' ')}, {step.amount} {result.currency} "
                      f"({step.action}, {step.urgency}) - {step.why}")
+    lines += _security_lines(result.security, "Holes in the store that let this happen:")
     lines += ["", "Approve each recovery in the PayRecover dashboard."]
-    summary = (f"PayRecover scanned {result.orders_checked} paid order(s) in the {result.store} store: "
-               f"{result.leaking_orders} leaking, {result.money_at_risk} {result.currency} at risk.")
-    return {"event": "scan_done", "store": result.store, "summary": summary, "message": "\n".join(lines),
-            "money_at_risk": result.money_at_risk, "currency": result.currency,
+    summary = (f"Money leaking in the {result.store} store: {result.leaking_orders} order(s), "
+               f"{result.money_at_risk} {result.currency} at risk.")
+    return {"event": "money_leaking", "severity": "red", "store": result.store, "summary": summary,
+            "message": "\n".join(lines), "money_at_risk": result.money_at_risk, "currency": result.currency,
             "leaking_orders": result.leaking_orders, "scanned_at": result.scanned_at.isoformat()}
 
+
+def vulnerable_event(store: str, security: StoreSecurity, checked: str) -> dict[str, Any]:
+    """Orange alert: no money has leaked, but the store has holes that could let it leak."""
+    count = len(security.findings)
+    summary = f"No money leaking, but the {store} store is vulnerable: {count} security issue(s) found."
+    lines = ["STORE VULNERABLE", "", f"{checked} Every payment matches PayPal, so no money has leaked yet."]
+    lines += _security_lines(security, "But these holes could let money leak:")
+    lines += ["", "Fix them before they cost you money. Details are in the PayRecover dashboard."]
+    return {"event": "store_vulnerable", "severity": "orange", "store": store, "summary": summary,
+            "message": "\n".join(lines), "issues": [f.title for f in security.findings]}
 
 
 def dispute_event(case: DisputeCase) -> dict[str, Any]:

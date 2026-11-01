@@ -5,6 +5,7 @@ import { gridTheme } from "../lib/grid.js";
 import {
   RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, scanBody, scanRows,
 } from "../lib/payment.js";
+import { SCAN_VERDICTS } from "../lib/assist.js";
 import { EvidenceButton, WaitingClock } from "./PaymentPanel.jsx";
 
 function UrgencyCell({ value }) {
@@ -34,6 +35,20 @@ function ActionsCell({ data, context }) {
     </button>
     <EvidenceButton orderId={data.order_id} store={context.store} />
     {outcome?.error && <span className="badge failed" title={outcome.error}>Error</span>}
+  </div>;
+}
+
+function Verdict({ result }) {
+  const [title, tone, text] = SCAN_VERDICTS[result.verdict] || SCAN_VERDICTS.clear;
+  const findings = result.security?.findings || [];
+  return <div className={`scan-verdict ${tone}`} role="status">
+    <strong>{title}</strong>
+    <p>{text}</p>
+    {findings.length > 0 && <ul className="security-findings">{findings.map((finding) => <li key={finding.name}>
+      <span className={`badge ${finding.severity === "high" ? "failed" : "warning"}`}>{finding.severity} risk</span>
+      <div><strong>{finding.title}</strong><small>{finding.detail}</small><small className="fix">Fix: {finding.fix}</small></div>
+    </li>)}</ul>}
+    {result.security && !result.security.checked && <small className="hint">Security check incomplete: {result.security.note}</small>}
   </div>;
 }
 
@@ -129,6 +144,7 @@ export default function ScanPanel({ onRecovered }) {
     </form>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {result && <>
+      {result.verdict && <Verdict result={result} />}
       <div className="scan-stats">
         <article><span>Paid orders checked</span><strong>{result.orders_checked}</strong></article>
         <article><span>Orders leaking</span><strong>{result.leaking_orders}</strong></article>

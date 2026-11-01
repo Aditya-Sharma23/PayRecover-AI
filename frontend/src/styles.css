@@ -366,3 +366,17 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
 .alert-feed a { display: block; color: var(--text); font-size: 13px; text-decoration: none; overflow-wrap: anywhere; }
 .alert-feed a:hover { text-decoration: underline; }
 @media (max-width: 760px) { .alert-settings { grid-template-columns: 1fr; } .alert-feed li { grid-template-columns: auto minmax(0, 1fr); } .alert-feed li > small { grid-column: 2; } }
+
+/* Scan verdict: red (money leaking), orange (vulnerable), green (all clear) */
+.scan-verdict { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 9px; background: var(--panel-2); }
+.scan-verdict > strong { font: 700 16px 'Space Grotesk', sans-serif; }
+.scan-verdict > p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; }
+.scan-verdict.verdict-red { border-left-color: var(--red); background: #1d1216; }
+.scan-verdict.verdict-red > strong { color: var(--red-soft); }
+.scan-verdict.verdict-orange { border-left-color: var(--amber); background: #1d1912; }
+.scan-verdict.verdict-orange > strong { color: var(--amber); }
+.scan-verdict.verdict-green > strong { color: var(--green); }
+.security-findings { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.security-findings li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.security-findings small { display: block; margin-top: 2px; color: var(--text-2); font-size: 12px; overflow-wrap: anywhere; }
+.security-findings small.fix { color: var(--muted); }

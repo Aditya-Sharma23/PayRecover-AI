@@ -34,6 +34,8 @@ EMAIL_PATTERN = re.compile(r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$")
 ZAPIER_PATTERN = re.compile(r"^https://hooks\.zapier\.com/hooks/catch/[A-Za-z0-9/_-]{1,200}$")
 # Test alerts can send email to any saved address, so each owner gets only a few per hour.
 TESTS_PER_HOUR = 5
+# Email subjects start with the alert's colour: red for money leaking, orange for a vulnerable store.
+SEVERITY_MARKS = {"red": "🔴 ", "orange": "🟠 "}
 _tests: dict[str, list[float]] = {}
 
 
@@ -136,7 +138,8 @@ async def deliver(event: dict[str, Any], owner: str) -> AlertItem:
         if not email_available():
             channels["email"] = "not set up on the server"
         else:
-            sent = await send_email(chosen.email, event.get("summary") or "PayRecover alert",
+            subject = SEVERITY_MARKS.get(event.get("severity"), "") + (event.get("summary") or "PayRecover alert")
+            sent = await send_email(chosen.email, subject,
                                     event.get("message") or event.get("summary") or "")
             channels["email"] = f"sent to {_masked(chosen.email)}" if sent else "failed"
     zapier = chosen.zapier_url or notify._webhook_url()
@@ -146,6 +149,7 @@ async def deliver(event: dict[str, Any], owner: str) -> AlertItem:
         alert_id=str(uuid.uuid4()), event=str(event.get("event") or "alert"),
         summary=str(event.get("summary") or ""), message=str(event.get("message") or ""),
         order_id=event.get("order_id"), dispute_id=event.get("dispute_id"), store=event.get("store"),
+        severity=event.get("severity"),
         created_at=datetime.now(timezone.utc), channels=channels,
     )
     _record(owner, item)

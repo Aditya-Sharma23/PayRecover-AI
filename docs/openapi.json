@@ -442,6 +442,20 @@
               }
             ]
           },
+          "severity": {
+            "anyOf": [
+              {
+                "enum": [
+                  "red",
+                  "orange"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "store": {
             "anyOf": [
               {
@@ -2159,6 +2173,10 @@
             "default": true,
             "type": "boolean"
           },
+          "check_security": {
+            "default": true,
+            "type": "boolean"
+          },
           "explain": {
             "default": true,
             "type": "boolean"
@@ -2212,6 +2230,16 @@
             "format": "date-time",
             "type": "string"
           },
+          "security": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreSecurity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "store": {
             "type": "string"
           },
@@ -2219,6 +2247,21 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/UnrecordedReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "leaking",
+                  "vulnerable",
+                  "clear"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2238,6 +2281,73 @@
           "plan"
         ],
         "title": "ScanResult",
+        "type": "object"
+      },
+      "SecurityFinding": {
+        "description": "One hole in the store that could let money leak, found by PayRecover's store checks.",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "name": {
+            "enum": [
+              "price_tampering",
+              "xss",
+              "security_headers"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "severity",
+          "title",
+          "detail",
+          "fix"
+        ],
+        "title": "SecurityFinding",
+        "type": "object"
+      },
+      "StoreSecurity": {
+        "description": "The store-wide security check that runs with a scan: price tampering, reflected XSS, security headers.",
+        "properties": {
+          "checked": {
+            "type": "boolean"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityFinding"
+            },
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checked"
+        ],
+        "title": "StoreSecurity",
         "type": "object"
       },
       "SummaryCounts": {
