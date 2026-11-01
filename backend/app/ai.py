@@ -7,6 +7,7 @@ checks, create evidence, or change runner classifications. Settings are TESTPILO
 import asyncio
 import json
 import os
+import time
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
@@ -184,6 +185,9 @@ RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
 RETRY_DELAY_SECONDS = 2
 # One stalled model must not use the whole budget and starve the fallbacks.
 ATTEMPT_TIMEOUT_SECONDS = 20
+# A model that stalled is skipped for a while, so a multi-step answer does not wait on it at every step.
+STALL_COOLDOWN_SECONDS = 120
+_stalled_until: dict[str, float] = {}
 
 
 class _RetryableProviderError(AIProviderError):
@@ -201,12 +205,8 @@ def _fallback_models(primary: str) -> list[str]:
     return [name for name in dict.fromkeys(models) if name != primary]
 
 
-async def _generate_google(prompt: str, api_key: str, model: str, timeout_seconds: float) -> str:
+async def _post_google(payload: dict[str, Any], api_key: str, model: str, timeout_seconds: float) -> dict[str, Any]:
     url = f"{API_ROOT}/{quote(model, safe='')}:generateContent"
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
-    }
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
     try:
         async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
@@ -228,22 +228,34 @@ async def _generate_google(prompt: str, api_key: str, model: str, timeout_second
     except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
         raise _StalledProviderError(f"{model} could not be reached or did not answer in time.") from exc
     try:
-        data = json.loads(body)
-        return _answer_text(data)
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        return json.loads(body)
+    except json.JSONDecodeError as exc:
         raise AIProviderError(f"{model} returned an incomplete response.") from exc
 
 
-async def _generate(prompt: str) -> str:
+async def _generate_google(prompt: str, api_key: str, model: str, timeout_seconds: float) -> str:
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
+    }
+    data = await _post_google(payload, api_key, model, timeout_seconds)
+    try:
+        return _answer_text(data)
+    except (KeyError, IndexError, TypeError) as exc:
+        raise AIProviderError(f"{model} returned an incomplete response.") from exc
+
+
+async def _with_fallbacks(attempt):
     """Ask the primary model twice, then each fallback model once, within one overall time budget.
 
-    A model that stalls is not asked again; a model that answers "busy" gets its second try.
+    attempt(api_key, model, timeout) makes one call. A model that stalls is not asked again;
+    a model that answers "busy" gets its second try.
     """
-    if _provider() == "ollama":
-        _answered_by.set(_ollama_settings()[1])
-        return await _generate_ollama(prompt)
     api_key, model = _settings()
     attempts = [model, model, *_fallback_models(model)]
+    now = time.monotonic()
+    ready = [name for name in attempts if _stalled_until.get(name, 0) <= now]
+    attempts = ready or attempts
     loop = asyncio.get_running_loop()
     deadline = loop.time() + _timeout_seconds()
     failures: list[str] = []
@@ -255,18 +267,57 @@ async def _generate(prompt: str) -> str:
         if name in stalled:
             continue
         try:
-            text = await _generate_google(prompt, api_key, name, min(remaining, ATTEMPT_TIMEOUT_SECONDS))
+            result = await attempt(api_key, name, min(remaining, ATTEMPT_TIMEOUT_SECONDS))
             _answered_by.set(name)
-            return text
+            return result
         except _RetryableProviderError as exc:
             failures.append(str(exc))
             if isinstance(exc, _StalledProviderError):
                 stalled.add(name)
+                _stalled_until[name] = time.monotonic() + STALL_COOLDOWN_SECONDS
                 continue
             if index + 1 < len(attempts) and deadline - loop.time() > RETRY_DELAY_SECONDS + 1:
                 await asyncio.sleep(RETRY_DELAY_SECONDS)
     detail = failures[-1] if failures else "the time budget ran out"
     raise AIProviderError(f"The AI provider is busy or unreachable after {len(failures)} attempt(s); last: {detail}")
+
+
+async def _generate(prompt: str) -> str:
+    if _provider() == "ollama":
+        _answered_by.set(_ollama_settings()[1])
+        return await _generate_ollama(prompt)
+    return await _with_fallbacks(lambda key, name, timeout: _generate_google(prompt, key, name, timeout))
+
+
+async def ask_json(prompt: str) -> dict[str, Any]:
+    """One JSON answer from the configured model."""
+    return _extract_json(await _generate(prompt))
+
+
+async def generate_turn(contents: list[dict[str, Any]], tools: list[dict[str, Any]], system: str) -> list[dict[str, Any]]:
+    """One step of a tool-using conversation with Gemini: returns the model's parts (text and function calls).
+
+    The caller runs any function calls and sends the results back in the next turn. The parts are
+    returned unchanged, so their thought signatures go back to the model as Gemini requires.
+    """
+    if _provider() == "ollama":
+        raise AIConfigurationError("The PayRecover assistant needs Gemini; the local model cannot call tools.")
+    payload = {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": contents,
+        "tools": [{"functionDeclarations": tools}],
+        "generationConfig": {"temperature": 0},
+    }
+
+    async def attempt(key: str, name: str, timeout: float) -> list[dict[str, Any]]:
+        data = await _post_google(payload, key, name, timeout)
+        try:
+            parts = data["candidates"][0]["content"]["parts"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise AIProviderError(f"{name} returned an incomplete response.") from exc
+        return [part for part in parts if isinstance(part, dict)]
+
+    return await _with_fallbacks(attempt)
 
 
 CHECK_GUIDE = {

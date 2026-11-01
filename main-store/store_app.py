@@ -284,6 +284,8 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         "intent": "CAPTURE",
         "purchase_units": [{
             "description": "PayRecover Main store order",
+            # Tags the payment as this store's, so PayPal's transaction list can be matched to it.
+            "custom_id": "payrecover-main",
             "amount": {
                 "currency_code": CURRENCY,
                 "value": _money(total),

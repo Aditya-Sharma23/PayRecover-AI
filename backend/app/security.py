@@ -14,7 +14,8 @@ from app.audit import write_event
 from app.storage import LOCAL_OWNER
 
 OWNER_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,40}$")
-PUBLIC_PATHS = {"/api/health", "/api/deployment/readiness"}
+# The PayPal webhook proves itself with PayPal's signature (app.webhooks.verify) instead of a token.
+PUBLIC_PATHS = {"/api/health", "/api/deployment/readiness", "/api/paypal/webhook"}
 DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
 APP_CSP = (
     "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "

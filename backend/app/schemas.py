@@ -700,6 +700,7 @@ class ScanRequest(BaseModel):
     store: Literal["main", "vulnerable"] = "main"
     limit: int = Field(default=25, ge=1, le=50)
     explain: bool = True
+    check_paypal_side: bool = True
 
 
 class ScanItem(BaseModel):
@@ -750,6 +751,8 @@ class ScanResult(BaseModel):
     currency: str
     items: list[ScanItem]
     plan: TriagePlan
+    # Payments PayPal completed for this store that the store never recorded (PayPal's side of the scan).
+    unrecorded: "UnrecordedReport | None" = None
 
 
 class RecoveryTotals(BaseModel):
@@ -763,3 +766,133 @@ class RecoveryList(BaseModel):
 
     records: list[RecoveryRecord]
     totals: RecoveryTotals
+
+
+DISPUTE_ACTIONS = ("provide_evidence", "accept_claim")
+
+
+class DisputeAdvice(BaseModel):
+    """What the AI recommends for one dispute. Advice only: the merchant decides and approves."""
+
+    recommendation: Literal["provide_evidence", "accept_claim", "review"]
+    reasoning: list[str]
+    note: str = Field(description="Draft message to PayPal, for the merchant to edit before sending.")
+    source: str
+
+
+class DisputeCase(BaseModel):
+    """One PayPal dispute, linked to the store order it is about, with PayRecover's evidence and advice."""
+
+    dispute_id: str
+    reason: str | None = None
+    status: str | None = None
+    stage: str | None = None
+    amount: str | None = None
+    currency: str | None = None
+    created_at: str | None = None
+    respond_by: str | None = None
+    capture_id: str | None = None
+    order_id: str | None = None
+    store: str | None = None
+    store_status: str | None = None
+    paypal_capture_status: str | None = None
+    leaks: list[Leak] = Field(default_factory=list)
+    facts: list[str] = Field(default_factory=list)
+    allowed_actions: list[str] = Field(default_factory=list)
+    advice: DisputeAdvice | None = None
+
+
+class DisputeList(BaseModel):
+    disputes: list[DisputeCase]
+    note: str | None = None
+
+
+class DisputeResponseRequest(BaseModel):
+    """The merchant's approved answer to one dispute."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal[DISPUTE_ACTIONS]
+    note: str = Field(min_length=10, max_length=2000)
+    approved: bool
+
+    @field_validator("approved")
+    @classmethod
+    def require_approval(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Answering a dispute can move money, so the merchant must approve it (approved: true).")
+        return value
+
+
+class DisputeResponseResult(BaseModel):
+    dispute_id: str
+    action: str
+    status: Literal["sent", "unverified", "failed"]
+    message: str
+    dispute_status_before: str | None = None
+    dispute_status_after: str | None = None
+
+
+class UnrecordedPayment(BaseModel):
+    """A payment PayPal completed for this store that the store has no paid order for."""
+
+    transaction_id: str
+    amount: str
+    currency: str
+    paid_at: str | None = None
+    payer_email_masked: str | None = None
+    store: str
+
+
+class UnrecordedReport(BaseModel):
+    store: str
+    checked: bool
+    payments: list[UnrecordedPayment] = Field(default_factory=list)
+    money: str = "0.00"
+    currency: str = "USD"
+    note: str | None = None
+
+
+class AgentMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(max_length=4000)
+
+
+class AgentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    messages: list[AgentMessage] = Field(min_length=1, max_length=20)
+    store: Literal["main", "vulnerable"] = "main"
+
+
+class AgentProposal(BaseModel):
+    """A money-moving step the assistant suggests; it runs only when the merchant presses Approve."""
+
+    kind: Literal["recovery", "dispute"]
+    title: str
+    order_id: str | None = None
+    leak_kind: str | None = None
+    dispute_id: str | None = None
+    dispute_action: str | None = None
+    note: str | None = None
+    amount: str | None = None
+    currency: str | None = None
+    store: str
+
+
+class AgentToolCall(BaseModel):
+    name: str
+    source: Literal["paypal_agent_toolkit", "payrecover"]
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    ok: bool
+    summary: str
+
+
+class AgentReply(BaseModel):
+    text: str
+    tool_calls: list[AgentToolCall] = Field(default_factory=list)
+    proposals: list[AgentProposal] = Field(default_factory=list)
+    source: str
+
+
+ScanResult.model_rebuild()

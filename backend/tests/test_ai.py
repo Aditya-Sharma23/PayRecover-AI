@@ -90,6 +90,7 @@ class ProviderRetryTests(unittest.TestCase):
     def run_with(self, outcomes, env=None):
         """outcomes: model name -> list of results to return in order ("busy", "fatal" or answer text)."""
         calls = []
+        self.addCleanup(ai._stalled_until.clear)
 
         async def fake_google(_prompt, _key, model, _timeout):
             calls.append(model)
@@ -132,6 +133,12 @@ class ProviderRetryTests(unittest.TestCase):
         self.assertEqual(result, "answer")
         self.assertEqual(calls, ["gemini-main", "gemini-b"])
 
+    def test_a_stalled_model_is_skipped_on_the_next_request(self):
+        env = {"TESTPILOT_AI_FALLBACK_MODELS": "gemini-b"}
+        self.run_with({"gemini-main": ["stall"], "gemini-b": ["first"]}, env)
+        result, calls = self.run_with({"gemini-main": [], "gemini-b": ["second"]}, env)
+        self.assertEqual((result, calls), ("second", ["gemini-b"]))
+
     def test_the_answer_is_labelled_with_the_model_that_replied(self):
         async def ask():
             await ai._generate("prompt")
@@ -142,6 +149,7 @@ class ProviderRetryTests(unittest.TestCase):
                 raise ai._StalledProviderError("stalled")
             return "answer"
 
+        self.addCleanup(ai._stalled_until.clear)
         env = {**self.ENV, "TESTPILOT_AI_FALLBACK_MODELS": "gemini-3.7-flash"}
         with patch.dict(os.environ, env, clear=True), patch("app.ai._generate_google", fake_google):
             self.assertEqual(asyncio.run(ask()), "Gemini (gemini-3.7-flash)")

@@ -74,6 +74,18 @@ class VulnerableStoreTests(unittest.TestCase):
         statuses = [order["status"] for order in self.client.get("/api/carts/cart-demo-0001/orders").json()]
         self.assertEqual(statuses, ["PAID", "PAID"])
 
+    def test_lose_payment_record_charges_at_paypal_but_never_records_it(self):
+        self.bugs("lose_payment_record")
+        order_id, paid = self.pay()
+        self.assertEqual(paid.status_code, 500)
+        self.assertTrue(any(call[1].endswith("/capture") for call in self.paypal.calls))
+        record = self.client.get(f"/api/orders/{order_id}").json()
+        self.assertEqual((record["status"], record["capture_id"]), ("PENDING", None))
+
+    def test_payments_are_tagged_with_the_store(self):
+        self.pay()
+        self.assertEqual(self.paypal.calls[0][2]["purchase_units"][0]["custom_id"], "payrecover-vulnerable")
+
     def test_search_box_reflects_input_unescaped_and_no_security_headers_are_sent(self):
         response = self.client.get("/", params={"q": "<b>x</b>"})
         self.assertIn("You searched for: <b>x</b>", response.text)

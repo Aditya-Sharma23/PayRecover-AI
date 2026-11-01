@@ -1,0 +1,4 @@
+# PayPal Agent Toolkit, installed without its OpenAI, LangChain and CrewAI adapters
+# (PayRecover uses only its framework-free core):
+#   pip install --no-deps -r requirements-toolkit.txt
+paypal-agent-toolkit==1.11.0

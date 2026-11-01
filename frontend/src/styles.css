@@ -329,3 +329,29 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
   .metric-card { padding: 10px; }
   .metric-trend { display: none; }
 }
+
+/* Disputes and the Ask PayRecover assistant */
+.dispute-list { display: grid; gap: 10px; margin-top: 12px; }
+.dispute-card { padding: 13px 14px; border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 9px; background: var(--panel-2); }
+.dispute-card .hint { margin: 4px 0 0; }
+.dispute-facts { margin: 8px 0; padding-left: 18px; color: var(--text-2); font-size: 12px; line-height: 1.55; }
+.dispute-actions { flex-wrap: wrap; margin-top: 10px; }
+.dispute-actions .danger-button { min-width: 0; }
+.triage-plan.unrecorded { border-left-color: var(--red); }
+.inline-select { display: flex; align-items: center; gap: 8px; margin: 0; }
+.inline-select .text-input { width: auto; margin-top: 0; }
+.chat-log { display: grid; gap: 10px; max-height: 520px; margin: 12px 0; padding: 12px; overflow-y: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+.chat-message { max-width: 85%; padding: 10px 12px; border-radius: 10px; background: var(--panel); font-size: 13px; line-height: 1.55; }
+.chat-message p { margin: 0; white-space: pre-wrap; }
+.chat-message.user { justify-self: end; background: var(--red-deep); }
+.chat-message.assistant { justify-self: start; border: 1px solid var(--line); }
+.tool-calls { margin-top: 8px; color: var(--muted); font-size: 11px; }
+.tool-calls ul { margin: 6px 0 0; padding-left: 16px; display: grid; gap: 4px; }
+.tool-calls code { overflow-wrap: anywhere; }
+.proposal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 8px; }
+.proposal > span:first-child { flex: 1; min-width: 180px; }
+.proposal .danger-button { min-width: 0; padding: 6px 14px; }
+.example-questions { display: flex; flex-wrap: wrap; gap: 8px; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.chat-form .text-input { margin-top: 0; }
+@media (max-width: 650px) { .chat-message { max-width: 100%; } .chat-form { grid-template-columns: 1fr; } }

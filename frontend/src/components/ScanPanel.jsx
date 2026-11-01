@@ -37,6 +37,23 @@ function ActionsCell({ data, context }) {
   </div>;
 }
 
+// PayPal's side of the scan: payments PayPal took for this store that the store never recorded.
+function UnrecordedPayments({ report }) {
+  return <div className="triage-plan unrecorded">
+    <div className="check-row-head"><strong>Payments the store never recorded</strong><span className="count-chip">PayPal Agent Toolkit · transaction search</span></div>
+    {report.payments.length > 0
+      ? <>
+        <p>PayPal took <strong>{report.money} {report.currency}</strong> for this store that the store has no paid order for. The buyers were charged and will not get their order unless you ship it or refund them.</p>
+        <ul className="dispute-facts">{report.payments.map((payment) => <li key={payment.transaction_id}>
+          <code>{payment.transaction_id}</code> · {payment.amount} {payment.currency}
+          {payment.paid_at && <> · {new Date(payment.paid_at).toLocaleString()}</>}
+          {payment.payer_email_masked && <> · {payment.payer_email_masked}</>}
+        </li>)}</ul>
+      </>
+      : <p>{report.note}</p>}
+  </div>;
+}
+
 const COLUMNS = [
   { field: "rank", headerName: "#", width: 60 },
   { field: "order_id", headerName: "Order", width: 175, cellClass: "grid-mono" },
@@ -128,6 +145,7 @@ export default function ScanPanel({ onRecovered }) {
             getRowId={({ data }) => data.id} domLayout="autoHeight" rowHeight={44} suppressColumnVirtualisation
             defaultColDef={{ sortable: true, filter: true, resizable: true }} /></div>
         : <p className="empty-state">No leaks: every paid order in this store matches PayPal&apos;s record.</p>}
+      {result.unrecorded && <UnrecordedPayments report={result.unrecorded} />}
     </>}
   </section>;
 }

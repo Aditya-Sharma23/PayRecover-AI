@@ -165,6 +165,30 @@ async def paypal_call(
         return status, None
 
 
+
+async def paypal_multipart(path: str, payload: dict[str, Any]) -> tuple[int, Any]:
+    """A multipart/form-data Sandbox call with one JSON part named "input" (PayPal's dispute evidence format).
+
+    Only app.disputes calls this, after the merchant approved the answer.
+    """
+    timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+    form = aiohttp.FormData()
+    form.add_field("input", json.dumps(payload), content_type="application/json")
+    try:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            headers = {"Authorization": f"Bearer {await _access_token(session)}"}
+            async with session.post(f"{SANDBOX_API}{path}", data=form, headers=headers) as response:
+                text = await response.text()
+                status = response.status
+    except (PayPalConfigurationError, PayPalProviderError):
+        raise
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise PayPalProviderError("PayPal Sandbox could not be reached.") from exc
+    try:
+        return status, json.loads(text) if text.strip() else None
+    except json.JSONDecodeError:
+        return status, None
+
 def _decimal(value: Any) -> Decimal | None:
     try:
         return Decimal(str(value))

@@ -7,6 +7,7 @@ Payment bugs, switched on and off from the store page (POST /api/bugs) and saved
   trust_client_price    charge the price the browser sends, so a buyer can edit it
   confirm_without_capture  show "paid" without ever asking PayPal to capture
   allow_double_payment  let one cart be paid again and again (no cart lock)
+  lose_payment_record   capture the money at PayPal, then fail before saving it (buyer charged, store unaware)
 
 Always present, because this is the store's vulnerable build:
   a search box that echoes ?q= back unescaped (reflected XSS)
@@ -45,11 +46,12 @@ CATALOG = {
 MAX_QUANTITY = 10
 ORDER_ID_PATTERN = r"^[A-Z0-9]{8,40}$"
 CART_ID_PATTERN = r"^[a-z0-9-]{8,64}$"
-BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_payment")
+BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_payment", "lose_payment_record")
 BUG_LABELS = {
     "trust_client_price": "Charge the price the browser sends (buyer can edit prices)",
     "confirm_without_capture": "Show “paid” without capturing the money at PayPal",
     "allow_double_payment": "Let the same cart be paid multiple times",
+    "lose_payment_record": "Charge the buyer, then lose the payment (store never records it)",
 }
 
 app = FastAPI(title="PayRecover Vulnerable store", version="1.0.0")
@@ -220,6 +222,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         "intent": "CAPTURE",
         "purchase_units": [{
             "description": "PayRecover Vulnerable store order",
+            "custom_id": "payrecover-vulnerable",
             "amount": {
                 "currency_code": CURRENCY,
                 "value": _money(total),
@@ -259,6 +262,9 @@ async def capture_order(order_id: str = OrderId) -> dict[str, Any]:
         capture = result["purchase_units"][0]["payments"]["captures"][0]
     except (KeyError, IndexError, TypeError) as exc:
         raise HTTPException(status_code=502, detail="PayPal returned no capture for this order.") from exc
+    if "lose_payment_record" in active_bugs:
+        # BUG: PayPal has charged the buyer, but the store fails before saving it; the order stays unpaid.
+        raise HTTPException(status_code=500, detail="Something went wrong while saving your order. Please try again.")
     record["capture_id"] = capture["id"]
     record["status"] = "PAID" if capture["status"] == "COMPLETED" else f"CAPTURE_{capture['status']}"
     save()

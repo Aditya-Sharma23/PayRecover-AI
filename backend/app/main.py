@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import html
+import logging
 import os
 import sqlite3
 from pathlib import Path
@@ -14,7 +15,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
+    AgentReply,
+    AgentRequest,
     ApiRunReport,
+    DisputeCase,
+    DisputeList,
+    DisputeResponseRequest,
+    DisputeResponseResult,
+    UnrecordedReport,
     ApiRunRequest,
     AIExplanation,
     AIExplanationRequest,
@@ -59,7 +67,8 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import evidence, investigate, notify, paypal, recovery, scan
+from app import (agent, disputes, evidence, investigate, notify, paypal, paypal_toolkit,
+                 recovery, scan, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -428,6 +437,8 @@ async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanR
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    if request.check_paypal_side:
+        result.unrecorded = await unrecorded.find(request.store)
     if result.leaking_orders:
         background.add_task(notify.send, notify.scan_event(result))
     return result
@@ -478,6 +489,109 @@ def list_recoveries(http: Request) -> dict:
 def clear_recoveries(http: Request) -> dict[str, int]:
     """Delete the caller's recovery log, e.g. test runs before a demo. Nothing at PayPal is undone."""
     return {"deleted": recovery.clear_recoveries(request_owner(http))}
+
+
+@app.get("/api/stores/{store}/unrecorded", response_model=UnrecordedReport, tags=["PayRecover"])
+async def unrecorded_payments(store: Literal["main", "vulnerable"]) -> UnrecordedReport:
+    """Payments PayPal completed for this store that the store never recorded (read with PayPal's Agent Toolkit)."""
+    try:
+        return await unrecorded.find(store)
+    except paypal.PayPalConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+def _toolkit_errors(exc: Exception) -> HTTPException:
+    if isinstance(exc, (paypal.PayPalConfigurationError, paypal_toolkit.ToolkitUnavailable)):
+        return HTTPException(status_code=503, detail=str(exc))
+    if isinstance(exc, paypal_toolkit.ToolkitError) and exc.status == 404:
+        return HTTPException(status_code=404, detail=str(exc))
+    return HTTPException(status_code=502, detail=str(exc))
+
+
+TOOLKIT_ERRORS = (paypal.PayPalConfigurationError, paypal.PayPalProviderError, paypal_toolkit.ToolkitUnavailable,
+                  paypal_toolkit.ToolkitError)
+
+
+@app.get("/api/disputes", response_model=DisputeList, tags=["PayRecover"])
+async def list_disputes() -> DisputeList:
+    """PayPal disputes, each linked to its store order, with PayRecover's evidence and the AI's recommended answer."""
+    try:
+        return await disputes.list_cases()
+    except TOOLKIT_ERRORS as exc:
+        raise _toolkit_errors(exc) from exc
+
+
+@app.get("/api/disputes/{dispute_id}", response_model=DisputeCase, tags=["PayRecover"])
+async def get_dispute(dispute_id: str = PathParam(pattern=r"^[A-Za-z0-9_-]{1,255}$")) -> DisputeCase:
+    """One PayPal dispute with its evidence and recommended answer."""
+    try:
+        return await disputes.get_case(dispute_id)
+    except TOOLKIT_ERRORS as exc:
+        raise _toolkit_errors(exc) from exc
+
+
+@app.post("/api/disputes/{dispute_id}/respond", response_model=DisputeResponseResult, tags=["PayRecover"])
+async def respond_to_dispute(
+    request: DisputeResponseRequest, dispute_id: str = PathParam(pattern=r"^[A-Za-z0-9_-]{1,255}$"),
+) -> DisputeResponseResult:
+    """Send the merchant's approved answer to a dispute (evidence, or accept the claim), then confirm it with PayPal."""
+    try:
+        return await disputes.respond(dispute_id, request)
+    except disputes.DisputeNotActionable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except TOOLKIT_ERRORS as exc:
+        raise _toolkit_errors(exc) from exc
+
+
+@app.post("/api/agent", response_model=AgentReply, tags=["PayRecover"])
+async def ask_payrecover(request: AgentRequest, http: Request) -> AgentReply:
+    """Ask PayRecover a question. Gemini calls PayPal's Agent Toolkit and PayRecover's checks to answer.
+
+    It can only propose money movements; each proposal needs the merchant's approval.
+    """
+    try:
+        return await agent.answer(request, request_owner(http))
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except TOOLKIT_ERRORS as exc:
+        raise _toolkit_errors(exc) from exc
+
+
+async def _handle_webhook(event: dict, owner: str) -> None:
+    try:
+        await webhooks.handle(event, owner)
+    except Exception:  # a background check must never crash the server; the event is logged instead
+        logging.getLogger("payrecover.webhooks").exception("PayPal webhook %s failed", event.get("id"))
+
+
+@app.post("/api/paypal/webhook", tags=["PayRecover"])
+async def paypal_webhook(http: Request, background: BackgroundTasks) -> dict[str, str]:
+    """PayPal's webhook: verified with PayPal, then checks the payment or dispute it reports and alerts on problems."""
+    try:
+        event = await http.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="The webhook body is not JSON.") from exc
+    if not isinstance(event, dict):
+        raise HTTPException(status_code=400, detail="The webhook body is not a PayPal event.")
+    try:
+        await webhooks.verify(dict(http.headers), event)
+    except webhooks.WebhookNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except webhooks.WebhookRejected as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except (paypal.PayPalConfigurationError, paypal.PayPalProviderError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    # PayPal expects a quick 200; the checks run after the response.
+    background.add_task(_handle_webhook, event, request_owner(http))
+    return {"status": "accepted"}
+
+
+@app.get("/api/paypal/status", tags=["PayRecover"])
+def paypal_features() -> dict:
+    """Which PayPal features PayRecover can use here: the Agent Toolkit and verified webhooks."""
+    return {"agent_toolkit": paypal_toolkit.available(), "webhooks": webhooks.status()}
 
 
 @app.get("/api/notify/status", tags=["PayRecover"])

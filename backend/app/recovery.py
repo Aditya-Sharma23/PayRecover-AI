@@ -19,7 +19,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from app import investigate, paypal
+from app import ai, investigate, paypal
 from app.schemas import (
     CheckStatus,
     InvestigationRequest,
@@ -149,6 +149,25 @@ async def _refund(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
             {"refunds": refunds}, checks)
 
 
+def _buyer_note_prompt(leak: Leak, target) -> str:
+    return (
+        "Write a short, polite note from a shop to a customer whose PayPal payment came up short, to go on an "
+        f"invoice for the balance. Facts: order {target.order_id}, balance due {target.amount} {leak.currency}, "
+        f"cause: {leak.root_cause} Do not blame the customer, promise discounts, or add facts. Under 400 characters. "
+        'Return JSON only: {"note": "..."}'
+    )
+
+
+async def buyer_note(leak: Leak, target) -> str:
+    """The invoice note: a friendly message written by the AI, then the facts line PayRecover always adds."""
+    facts = f"Balance due for order {target.order_id}: {target.amount} {leak.currency}."
+    try:
+        text = str((await ai.ask_json(_buyer_note_prompt(leak, target))).get("note") or "").strip()[:600]
+    except (ai.AIConfigurationError, ai.AIProviderError):
+        text = ""
+    return f"{text}\n\n{facts}" if text else facts
+
+
 async def _invoice(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
     target = leak.targets[0]
     try:
@@ -161,7 +180,7 @@ async def _invoice(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
         return ("failed", "PayPal has no buyer email for this order (the buyer never approved it), so it cannot be "
                 "invoiced. Contact the buyer, or hold the shipment.", {}, [])
     invoice = {
-        "detail": {"currency_code": leak.currency, "note": f"Balance due for order {target.order_id}.",
+        "detail": {"currency_code": leak.currency, "note": await buyer_note(leak, target),
                    "reference": target.order_id},
         "primary_recipients": [{"billing_info": {"email_address": email}}],
         "items": [{"name": f"Balance due for order {target.order_id}", "quantity": "1",

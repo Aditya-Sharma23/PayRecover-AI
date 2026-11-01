@@ -21,7 +21,7 @@ from typing import Any
 
 import aiohttp
 
-from app.schemas import Investigation, RecoveryRecord, ScanResult
+from app.schemas import DisputeCase, Investigation, RecoveryRecord, ScanResult, UnrecordedPayment
 
 APPROVAL_TTL_SECONDS = 24 * 60 * 60
 WEBHOOK_TIMEOUT_SECONDS = 8
@@ -142,6 +142,33 @@ def scan_event(result: ScanResult) -> dict[str, Any]:
             "money_at_risk": result.money_at_risk, "currency": result.currency,
             "leaking_orders": result.leaking_orders, "scanned_at": result.scanned_at.isoformat()}
 
+
+
+def dispute_event(case: DisputeCase) -> dict[str, Any]:
+    """A new PayPal dispute, with PayRecover's evidence and the AI's recommended answer."""
+    advice = case.advice
+    lines = [f"A buyer opened PayPal dispute {case.dispute_id} for {case.amount} {case.currency} "
+             f"(respond by {case.respond_by or 'the date PayPal shows'}).", ""]
+    lines += [f"- {fact}" for fact in case.facts]
+    if advice:
+        lines += ["", f"Recommended: {advice.recommendation.replace('_', ' ')} ({advice.source})."]
+        lines += [f"- {reason}" for reason in advice.reasoning]
+    lines += ["", "Review the draft answer and approve it in the PayRecover dashboard (Disputes)."]
+    return {"event": "dispute_opened", "dispute_id": case.dispute_id, "order_id": case.order_id, "store": case.store,
+            "amount": case.amount, "currency": case.currency,
+            "recommendation": advice.recommendation if advice else None,
+            "summary": f"PayPal dispute {case.dispute_id}: {case.amount} {case.currency} on order {case.order_id}.",
+            "message": "\n".join(lines)}
+
+
+def unrecorded_event(payment: UnrecordedPayment) -> dict[str, Any]:
+    """PayPal took a payment for the store, but the store has no paid order for it."""
+    summary = (f"PayPal took {payment.amount} {payment.currency} (payment {payment.transaction_id}) for the "
+               f"{payment.store} store, but the store never recorded the order.")
+    message = (f"{summary}\n\nThe buyer was charged and will not receive anything unless you act. Ship the order "
+               "or refund the buyer before they open a dispute.")
+    return {"event": "unrecorded_payment", "transaction_id": payment.transaction_id, "store": payment.store,
+            "amount": payment.amount, "currency": payment.currency, "summary": summary, "message": message}
 
 async def send(event: dict[str, Any]) -> bool:
     """Post one event to the Zapier webhook. Returns whether Zapier accepted it; never raises."""

@@ -17,8 +17,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TESTPILOT_AUDIT_LOG_PATH=/data/audit.log \
     TESTPILOT_FRONTEND_DIST=/app/frontend/dist
 WORKDIR /app/backend
-COPY backend/requirements.txt ./
+COPY backend/requirements.txt backend/requirements-toolkit.txt ./
 RUN pip install -r requirements.txt \
+    && pip install --no-deps -r requirements-toolkit.txt \
     && python -m playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/app ./app

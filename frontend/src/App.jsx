@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiJson, getToken, setToken } from "./api/client.js";
+import AssistantPanel from "./components/AssistantPanel.jsx";
+import DisputesPanel from "./components/DisputesPanel.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
@@ -61,7 +63,9 @@ export default function App() {
       <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Pay<span className="brand-accent">Recover</span> AI</span></a>
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
+        <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#scan"><span aria-hidden="true">⌕</span> Scan my store</a>
+        <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
         <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
@@ -93,7 +97,11 @@ export default function App() {
         </article>)}
       </section>
 
+      <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
+
       <ScanPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
+
+      <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
 
       <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />
 

@@ -10,7 +10,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app import recovery
+from app import ai, recovery
 from app.main import app
 from app.schemas import Investigation, Leak, RecoveryRequest, RecoveryTarget
 
@@ -93,8 +93,13 @@ class RecoveryTests(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
 
-    def recover(self, found_leak, paypal=None, kind=None):
+    def recover(self, found_leak, paypal=None, kind=None, note=None):
         paypal = paypal or FakePayPal()
+
+        async def fake_note(_prompt):
+            if note is None:
+                raise ai.AIProviderError("no model in tests")
+            return {"note": note}
 
         async def fake_investigate(_request):
             return investigation(found_leak) if found_leak else investigation()
@@ -107,6 +112,7 @@ class RecoveryTests(unittest.TestCase):
             patch("app.paypal.refund_capture", paypal.refund),
             patch("app.paypal.get_refund", paypal.get_refund),
             patch("app.paypal.fetch_order", paypal.fetch),
+            patch("app.ai.ask_json", fake_note),
         ):
             return asyncio.run(recovery.recover(request, "local")), paypal
 
@@ -139,6 +145,15 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(paypal.calls[0][2]["items"][0]["unit_amount"]["value"], "17.00")
         self.assertNotIn("buyer@example.com", record.model_dump_json())
         self.assertNotIn("buyer@example.com", Path(os.environ["TESTPILOT_RECOVERY_LOG_PATH"]).read_text())
+
+    def test_the_invoice_note_is_written_by_the_ai_and_always_states_the_facts(self):
+        _, paypal = self.recover(WRONG_AMOUNT, note="Thanks for shopping with us! A small balance is still due.")
+        note = paypal.calls[0][2]["detail"]["note"]
+        self.assertTrue(note.startswith("Thanks for shopping with us!"))
+        self.assertTrue(note.endswith(f"Balance due for order {ORDER_ID}: 17.00 USD."))
+        recovery.clear_recoveries("local")  # a done recovery is never repeated, so start again
+        _, paypal = self.recover(WRONG_AMOUNT)
+        self.assertEqual(paypal.calls[0][2]["detail"]["note"], f"Balance due for order {ORDER_ID}: 17.00 USD.")
 
     def test_invoicing_switched_off_explains_how_to_turn_it_on(self):
         record, _ = self.recover(WRONG_AMOUNT, FakePayPal(invoicing_allowed=False))

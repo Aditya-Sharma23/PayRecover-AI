@@ -199,6 +199,208 @@
         "title": "AIPlanRequest",
         "type": "object"
       },
+      "AgentMessage": {
+        "properties": {
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "text"
+        ],
+        "title": "AgentMessage",
+        "type": "object"
+      },
+      "AgentProposal": {
+        "description": "A money-moving step the assistant suggests; it runs only when the merchant presses Approve.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispute_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispute_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "recovery",
+              "dispute"
+            ],
+            "type": "string"
+          },
+          "leak_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "store": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "store"
+        ],
+        "title": "AgentProposal",
+        "type": "object"
+      },
+      "AgentReply": {
+        "properties": {
+          "proposals": {
+            "items": {
+              "$ref": "#/components/schemas/AgentProposal"
+            },
+            "type": "array"
+          },
+          "source": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/AgentToolCall"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "text",
+          "source"
+        ],
+        "title": "AgentReply",
+        "type": "object"
+      },
+      "AgentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AgentMessage"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "store": {
+            "default": "main",
+            "enum": [
+              "main",
+              "vulnerable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "title": "AgentRequest",
+        "type": "object"
+      },
+      "AgentToolCall": {
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "paypal_agent_toolkit",
+              "payrecover"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "ok",
+          "summary"
+        ],
+        "title": "AgentToolCall",
+        "type": "object"
+      },
       "ApiRunReport": {
         "additionalProperties": false,
         "description": "Evidence report for one bounded API request.",
@@ -489,6 +691,303 @@
         ],
         "title": "CheckStatus",
         "type": "string"
+      },
+      "DisputeAdvice": {
+        "description": "What the AI recommends for one dispute. Advice only: the merchant decides and approves.",
+        "properties": {
+          "note": {
+            "description": "Draft message to PayPal, for the merchant to edit before sending.",
+            "type": "string"
+          },
+          "reasoning": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "recommendation": {
+            "enum": [
+              "provide_evidence",
+              "accept_claim",
+              "review"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recommendation",
+          "reasoning",
+          "note",
+          "source"
+        ],
+        "title": "DisputeAdvice",
+        "type": "object"
+      },
+      "DisputeCase": {
+        "description": "One PayPal dispute, linked to the store order it is about, with PayRecover's evidence and advice.",
+        "properties": {
+          "advice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeAdvice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capture_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispute_id": {
+            "type": "string"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "leaks": {
+            "items": {
+              "$ref": "#/components/schemas/Leak"
+            },
+            "type": "array"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paypal_capture_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "respond_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "store_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dispute_id"
+        ],
+        "title": "DisputeCase",
+        "type": "object"
+      },
+      "DisputeList": {
+        "properties": {
+          "disputes": {
+            "items": {
+              "$ref": "#/components/schemas/DisputeCase"
+            },
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "disputes"
+        ],
+        "title": "DisputeList",
+        "type": "object"
+      },
+      "DisputeResponseRequest": {
+        "additionalProperties": false,
+        "description": "The merchant's approved answer to one dispute.",
+        "properties": {
+          "action": {
+            "enum": [
+              "provide_evidence",
+              "accept_claim"
+            ],
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "note",
+          "approved"
+        ],
+        "title": "DisputeResponseRequest",
+        "type": "object"
+      },
+      "DisputeResponseResult": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "dispute_id": {
+            "type": "string"
+          },
+          "dispute_status_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispute_status_before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "sent",
+              "unverified",
+              "failed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispute_id",
+          "action",
+          "status",
+          "message"
+        ],
+        "title": "DisputeResponseResult",
+        "type": "object"
       },
       "FlowStep": {
         "additionalProperties": false,
@@ -1534,6 +2033,10 @@
         "additionalProperties": false,
         "description": "Scan a store's recent orders. Only a store name, never a URL.",
         "properties": {
+          "check_paypal_side": {
+            "default": true,
+            "type": "boolean"
+          },
           "explain": {
             "default": true,
             "type": "boolean"
@@ -1589,6 +2092,16 @@
           },
           "store": {
             "type": "string"
+          },
+          "unrecorded": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnrecordedReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1731,6 +2244,91 @@
           "why"
         ],
         "title": "TriageStep",
+        "type": "object"
+      },
+      "UnrecordedPayment": {
+        "description": "A payment PayPal completed for this store that the store has no paid order for.",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payer_email_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "store": {
+            "type": "string"
+          },
+          "transaction_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "transaction_id",
+          "amount",
+          "currency",
+          "store"
+        ],
+        "title": "UnrecordedPayment",
+        "type": "object"
+      },
+      "UnrecordedReport": {
+        "properties": {
+          "checked": {
+            "type": "boolean"
+          },
+          "currency": {
+            "default": "USD",
+            "type": "string"
+          },
+          "money": {
+            "default": "0.00",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payments": {
+            "items": {
+              "$ref": "#/components/schemas/UnrecordedPayment"
+            },
+            "type": "array"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "store",
+          "checked"
+        ],
+        "title": "UnrecordedReport",
         "type": "object"
       },
       "ValidationError": {
@@ -1930,6 +2528,48 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/agent": {
+      "post": {
+        "description": "Ask PayRecover a question. Gemini calls PayPal's Agent Toolkit and PayRecover's checks to answer.\n\nIt can only propose money movements; each proposal needs the merchant's approval.",
+        "operationId": "ask_payrecover",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentReply"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask Payrecover",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
     "/api/ai/explain": {
       "post": {
         "description": "Explain a report with the AI model, or with a built-in summary when it is unavailable.\n\nNeither can change the report's result, and the risk level never drops below\nwhat the check statuses imply.",
@@ -2160,6 +2800,124 @@
         "summary": "Deployment Status",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/disputes": {
+      "get": {
+        "description": "PayPal disputes, each linked to its store order, with PayRecover's evidence and the AI's recommended answer.",
+        "operationId": "list_disputes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Disputes",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/disputes/{dispute_id}": {
+      "get": {
+        "description": "One PayPal dispute with its evidence and recommended answer.",
+        "operationId": "get_dispute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeCase"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Dispute",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/disputes/{dispute_id}/respond": {
+      "post": {
+        "description": "Send the merchant's approved answer to a dispute (evidence, or accept the claim), then confirm it with PayPal.",
+        "operationId": "respond_to_dispute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeResponseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeResponseResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Respond To Dispute",
+        "tags": [
+          "PayRecover"
         ]
       }
     },
@@ -2550,23 +3308,14 @@
     },
     "/api/paypal/status": {
       "get": {
-        "description": "Return non-secret PayPal Sandbox configuration state.",
-        "operationId": "paypal_status",
+        "description": "Which PayPal features PayRecover can use here: the Agent Toolkit and verified webhooks.",
+        "operationId": "paypal_features",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ]
-                  },
+                  "additionalProperties": true,
                   "type": "object"
                 }
               }
@@ -2574,9 +3323,9 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Paypal Status",
+        "summary": "Paypal Features",
         "tags": [
-          "PayPal"
+          "PayRecover"
         ]
       }
     },
@@ -2619,6 +3368,31 @@
         "summary": "Paypal Verify",
         "tags": [
           "PayPal"
+        ]
+      }
+    },
+    "/api/paypal/webhook": {
+      "post": {
+        "description": "PayPal's webhook: verified with PayPal, then checks the payment or dispute it reports and alerts on problems.",
+        "operationId": "paypal_webhook",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Paypal Webhook",
+        "tags": [
+          "PayRecover"
         ]
       }
     },
@@ -2994,6 +3768,52 @@
           }
         },
         "summary": "Scan Store",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/stores/{store}/unrecorded": {
+      "get": {
+        "description": "Payments PayPal completed for this store that the store never recorded (read with PayPal's Agent Toolkit).",
+        "operationId": "unrecorded_payments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "store",
+            "required": true,
+            "schema": {
+              "enum": [
+                "main",
+                "vulnerable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnrecordedReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unrecorded Payments",
         "tags": [
           "PayRecover"
         ]

@@ -37,6 +37,7 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Charge the price the browser sends (prices are editable) | **Wrong amount** leak, and the price-tampering probe fails |
 | Show "paid" without capturing at PayPal | **Fake paid** or **Never captured** leak |
 | Let the same cart be paid multiple times | **Duplicate charge** leak, naming the other order to refund |
+| Charge the buyer, then lose the payment (store never records it) | **Payment the store never recorded**, from PayPal's side of the scan and from the payment webhook |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
 ### Scan my store
@@ -47,6 +48,56 @@ taken from PayPal's own timestamp (PayPal does not publish a fixed deadline for 
 so PayRecover shows how long it has waited rather than inventing a countdown). Gemini writes the recovery plan
 for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice yields one refund, of the
 later charge, so approving every row never refunds the whole purchase.
+
+### Ask PayRecover (Gemini + PayPal's Agent Toolkit)
+
+A chat on the dashboard: ask *"How much am I losing and what should I fix first?"* or *"Do I have disputes?"*.
+Gemini plans the steps and calls the tools itself, and every call is listed under its answer:
+
+- **PayPal's [Agent Toolkit](https://github.com/paypal/agent-toolkit)**: PayPal's own AI tools for reading
+  orders, disputes, transactions and invoices. Only read-only tools are offered to the model.
+- **PayRecover's checks**: scan the store, investigate an order, list disputes with evidence, find
+  unrecorded payments, list recoveries.
+- **Proposals, never actions**: to collect, refund, invoice or answer a dispute, the model can only call
+  `propose_recovery` or `propose_dispute_answer`. Each proposal appears as an **Approve** button that runs the
+  same approved, verified path as the dashboard. A proposal for a leak that does not exist is refused.
+
+### Dispute defender (PayPal Disputes)
+
+The **Disputes** panel reads your PayPal disputes with the Agent Toolkit, follows each disputed capture to its
+order and store (stores tag their payments with a `custom_id`), and re-runs that order's checks. Gemini then
+recommends an answer, **send evidence** or **accept the claim**, with a draft message to PayPal built only
+from those facts; rules take over if the AI is unavailable or picks an action PayPal does not offer for that
+dispute. You edit the message and approve. PayRecover re-reads the dispute first (only actions PayPal still
+offers are allowed), sends it (evidence via `provide-evidence`, or the toolkit's `accept_dispute_claim`), and
+confirms the change with a fresh read. A duplicate charge PayRecover already found is a reason to accept;
+a paid order with matching PayPal records is a reason to send evidence.
+
+To try it, sign in to [sandbox.paypal.com](https://www.sandbox.paypal.com) as the Sandbox buyer, open a payment
+and report a problem. Turn on **Disputes** under your app's Features if PayPal refuses to list them.
+
+### Payments the store never recorded (PayPal's side)
+
+The store scan starts from the store's orders; PayRecover also starts from **PayPal's transaction list**
+(Transaction Search, read with the Agent Toolkit) and reports completed payments carrying the store's tag that
+the store has no paid order for. The buyer was charged and nothing will ship, which is how disputes start.
+Refunded payments are left out and buyer emails are masked. Turn on **Transaction search** under your app's
+Features; PayPal's list can lag new payments by up to three hours.
+
+### Real-time: PayPal webhooks
+
+`POST /api/paypal/webhook` receives PayPal events once `TESTPILOT_PAYPAL_WEBHOOK_ID` is set (create the webhook
+in your app on developer.paypal.com, pointing at your public URL). Every event is verified with PayPal's
+`verify-webhook-signature` before it is read. `PAYMENT.CAPTURE.COMPLETED` re-checks that order in its store and
+alerts through Zapier on a leak or an unrecorded payment; `CUSTOMER.DISPUTE.CREATED` sends the dispute with the
+AI's recommended answer. Webhooks only start checks and alerts; money still moves only after approval.
+Webhooks need a public address, so they work once deployed (for example on Render), not on localhost.
+
+### AI-written buyer messages
+
+When PayRecover invoices a buyer for a short payment, Gemini writes a short, polite note for the invoice; the
+facts line (order and balance due) is always added by PayRecover, and the invoice is sent without a note from
+the model if the AI is unavailable.
 
 ### Dispute-ready evidence pack
 
@@ -172,6 +223,7 @@ flowchart LR
 cd backend
 python -m venv .venv
 .venv\Scripts\pip install -r requirements-dev.txt
+.venv\Scripts\pip install --no-deps -r requirements-toolkit.txt
 .venv\Scripts\python -m playwright install chromium
 .venv\Scripts\pip install -r ..\main-store\requirements.txt
 .venv\Scripts\pip install -r ..\vuln-store\requirements.txt
