@@ -49,8 +49,18 @@
       "type": "py"
     },
     {
+      "id": "backend/app/agent.py",
+      "label": "agent.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/ai.py",
       "label": "ai.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/alerts.py",
+      "label": "alerts.py",
       "type": "py"
     },
     {
@@ -76,6 +86,11 @@
     {
       "id": "backend/app/deployment.py",
       "label": "deployment.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/disputes.py",
+      "label": "disputes.py",
       "type": "py"
     },
     {
@@ -114,6 +129,11 @@
       "type": "py"
     },
     {
+      "id": "backend/app/overview.py",
+      "label": "overview.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/paypal.py",
       "label": "paypal.py",
       "type": "py"
@@ -121,6 +141,11 @@
     {
       "id": "backend/app/paypal_sdk.py",
       "label": "paypal_sdk.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/paypal_toolkit.py",
+      "label": "paypal_toolkit.py",
       "type": "py"
     },
     {
@@ -164,8 +189,23 @@
       "type": "py"
     },
     {
+      "id": "backend/app/store_security.py",
+      "label": "store_security.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/unrecorded.py",
+      "label": "unrecorded.py",
+      "type": "py"
+    },
+    {
       "id": "backend/app/url_policy.py",
       "label": "url_policy.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/app/webhooks.py",
+      "label": "webhooks.py",
       "type": "py"
     },
     {
@@ -189,8 +229,18 @@
       "type": "py"
     },
     {
+      "id": "backend/tests/test_agent.py",
+      "label": "test_agent.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/test_ai.py",
       "label": "test_ai.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_alerts.py",
+      "label": "test_alerts.py",
       "type": "py"
     },
     {
@@ -211,6 +261,11 @@
     {
       "id": "backend/tests/test_deployment.py",
       "label": "test_deployment.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_disputes.py",
+      "label": "test_disputes.py",
       "type": "py"
     },
     {
@@ -251,6 +306,11 @@
     {
       "id": "backend/tests/test_openapi_import.py",
       "label": "test_openapi_import.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_overview.py",
+      "label": "test_overview.py",
       "type": "py"
     },
     {
@@ -304,8 +364,23 @@
       "type": "py"
     },
     {
+      "id": "backend/tests/test_store_security.py",
+      "label": "test_store_security.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_unrecorded.py",
+      "label": "test_unrecorded.py",
+      "type": "py"
+    },
+    {
       "id": "backend/tests/test_url_policy.py",
       "label": "test_url_policy.py",
+      "type": "py"
+    },
+    {
+      "id": "backend/tests/test_webhooks.py",
+      "label": "test_webhooks.py",
       "type": "py"
     },
     {
@@ -339,8 +414,18 @@
       "type": "md"
     },
     {
+      "id": "docs/demo-script.md",
+      "label": "demo-script.md",
+      "type": "md"
+    },
+    {
       "id": "docs/deployment.md",
       "label": "deployment.md",
+      "type": "md"
+    },
+    {
+      "id": "docs/devpost.md",
+      "label": "devpost.md",
       "type": "md"
     },
     {
@@ -389,8 +474,33 @@
       "type": "jsx"
     },
     {
+      "id": "frontend/src/components/AlertsPanel.jsx",
+      "label": "AlertsPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/AssistantPanel.jsx",
+      "label": "AssistantPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/CheckPanel.jsx",
+      "label": "CheckPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/DisputesPanel.jsx",
+      "label": "DisputesPanel.jsx",
+      "type": "jsx"
+    },
+    {
       "id": "frontend/src/components/HistoryPanel.jsx",
       "label": "HistoryPanel.jsx",
+      "type": "jsx"
+    },
+    {
+      "id": "frontend/src/components/OverviewPanel.jsx",
+      "label": "OverviewPanel.jsx",
       "type": "jsx"
     },
     {
@@ -412,6 +522,11 @@
       "id": "frontend/src/components/ScanPanel.jsx",
       "label": "ScanPanel.jsx",
       "type": "jsx"
+    },
+    {
+      "id": "frontend/src/lib/assist.js",
+      "label": "assist.js",
+      "type": "js"
     },
     {
       "id": "frontend/src/lib/grid.js",
@@ -442,6 +557,11 @@
       "id": "frontend/src/styles.css",
       "label": "styles.css",
       "type": "css"
+    },
+    {
+      "id": "frontend/tests/assist.test.mjs",
+      "label": "assist.test.mjs",
+      "type": "mjs"
     },
     {
       "id": "frontend/tests/client.test.mjs",
@@ -514,11 +634,6 @@
       "type": "py"
     },
     {
-      "id": "steps.md",
-      "label": "steps.md",
-      "type": "md"
-    },
-    {
       "id": "vuln-store/static/index.html",
       "label": "index.html",
       "type": "html"
@@ -546,7 +661,17 @@
   ],
   "edges": [
     {
+      "source": "backend/app/agent.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/app/ai.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/alerts.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
     },
@@ -578,6 +703,11 @@
     {
       "source": "backend/app/deployment.py",
       "target": "backend/app/security.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/disputes.py",
+      "target": "backend/app/schemas.py",
       "type": "imports"
     },
     {
@@ -701,6 +831,11 @@
       "type": "imports"
     },
     {
+      "source": "backend/app/overview.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/app/paypal.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
@@ -746,6 +881,21 @@
       "type": "imports"
     },
     {
+      "source": "backend/app/store_security.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/unrecorded.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/app/webhooks.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/app/website_runner.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
@@ -771,12 +921,32 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_agent.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_agent.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_ai.py",
       "target": "backend/app/ai.py",
       "type": "imports"
     },
     {
       "source": "backend/tests/test_ai.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_alerts.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_alerts.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
     },
@@ -826,6 +996,21 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_deployment.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_disputes.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_disputes.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_evidence.py",
       "target": "backend/app/main.py",
       "type": "imports"
@@ -833,6 +1018,11 @@
     {
       "source": "backend/tests/test_evidence.py",
       "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_evidence.py",
+      "target": "backend/tests/isolation.py",
       "type": "imports"
     },
     {
@@ -868,6 +1058,11 @@
     {
       "source": "backend/tests/test_investigate.py",
       "target": "backend/app/url_policy.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_investigate.py",
+      "target": "backend/tests/isolation.py",
       "type": "imports"
     },
     {
@@ -936,6 +1131,11 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_notify.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_openapi_import.py",
       "target": "backend/app/openapi_import.py",
       "type": "imports"
@@ -946,6 +1146,11 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_overview.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_paypal.py",
       "target": "backend/app/main.py",
       "type": "imports"
@@ -956,6 +1161,11 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_paypal.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_recovery.py",
       "target": "backend/app/main.py",
       "type": "imports"
@@ -963,6 +1173,11 @@
     {
       "source": "backend/tests/test_recovery.py",
       "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_recovery.py",
+      "target": "backend/tests/isolation.py",
       "type": "imports"
     },
     {
@@ -1001,6 +1216,11 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_scan.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_schemas.py",
       "target": "backend/app/schemas.py",
       "type": "imports"
@@ -1026,13 +1246,63 @@
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_store_security.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_store_security.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
       "source": "backend/tests/test_url_policy.py",
       "target": "backend/app/url_policy.py",
       "type": "imports"
     },
     {
+      "source": "backend/tests/test_webhooks.py",
+      "target": "backend/app/main.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_webhooks.py",
+      "target": "backend/app/schemas.py",
+      "type": "imports"
+    },
+    {
+      "source": "backend/tests/test_webhooks.py",
+      "target": "backend/tests/isolation.py",
+      "type": "imports"
+    },
+    {
       "source": "frontend/src/App.jsx",
       "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/AlertsPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/AssistantPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/CheckPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/DisputesPanel.jsx",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/App.jsx",
+      "target": "frontend/src/components/OverviewPanel.jsx",
       "type": "imports"
     },
     {
@@ -1061,6 +1331,46 @@
       "type": "imports"
     },
     {
+      "source": "frontend/src/components/AlertsPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/AlertsPanel.jsx",
+      "target": "frontend/src/lib/assist.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/AssistantPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/AssistantPanel.jsx",
+      "target": "frontend/src/lib/assist.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/AssistantPanel.jsx",
+      "target": "frontend/src/lib/payment.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/DisputesPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/DisputesPanel.jsx",
+      "target": "frontend/src/lib/assist.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/DisputesPanel.jsx",
+      "target": "frontend/src/components/PaymentPanel.jsx",
+      "type": "imports"
+    },
+    {
       "source": "frontend/src/components/HistoryPanel.jsx",
       "target": "frontend/src/api/client.js",
       "type": "imports"
@@ -1068,6 +1378,21 @@
     {
       "source": "frontend/src/components/HistoryPanel.jsx",
       "target": "frontend/src/lib/report.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/OverviewPanel.jsx",
+      "target": "frontend/src/api/client.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/OverviewPanel.jsx",
+      "target": "frontend/src/lib/assist.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/OverviewPanel.jsx",
+      "target": "frontend/src/lib/payment.js",
       "type": "imports"
     },
     {
@@ -1123,6 +1448,11 @@
     {
       "source": "frontend/src/components/ScanPanel.jsx",
       "target": "frontend/src/lib/payment.js",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/src/components/ScanPanel.jsx",
+      "target": "frontend/src/lib/assist.js",
       "type": "imports"
     },
     {
@@ -1143,6 +1473,11 @@
     {
       "source": "frontend/src/main.jsx",
       "target": "frontend/src/styles.css",
+      "type": "imports"
+    },
+    {
+      "source": "frontend/tests/assist.test.mjs",
+      "target": "frontend/src/lib/assist.js",
       "type": "imports"
     },
     {

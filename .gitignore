@@ -25,3 +25,6 @@ main-store/data/
 
 # Vulnerable store records (local Sandbox data)
 vuln-store/data/
+
+# Claude Code local settings
+.claude/
