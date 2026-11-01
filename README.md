@@ -40,6 +40,13 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Charge the buyer, then lose the payment (store never records it) | **Payment the store never recorded**, from PayPal's side of the scan and from the payment webhook |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
+### The Risky store
+
+The same store code run with `VULN_STORE_PROFILE=risky` (port 8300, `vuln-store/risky.env`): every payment bug is
+locked off, so its payments always match PayPal, but its website keeps the XSS search box and sends no security
+headers. Scanning it gives the middle result, 🟠 **no money leaking, but vulnerable**, so all three scan results
+can be shown side by side: Main 🟢, Risky 🟠, Vulnerable with a bug on 🔴.
+
 ### Scan my store
 
 One click checks every recent order the store calls paid (up to 50) against PayPal. Leaks are ranked by
@@ -273,6 +280,12 @@ cd main-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8
 
 ```bash
 cd vuln-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8200
+```
+
+Optional, the Risky store (correct payments, insecure website):
+
+```bash
+cd vuln-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8300 --env-file risky.env
 ```
 
 ```bash

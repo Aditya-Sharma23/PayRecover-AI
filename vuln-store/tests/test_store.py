@@ -86,6 +86,18 @@ class VulnerableStoreTests(unittest.TestCase):
         self.pay()
         self.assertEqual(self.paypal.calls[0][2]["purchase_units"][0]["custom_id"], "payrecover-vulnerable")
 
+    def test_the_risky_profile_locks_payment_bugs_off_but_keeps_the_website_holes(self):
+        with patch.dict(os.environ, {"VULN_STORE_PROFILE": "risky"}):
+            self.assertEqual(self.client.get("/api/bugs").json()["available"], [])
+            self.assertEqual(self.client.post("/api/bugs", json={"bugs": ["trust_client_price"]}).status_code, 403)
+            _, paid = self.pay()
+            self.assertEqual(paid.json()["total"], "18.00")  # the browser's 1.00 is ignored
+            self.assertEqual(self.paypal.calls[0][2]["purchase_units"][0]["custom_id"], "payrecover-risky")
+            page = self.client.get("/", params={"q": "<b>x</b>"})
+        self.assertIn("PayRecover Risky Store", page.text)
+        self.assertIn("You searched for: <b>x</b>", page.text)
+        self.assertNotIn("content-security-policy", page.headers)
+
     def test_search_box_reflects_input_unescaped_and_no_security_headers_are_sent(self):
         response = self.client.get("/", params={"q": "<b>x</b>"})
         self.assertIn("You searched for: <b>x</b>", response.text)

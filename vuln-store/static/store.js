@@ -96,6 +96,8 @@ async function renderBugs() {
   const bugs = await api("/api/bugs");
   const box = $("bugs");
   box.replaceChildren();
+  // The Risky store has no payment bugs to switch on; hide the empty list.
+  box.hidden = bugs.available.length === 0;
   for (const bug of bugs.available) {
     const label = document.createElement("label");
     const input = document.createElement("input");

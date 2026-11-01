@@ -54,7 +54,7 @@ export function recoveryRows(records) {
     id: record.recovery_id,
     when: record.created_at.slice(0, 16).replace("T", " "),
     order_id: record.order_id,
-    store: record.store === "vulnerable" ? "Vulnerable" : "Main",
+    store: STORE_SHORT_NAMES[record.store] || "Main",
     leak: LEAK_NAMES[record.kind] || record.kind,
     action: record.action,
     amount: `${record.amount} ${record.currency}`,
@@ -76,7 +76,10 @@ export function orderIdProblem(value) {
 export const STORES = [
   ["main", "Main store (demo)"],
   ["vulnerable", "Vulnerable store (demo bugs)"],
+  ["risky", "Risky store (safe payments, weak security)"],
 ];
+
+const STORE_SHORT_NAMES = { main: "Main", vulnerable: "Vulnerable", risky: "Risky" };
 
 export const investigationBody = (value, { store = "main", probe = true, website = true, xss = true, explain = true } = {}) => ({
   order_id: normalizeOrderId(value),

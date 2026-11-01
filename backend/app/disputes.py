@@ -21,7 +21,7 @@ from app.schemas import (
 )
 
 MAX_DISPUTES = 10
-STORE_TAGS = {"payrecover-main": "main", "payrecover-vulnerable": "vulnerable"}
+STORE_TAGS = {"payrecover-main": "main", "payrecover-vulnerable": "vulnerable", "payrecover-risky": "risky"}
 # PayPal's link names for each action PayRecover can take.
 ACTION_LINKS = {"provide_evidence": "provide_evidence", "accept_claim": "accept_claim"}
 DISPUTES_HELP = (

@@ -10,7 +10,8 @@ Three sources are checked against each other:
   XSS probe           15 inert reflected-XSS payloads in 15 parameters and the URL path
                       of the store page, reported as its own section (app.xss_probe)
 Store addresses are set by the operator (TESTPILOT_STORE_URL for the Main store,
-TESTPILOT_VULN_STORE_URL for the Vulnerable store); a request only picks one of the two.
+TESTPILOT_VULN_STORE_URL for the Vulnerable store, TESTPILOT_RISKY_STORE_URL for the Risky store); a request
+only picks one of them by name.
 Duplicate charges are found across orders: every other order opened for the same cart
 is looked up at PayPal, because a double click pays a second order, not the same one twice.
 Leaks and money at risk come only from these checks. The AI model explains them; it cannot
@@ -50,6 +51,7 @@ DEFAULT_STORE_URL = "http://127.0.0.1:8100"
 STORES = {
     "main": ("TESTPILOT_STORE_URL", DEFAULT_STORE_URL),
     "vulnerable": ("TESTPILOT_VULN_STORE_URL", "http://127.0.0.1:8200"),
+    "risky": ("TESTPILOT_RISKY_STORE_URL", "http://127.0.0.1:8300"),
 }
 MAX_SIBLING_ORDERS = 5
 _active_store: ContextVar[str] = ContextVar("active_store", default="main")

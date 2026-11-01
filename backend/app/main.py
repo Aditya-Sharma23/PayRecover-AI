@@ -79,7 +79,7 @@ from app.deployment import deployment_readiness, public_mode
 from app.security import request_owner, security_middleware
 from app.jobs import JobManager
 from app.execution import overall_status, redact_target_url, run_report, summary
-from app.schemas import API_CHECK_NAMES, FULL_SCAN_CHECKS, WEBSITE_CHECK_NAMES
+from app.schemas import API_CHECK_NAMES, FULL_SCAN_CHECKS, STORE_KEYS, WEBSITE_CHECK_NAMES
 
 job_manager = JobManager()
 FRONTEND_DIST = Path(
@@ -463,7 +463,7 @@ async def scan_store(request: ScanRequest, http: Request, background: Background
 async def evidence_pack(
     http: Request,
     order_id: str = PathParam(pattern=r"^[A-Z0-9]{8,40}$"),
-    store: Literal["main", "vulnerable"] = "main",
+    store: Literal[STORE_KEYS] = "main",
 ) -> HTMLResponse:
     """A printable, dispute-ready evidence pack for one order, from a fresh read of the store and PayPal."""
     try:
@@ -508,7 +508,7 @@ def clear_recoveries(http: Request) -> dict[str, int]:
 
 
 @app.get("/api/stores/{store}/unrecorded", response_model=UnrecordedReport, tags=["PayRecover"])
-async def unrecorded_payments(store: Literal["main", "vulnerable"]) -> UnrecordedReport:
+async def unrecorded_payments(store: Literal[STORE_KEYS]) -> UnrecordedReport:
     """Payments PayPal completed for this store that the store never recorded (read with PayPal's Agent Toolkit)."""
     try:
         return await unrecorded.find(store)

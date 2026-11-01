@@ -2,6 +2,7 @@
 #   payrecover-ai          the PayRecover backend and dashboard (Docker)
 #   payrecover-main-store  the Main store it checks
 #   payrecover-vuln-store  the deliberately buggy demo store (PayPal Sandbox only)
+#   payrecover-risky-store the same store with payment bugs locked off but an insecure website
 # Values marked sync: false are asked for in the Render dashboard; see docs/deployment.md.
 # The backend refuses to start until every public-deployment gate passes.
 services:
@@ -47,6 +48,8 @@ services:
         sync: false
       - key: TESTPILOT_VULN_STORE_URL
         sync: false
+      - key: TESTPILOT_RISKY_STORE_URL
+        sync: false
       # PayPal webhook id (developer.paypal.com > your app > Webhooks, URL <public url>/api/paypal/webhook).
       - key: TESTPILOT_PAYPAL_WEBHOOK_ID
         sync: false
@@ -88,6 +91,24 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.7"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+
+  - type: web
+    name: payrecover-risky-store
+    runtime: python
+    plan: free
+    rootDir: vuln-store
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/config
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: VULN_STORE_PROFILE
+        value: risky
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET

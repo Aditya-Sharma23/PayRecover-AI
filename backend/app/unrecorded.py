@@ -14,7 +14,7 @@ from typing import Any
 from app import investigate, paypal_toolkit, scan
 from app.schemas import UnrecordedPayment, UnrecordedReport
 
-STORE_TAGS = {"main": "payrecover-main", "vulnerable": "payrecover-vulnerable"}
+STORE_TAGS = {"main": "payrecover-main", "vulnerable": "payrecover-vulnerable", "risky": "payrecover-risky"}
 LOOKBACK_DAYS = 30
 STORE_ORDERS_READ = 100
 TRANSACTION_SEARCH_HELP = (

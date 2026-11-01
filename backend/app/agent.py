@@ -19,16 +19,18 @@ from app.schemas import (
     AgentToolCall,
     InvestigationRequest,
     LEAK_KINDS,
+    STORE_KEYS,
     ScanRequest,
 )
 
 MAX_STEPS = 6
 MAX_RESULT_CHARS = 6000
 ORDER_ID = {"type": "string", "pattern": "^[A-Z0-9]{8,40}$", "description": "A PayPal order id."}
-STORE_NAMES = ("main", "vulnerable")
+STORE_NAMES = STORE_KEYS
 STORE = {"type": "string", "enum": list(STORE_NAMES),
-         "description": "Which store: 'main' (Main store) or 'vulnerable' (Vulnerable store). Use the store the "
-                        "merchant names; leave it out to use the store selected on the dashboard."}
+         "description": "Which store: 'main' (Main store), 'vulnerable' (Vulnerable store) or 'risky' (Risky "
+                        "store). Use the store the merchant names; leave it out to use the store selected on the "
+                        "dashboard."}
 SYSTEM = (
     "You are PayRecover, an assistant for a merchant who sells through PayPal (Sandbox). You find money the "
     "store is losing on PayPal and help get it back. Use the tools for every fact: never guess amounts, ids, "
@@ -36,7 +38,8 @@ SYSTEM = (
     "dispute, call propose_dispute_answer. Both only show the merchant an Approve button; say so, and never "
     "claim money has moved. Tools marked [PayPal Agent Toolkit] read PayPal directly. Answer in short, plain "
     "sentences with the amounts and order ids that matter, and say what the merchant should approve next. "
-    "Write plain text without Markdown. There are two stores, 'main' and 'vulnerable'; when the merchant names "
+    "Write plain text without Markdown. There are three stores, 'main', 'vulnerable' and 'risky'; when the "
+    "merchant names "
     "one, pass it as the store argument, and say which store your answer is about."
 )
 
@@ -101,7 +104,7 @@ class Session:
     def _store(self, args: dict[str, Any]) -> str:
         store = args.get("store") or self.store
         if store not in STORE_NAMES:
-            raise ToolRefused(f"Unknown store {store!r}; use 'main' or 'vulnerable'.")
+            raise ToolRefused(f"Unknown store {store!r}; use one of {', '.join(STORE_NAMES)}.")
         return store
 
     async def _investigate(self, order_id: str, store: str):

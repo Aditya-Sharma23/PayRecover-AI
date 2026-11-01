@@ -358,7 +358,8 @@
             "default": "main",
             "enum": [
               "main",
-              "vulnerable"
+              "vulnerable",
+              "risky"
             ],
             "type": "string"
           }
@@ -1323,7 +1324,8 @@
             "default": "main",
             "enum": [
               "main",
-              "vulnerable"
+              "vulnerable",
+              "risky"
             ],
             "type": "string"
           },
@@ -1990,7 +1992,8 @@
             "default": "main",
             "enum": [
               "main",
-              "vulnerable"
+              "vulnerable",
+              "risky"
             ],
             "type": "string"
           }
@@ -2191,7 +2194,8 @@
             "default": "main",
             "enum": [
               "main",
-              "vulnerable"
+              "vulnerable",
+              "risky"
             ],
             "type": "string"
           }
@@ -3613,7 +3617,8 @@
               "default": "main",
               "enum": [
                 "main",
-                "vulnerable"
+                "vulnerable",
+                "risky"
               ],
               "type": "string"
             }
@@ -4126,7 +4131,8 @@
             "schema": {
               "enum": [
                 "main",
-                "vulnerable"
+                "vulnerable",
+                "risky"
               ],
               "type": "string"
             }

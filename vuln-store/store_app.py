@@ -9,6 +9,10 @@ Payment bugs, switched on and off from the store page (POST /api/bugs) and saved
   allow_double_payment  let one cart be paid again and again (no cart lock)
   lose_payment_record   capture the money at PayPal, then fail before saving it (buyer charged, store unaware)
 
+Profiles (VULN_STORE_PROFILE): "vulnerable" (default, port 8200) lets every payment bug above be switched
+on; "risky" (port 8300) runs the same store with all payment bugs locked off, so its payments are correct
+but its website keeps the holes below. PayRecover rates it "no money leaking, but vulnerable".
+
 Always present, because this is the store's vulnerable build:
   a search box that echoes ?q= back unescaped (reflected XSS)
   no security headers (no Content-Security-Policy, no clickjacking protection)
@@ -54,12 +58,23 @@ BUG_LABELS = {
     "lose_payment_record": "Charge the buyer, then lose the payment (store never records it)",
 }
 
-app = FastAPI(title="PayRecover Vulnerable store", version="1.0.0")
+PROFILES = {
+    "vulnerable": {"title": "PayRecover Vulnerable Store", "tag": "payrecover-vulnerable", "data": "store.json",
+                   "bugs": BUG_NAMES},
+    "risky": {"title": "PayRecover Risky Store", "tag": "payrecover-risky", "data": "risky-store.json", "bugs": ()},
+}
+
+
+def _profile() -> dict[str, Any]:
+    return PROFILES.get(os.environ.get("VULN_STORE_PROFILE", "vulnerable"), PROFILES["vulnerable"])
+
+
+app = FastAPI(title=_profile()["title"], version="1.0.0")
 _token_cache: dict[str, Any] = {"token": None, "expires_at": 0.0}
 
 
 def _data_file() -> Path:
-    return Path(os.environ.get("VULN_STORE_DATA_FILE") or ROOT / "data" / "store.json")
+    return Path(os.environ.get("VULN_STORE_DATA_FILE") or ROOT / "data" / _profile()["data"])
 
 
 def _load() -> dict[str, Any]:
@@ -67,7 +82,7 @@ def _load() -> dict[str, Any]:
         data = json.loads(_data_file().read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {"orders": {}, "bugs": []}
-    return {"orders": data.get("orders", {}), "bugs": [b for b in data.get("bugs", []) if b in BUG_NAMES]}
+    return {"orders": data.get("orders", {}), "bugs": [b for b in data.get("bugs", []) if b in _profile()["bugs"]]}
 
 
 def save() -> None:
@@ -200,12 +215,16 @@ def products() -> list[dict[str, str]]:
 
 @app.get("/api/bugs")
 def get_bugs() -> dict[str, Any]:
-    return {"active": sorted(active_bugs), "available": [{"id": b, "label": BUG_LABELS[b]} for b in BUG_NAMES]}
+    allowed = _profile()["bugs"]
+    return {"active": sorted(active_bugs), "available": [{"id": b, "label": BUG_LABELS[b]} for b in allowed]}
 
 
 @app.post("/api/bugs")
 def set_bugs(request: BugsRequest) -> dict[str, Any]:
     """Demo control: which payment bugs the store has. Open to anyone, because this store is only for demos."""
+    locked = [bug for bug in request.bugs if bug not in _profile()["bugs"]]
+    if locked:
+        raise HTTPException(status_code=403, detail="This store's payment code is fixed; its bugs cannot be switched on.")
     active_bugs.clear()
     active_bugs.update(request.bugs)
     save()
@@ -221,8 +240,8 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
     body = {
         "intent": "CAPTURE",
         "purchase_units": [{
-            "description": "PayRecover Vulnerable store order",
-            "custom_id": "payrecover-vulnerable",
+            "description": f"{_profile()['title']} order",
+            "custom_id": _profile()["tag"],
             "amount": {
                 "currency_code": CURRENCY,
                 "value": _money(total),
@@ -298,7 +317,11 @@ def cart_orders(cart_id: str = CartId) -> list[dict[str, Any]]:
 @app.get("/", include_in_schema=False)
 def index(q: str = Query(default="", max_length=500)) -> HTMLResponse:
     """The store page. BUG: the search term is pasted into the page without escaping (reflected XSS)."""
-    page = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    page = (ROOT / "static" / "index.html").read_text(encoding="utf-8").replace("PayRecover Vulnerable Store",
+                                                                                _profile()["title"])
+    if not _profile()["bugs"]:
+        page = page.replace("Tick a bug, pay, then investigate the order in PayRecover.",
+                            "This store's payment code is correct, so its payments always match PayPal.")
     results = f"<p id=\"search-results\">You searched for: {q}</p>" if q else ""
     return HTMLResponse(page.replace("{{SEARCH_RESULTS}}", results))
 

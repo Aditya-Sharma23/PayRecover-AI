@@ -11,6 +11,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 
+# The stores PayRecover can check, chosen by name only (their addresses are set by the operator).
+STORE_KEYS = ("main", "vulnerable", "risky")
+
 class CheckName(StrEnum):
     HTTP_STATUS = "http_status"
     PAGE_TITLE = "page_title"
@@ -596,7 +599,7 @@ class InvestigationRequest(BaseModel):
 
     order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
     # Which operator-configured store to check; never a URL, so a request cannot aim PayRecover anywhere else.
-    store: Literal["main", "vulnerable"] = "main"
+    store: Literal[STORE_KEYS] = "main"
     probe_store: bool = True
     website_checks: bool = True
     xss_probe: bool = True
@@ -661,7 +664,7 @@ class RecoveryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     order_id: str = Field(pattern=r"^[A-Z0-9]{8,40}$")
-    store: Literal["main", "vulnerable"] = "main"
+    store: Literal[STORE_KEYS] = "main"
     kind: Literal[LEAK_KINDS]
     approved: bool
 
@@ -697,7 +700,7 @@ class ScanRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    store: Literal["main", "vulnerable"] = "main"
+    store: Literal[STORE_KEYS] = "main"
     limit: int = Field(default=25, ge=1, le=50)
     explain: bool = True
     check_paypal_side: bool = True
@@ -866,7 +869,7 @@ class AgentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     messages: list[AgentMessage] = Field(min_length=1, max_length=20)
-    store: Literal["main", "vulnerable"] = "main"
+    store: Literal[STORE_KEYS] = "main"
 
 
 class AgentProposal(BaseModel):

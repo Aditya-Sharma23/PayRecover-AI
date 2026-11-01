@@ -50,8 +50,8 @@ docker compose up --build
 
 ## Deploy to Render (blueprint included)
 
-`render.yaml` creates three services: **payrecover-ai** (backend and dashboard, Docker, 1 GB disk at `/data`),
-**payrecover-main-store** and **payrecover-vuln-store** (the two Sandbox demo stores, free plan).
+`render.yaml` creates four services: **payrecover-ai** (backend and dashboard, Docker, 1 GB disk at `/data`),
+**payrecover-main-store**, **payrecover-vuln-store** and **payrecover-risky-store** (the Sandbox demo stores, free plan).
 
 1. Push the repository to GitHub.
 2. In Render: **New → Blueprint**, choose the repository. Render lists the values marked `sync: false`.
@@ -59,11 +59,12 @@ docker compose up --build
 
 | Service | Setting | Value |
 |---|---|---|
-| both stores | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | your Sandbox app's Client ID and Secret |
+| all three stores | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | your Sandbox app's Client ID and Secret |
 | payrecover-ai | `TESTPILOT_PAYPAL_CLIENT_ID`, `TESTPILOT_PAYPAL_CLIENT_SECRET` | the same Client ID and Secret |
 | payrecover-ai | `TESTPILOT_PUBLIC_URL` | `https://payrecover-ai.onrender.com` |
 | payrecover-ai | `TESTPILOT_STORE_URL` | `https://payrecover-main-store.onrender.com` |
 | payrecover-ai | `TESTPILOT_VULN_STORE_URL` | `https://payrecover-vuln-store.onrender.com` |
+| payrecover-ai | `TESTPILOT_RISKY_STORE_URL` | `https://payrecover-risky-store.onrender.com` |
 | payrecover-ai | `TESTPILOT_GOOGLE_API_KEY` | your Gemini key |
 | payrecover-ai | `TESTPILOT_ZAPIER_WEBHOOK_URL` | your Zapier Catch Hook URL |
 | payrecover-ai | `TESTPILOT_BREVO_API_KEY`, `TESTPILOT_ALERT_SENDER` | your Brevo API key and the sender email you verified in Brevo |
