@@ -415,3 +415,6 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
 .overview-cards .metric-card > div { min-width: 0; }
 .overview-cards .metric-card strong { white-space: nowrap; }
 .overview-cards .metric-card small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.store-status { width: 100%; text-align: left; font: inherit; font-size: 13px; cursor: pointer; }
+button.store-status:disabled { cursor: progress; }
+.store-status.status-scanning i { background: var(--blue); animation: live-pulse 1.2s infinite; }

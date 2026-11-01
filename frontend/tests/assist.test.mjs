@@ -61,7 +61,7 @@ test("each scan verdict has a title, a colour and an explanation", () => {
 test("store results read as a short line", () => {
   const now = Date.parse("2026-11-02T12:00:00Z");
   const at = "2026-11-02T11:55:00Z";
-  assert.equal(storeStatusText({ verdict: null }), "Scan it under Check payments");
+  assert.equal(storeStatusText({ verdict: null }), "Click to scan");
   assert.equal(storeStatusText({ verdict: "leaking", money_at_risk: "18.00", currency: "USD", scanned_at: at }, now), "18.00 USD at risk · 5 min ago");
   assert.equal(storeStatusText({ verdict: "vulnerable", security_issues: 1, scanned_at: at }, now), "1 security issue · 5 min ago");
   assert.equal(storeStatusText({ verdict: "clear", orders_checked: 4, scanned_at: at }, now), "4 paid orders match PayPal · 5 min ago");

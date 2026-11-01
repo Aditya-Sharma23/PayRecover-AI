@@ -9,6 +9,8 @@ const STORE_NAMES = Object.fromEntries(STORES.map(([key, label]) => [key, label.
 // Headline numbers, each store's latest result, and a live indicator, refreshed every 30 seconds.
 export default function OverviewPanel({ refreshKey }) {
   const [data, setData] = useState(null);
+  const [scanning, setScanning] = useState({});
+  const [error, setError] = useState(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -21,6 +23,20 @@ export default function OverviewPanel({ refreshKey }) {
     }, REFRESH_MS);
     return () => clearInterval(timer);
   }, []);
+
+  // Clicking a store scans it right away (payments and the security check, without the AI plan, so it is quick).
+  async function scanStore(store) {
+    setScanning((current) => ({ ...current, [store]: true }));
+    setError(null);
+    try {
+      await apiJson("/api/stores/scan", { method: "POST", body: { store, explain: false } }, "The scan could not be completed.");
+      setData(await apiJson("/api/overview"));
+    } catch (reason) {
+      setError(reason.message);
+    } finally {
+      setScanning((current) => ({ ...current, [store]: false }));
+    }
+  }
 
   const money = (value) => (data ? `${value} ${data.currency}` : "–");
   const cards = [
@@ -44,12 +60,15 @@ export default function OverviewPanel({ refreshKey }) {
     <div className="store-statuses" aria-label="Store results">
       {(data?.stores || STORES.map(([store]) => ({ store }))).map((status) => {
         const [label, tone] = STORE_VERDICTS[status.verdict] || STORE_VERDICTS.none;
-        return <a href="#check" className={`store-status ${tone}`} key={status.store}>
+        const busy = scanning[status.store];
+        return <button type="button" className={`store-status ${busy ? "status-scanning" : tone}`} key={status.store}
+          disabled={busy} onClick={() => scanStore(status.store)} title="Scan this store now">
           <i aria-hidden="true" />
-          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {label}</span>
-          <small>{storeStatusText(status, now)}</small>
-        </a>;
+          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {busy ? "Scanning…" : label}</span>
+          <small>{busy ? "Checking payments and security" : storeStatusText(status, now)}</small>
+        </button>;
       })}
     </div>
+    {error && <p className="notice notice-error" role="alert">{error}</p>}
   </section>;
 }

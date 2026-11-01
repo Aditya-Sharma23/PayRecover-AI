@@ -99,7 +99,7 @@ export const STORE_VERDICTS = {
 };
 
 export function storeStatusText(status, now = Date.now()) {
-  if (!status.verdict) return "Scan it under Check payments";
+  if (!status.verdict) return "Click to scan";
   const detail = status.verdict === "leaking" ? `${status.money_at_risk} ${status.currency} at risk`
     : status.verdict === "vulnerable" ? `${status.security_issues} security issue${status.security_issues === 1 ? "" : "s"}`
       : `${status.orders_checked} paid order${status.orders_checked === 1 ? "" : "s"} match PayPal`;
