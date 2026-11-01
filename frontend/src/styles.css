@@ -387,3 +387,6 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
 .more-tools { margin-top: 13px; }
 .more-tools > summary { padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; }
 .more-tools[open] > summary { margin-bottom: 0; }
+
+/* Line icon in the sidebar: same colour as the text icons, and a little shorter */
+.nav-icon { width: 15px; height: 14px; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }

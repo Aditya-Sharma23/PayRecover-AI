@@ -70,7 +70,7 @@ export default function App() {
         <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#check"><span aria-hidden="true">⌕</span> Check payments</a>
         <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
-        <a href="#alerts"><span aria-hidden="true">🔔</span> Alerts</a>
+        <a href="#alerts"><span aria-hidden="true"><svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg></span> Alerts</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#more" onClick={() => setMoreOpen(true)}><span aria-hidden="true">▤</span> More tools</a>
       </nav>
