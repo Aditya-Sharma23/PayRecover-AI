@@ -79,7 +79,7 @@ const COLUMNS = [
   { field: "id", headerName: "Recover", width: 290, cellRenderer: ActionsCell, sortable: false, filter: false },
 ];
 
-export default function ScanPanel({ onRecovered }) {
+export default function ScanPanel({ onRecovered, embedded = false }) {
   const [store, setStore] = useState("main");
   const [limit, setLimit] = useState(25);
   const [result, setResult] = useState(null);
@@ -122,9 +122,10 @@ export default function ScanPanel({ onRecovered }) {
     grid.current?.api?.refreshCells({ columns: ["id"], force: true });
   }, [context]);
 
-  return <section className="panel" id="scan" aria-labelledby="scan-heading">
+  const Wrapper = embedded ? "div" : "section";
+  return <Wrapper className={embedded ? "embedded-panel" : "panel"} id="scan" aria-labelledby="scan-heading">
     <div className="section-heading">
-      <div><p className="eyebrow">PayRecover · whole store</p><h2 id="scan-heading">Scan my store</h2></div>
+      <div>{!embedded && <p className="eyebrow">PayRecover · whole store</p>}<h2 id="scan-heading">{embedded ? "Check the whole store" : "Scan my store"}</h2></div>
     </div>
     <p className="hint">Checks every recent order the store calls paid against PayPal, ranks the leaks by urgency and amount, and has the AI write the recovery plan. Nothing moves until you approve a row.</p>
     <form className="scan-form" onSubmit={scan}>
@@ -163,5 +164,5 @@ export default function ScanPanel({ onRecovered }) {
         : <p className="empty-state">No leaks: every paid order in this store matches PayPal&apos;s record.</p>}
       {result.unrecorded && <UnrecordedPayments report={result.unrecorded} />}
     </>}
-  </section>;
+  </Wrapper>;
 }

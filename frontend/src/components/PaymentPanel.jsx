@@ -204,7 +204,7 @@ function Investigation({ result, onOpenReport, onRecovered }) {
   </div>;
 }
 
-export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovered }) {
+export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovered, embedded = false }) {
   const [config, setConfig] = useState(null);
   const [orderId, setOrderId] = useState("");
   const [probe, setProbe] = useState(true);
@@ -236,9 +236,10 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovere
     } finally { setBusy(false); }
   }
 
-  return <section className="panel" id="payments" aria-labelledby="payments-heading">
+  const Wrapper = embedded ? "div" : "section";
+  return <Wrapper className={embedded ? "embedded-panel" : "panel"} id="payments" aria-labelledby="payments-heading">
     <div className="section-heading">
-      <div><p className="eyebrow">PayRecover · PayPal Sandbox</p><h2 id="payments-heading">Investigate an order</h2></div>
+      <div>{!embedded && <p className="eyebrow">PayRecover · PayPal Sandbox</p>}<h2 id="payments-heading">{embedded ? "Check one order in depth" : "Investigate an order"}</h2></div>
       <span className={`status-pill ${config?.configured ? "online" : ""}`}><i />{config ? (config.configured ? "Sandbox connected" : "Sandbox keys missing") : "Sandbox status unknown"}</span>
     </div>
     <p className="hint">Paste an order id. PayRecover reads the store's claim, asks PayPal what really happened, probes the store for the hole behind any leak, scans the store's website, checks it for XSS, and explains it.</p>
@@ -272,5 +273,5 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovere
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {result && <Investigation result={result} onOpenReport={onOpenReport} onRecovered={onRecovered} />}
     <p className="hint">Investigating only reads PayPal; money moves only when you approve a recovery. Payer details are never shown or stored. The AI explains; the checks decide.</p>
-  </section>;
+  </Wrapper>;
 }

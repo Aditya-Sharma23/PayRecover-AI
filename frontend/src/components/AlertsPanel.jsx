@@ -3,7 +3,7 @@ import { apiJson } from "../api/client.js";
 import { alertLabel, alertSettingsBody, timeAgo } from "../lib/assist.js";
 
 const REFRESH_MS = 30000;
-const LINKS = { leak_found: "#scan", scan_done: "#scan", recovery_done: "#recoveries", dispute_opened: "#disputes", unrecorded_payment: "#scan" };
+const LINKS = { leak_found: "#check", money_leaking: "#check", store_vulnerable: "#check", recovery_done: "#recoveries", dispute_opened: "#disputes", unrecorded_payment: "#check" };
 
 function Channels({ channels }) {
   const entries = Object.entries(channels || {});

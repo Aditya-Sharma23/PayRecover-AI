@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiJson, getToken, setToken } from "./api/client.js";
 import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
+import CheckPanel from "./components/CheckPanel.jsx";
 import DisputesPanel from "./components/DisputesPanel.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
@@ -26,6 +27,7 @@ export default function App() {
   const [token, setTokenState] = useState(getToken());
   const [needsToken, setNeedsToken] = useState(false);
   const [stats, setStats] = useState(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     apiJson("/api/health")
@@ -55,6 +57,7 @@ export default function App() {
 
   function openReport(report) {
     setResult(report);
+    setMoreOpen(true);
     setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50);
   }
 
@@ -65,14 +68,11 @@ export default function App() {
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
         <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
-        <a href="#scan"><span aria-hidden="true">⌕</span> Scan my store</a>
+        <a href="#check"><span aria-hidden="true">⌕</span> Check payments</a>
         <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
         <a href="#alerts"><span aria-hidden="true">🔔</span> Alerts</a>
-        <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
-        <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
-        <a href="#findings"><span aria-hidden="true">⚠</span> Vulnerabilities</a>
-        <a href="#history"><span aria-hidden="true">▤</span> Run history</a>
+        <a href="#more" onClick={() => setMoreOpen(true)}><span aria-hidden="true">▤</span> More tools</a>
       </nav>
       <div className="sidebar-note">
         <span className="shield" aria-hidden="true">⬡</span>
@@ -91,29 +91,33 @@ export default function App() {
 
       {needsToken && <p className="notice notice-error" role="status">This server needs an API token. Paste it under <strong>Settings</strong> at the bottom of the page.</p>}
 
-      <section className="metrics" aria-label="Run statistics">
-        {METRICS.map(([key, title, icon, trend]) => <article className="metric-card" key={key}>
-          <span className="metric-icon" aria-hidden="true">{icon}</span>
-          <div><p>{title}</p><strong>{stats ? stats[key] : "–"}</strong></div>
-          <span className="metric-trend">{trend}</span>
-        </article>)}
-      </section>
-
       <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
 
-      <ScanPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
+      <CheckPanel
+        store={<ScanPanel embedded onRecovered={() => setRecoveryKey((value) => value + 1)} />}
+        order={<PaymentPanel embedded onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />}
+      />
 
       <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
 
       <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
 
-      <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />
-
       <RecoveryPanel refreshKey={`${recoveryKey}-${token}`} />
 
-      {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Investigate an order to scan its store, or open a run from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
+      <details className="more-tools" id="more" open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)}>
+        <summary>More tools · website and API testing, reports and run history</summary>
+        <section className="metrics" aria-label="Run statistics">
+          {METRICS.map(([key, title, icon, trend]) => <article className="metric-card" key={key}>
+            <span className="metric-icon" aria-hidden="true">{icon}</span>
+            <div><p>{title}</p><strong>{stats ? stats[key] : "–"}</strong></div>
+            <span className="metric-trend">{trend}</span>
+          </article>)}
+        </section>
 
-      <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={openReport} />
+        {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Check one order in depth to scan its store, or open a run from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
+
+        <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={openReport} />
+      </details>
 
       <details className="panel token-settings" id="settings" open={needsToken || undefined}>
         <summary>{needsToken ? "Settings · this server needs an API token" : "Settings · API token (only when backend authentication is enabled)"}</summary>

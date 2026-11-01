@@ -73,8 +73,11 @@ async def triage(steps: list[TriageStep], money: str, currency: str) -> TriagePl
     prompt = f"""Return only JSON matching this schema:
 {{"summary": "string", "why": ["string"]}}
 You are helping a small online merchant recover money. These leaks are already ranked; keep this exact order.
-Write "summary": two or three plain sentences on what to do first and why, with the total at risk ({money} {currency}).
-Write "why": exactly {len(steps)} short reasons, one per leak in the same order, saying why it sits at that rank.
+Write "summary": two short, plain sentences a shop owner would say out loud: what is wrong, the total at risk
+({money} {currency}), and what to approve first. No jargon, no talk about ranking or "leaks ranked first".
+Write "why": exactly {len(steps)} short reasons (under 20 words each), one per leak in the same order, saying what
+happens if the merchant waits, e.g. "The buyer's approval can lapse, and then this money is gone."
+Never explain the order itself, and never say a leak is first because it is the only one.
 Use only these facts. Never add, drop or reorder leaks, and never change an amount. Recoveries need the merchant's approval.
 Leaks: {json.dumps(facts, default=str)}"""
     try:
