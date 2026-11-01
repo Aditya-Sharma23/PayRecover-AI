@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    Overview,
     AlertItem,
     AlertSettings,
     AlertsView,
@@ -70,7 +71,7 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, disputes, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
+from app import (agent, alerts, disputes, overview, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
                  recovery, scan, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
@@ -449,6 +450,7 @@ async def scan_store(request: ScanRequest, http: Request, background: Background
     if request.check_security:
         result.security = await store_security.check(request.store)
     result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
+    overview.remember_scan(result)
     # Red when money is leaking, orange when it is not but the store has holes; an all-clear scan sends nothing.
     if result.verdict == "leaking":
         background.add_task(alerts.deliver, notify.scan_event(result), request_owner(http))
@@ -608,6 +610,12 @@ async def paypal_webhook(http: Request, background: BackgroundTasks) -> dict[str
 def paypal_features() -> dict:
     """Which PayPal features PayRecover can use here: the Agent Toolkit and verified webhooks."""
     return {"agent_toolkit": paypal_toolkit.available(), "webhooks": webhooks.status()}
+
+
+@app.get("/api/overview", response_model=Overview, tags=["PayRecover"])
+async def dashboard_overview(http: Request) -> Overview:
+    """Headline numbers (orders scanned, money at risk, open disputes, money recovered) and each store's latest result."""
+    return await overview.build(request_owner(http))
 
 
 @app.get("/api/alerts", response_model=AlertsView, tags=["PayRecover"])

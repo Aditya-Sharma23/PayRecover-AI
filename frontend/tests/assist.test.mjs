@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, timeAgo } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, timeAgo } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -56,4 +56,13 @@ test("each scan verdict has a title, a colour and an explanation", () => {
   assert.equal(SCAN_VERDICTS.vulnerable[1], "verdict-orange");
   assert.deepEqual(alertLabel("store_vulnerable"), ["Vulnerable", "warning"]);
   assert.deepEqual(alertLabel("money_leaking"), ["Money leaking", "failed"]);
+});
+
+test("store results read as a short line", () => {
+  const now = Date.parse("2026-11-02T12:00:00Z");
+  const at = "2026-11-02T11:55:00Z";
+  assert.equal(storeStatusText({ verdict: null }), "Scan it under Check payments");
+  assert.equal(storeStatusText({ verdict: "leaking", money_at_risk: "18.00", currency: "USD", scanned_at: at }, now), "18.00 USD at risk · 5 min ago");
+  assert.equal(storeStatusText({ verdict: "vulnerable", security_issues: 1, scanned_at: at }, now), "1 security issue · 5 min ago");
+  assert.equal(storeStatusText({ verdict: "clear", orders_checked: 4, scanned_at: at }, now), "4 paid orders match PayPal · 5 min ago");
 });

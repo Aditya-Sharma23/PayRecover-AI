@@ -89,3 +89,19 @@ export const SCAN_VERDICTS = {
   vulnerable: ["No money leaking, but the store is vulnerable", "verdict-orange", "Every paid order matches PayPal, but these holes could let money leak. Fix them before they cost you."],
   clear: ["All clear", "verdict-green", "Every paid order matches PayPal and the store passed the security checks."],
 };
+
+// Each store's latest scan result, as shown on the overview.
+export const STORE_VERDICTS = {
+  leaking: ["Money leaking", "status-red"],
+  vulnerable: ["Vulnerable", "status-orange"],
+  clear: ["All clear", "status-green"],
+  none: ["Not scanned yet", "status-none"],
+};
+
+export function storeStatusText(status, now = Date.now()) {
+  if (!status.verdict) return "Scan it under Check payments";
+  const detail = status.verdict === "leaking" ? `${status.money_at_risk} ${status.currency} at risk`
+    : status.verdict === "vulnerable" ? `${status.security_issues} security issue${status.security_issues === 1 ? "" : "s"}`
+      : `${status.orders_checked} paid order${status.orders_checked === 1 ? "" : "s"} match PayPal`;
+  return status.scanned_at ? `${detail} · ${timeAgo(status.scanned_at, now)}` : detail;
+}

@@ -949,5 +949,28 @@ class StoreSecurity(BaseModel):
     findings: list[SecurityFinding] = Field(default_factory=list)
     note: str | None = None
 
+class StoreStatus(BaseModel):
+    """A store's result from its latest scan, for the overview."""
+
+    store: str
+    verdict: Literal["leaking", "vulnerable", "clear"] | None = None
+    orders_checked: int = 0
+    money_at_risk: str = "0.00"
+    currency: str = "USD"
+    security_issues: int = 0
+    scanned_at: datetime | None = None
+
+
+class Overview(BaseModel):
+    """The dashboard's headline numbers."""
+
+    orders_scanned: int
+    money_at_risk: str
+    currency: str
+    open_disputes: int | None = Field(default=None, description="None when PayPal could not be asked.")
+    money_recovered: str
+    stores: list[StoreStatus]
+    last_activity: datetime | None = None
+
 
 ScanResult.model_rebuild()

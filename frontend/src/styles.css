@@ -390,3 +390,28 @@ footer { padding: 24px 0; color: #77818f; font-size: 11px; text-align: center; }
 
 /* Line icon in the sidebar: same colour as the text icons, and a little shorter */
 .nav-icon { width: 15px; height: 14px; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+
+/* Overview: headline cards, store results and the live indicator */
+.overview { margin-top: 13px; }
+.live-indicator { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 11px; }
+.live-indicator i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(114, 224, 173, .6); animation: live-pulse 2s infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(114, 224, 173, .55); } 70% { box-shadow: 0 0 0 7px rgba(114, 224, 173, 0); } 100% { box-shadow: 0 0 0 0 rgba(114, 224, 173, 0); } }
+@media (prefers-reduced-motion: reduce) { .live-indicator i { animation: none; } }
+.overview .metrics { margin-top: 8px; }
+.metric-card.risk strong { color: var(--red-soft); }
+.metric-card.good strong { color: var(--green); }
+.store-statuses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.store-status { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 9px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 13px; text-decoration: none; }
+.store-status:hover { border-color: var(--line-strong); }
+.store-status i { grid-row: span 2; width: 10px; height: 10px; border-radius: 50%; background: #5d6672; }
+.store-status small { grid-column: 2; color: var(--muted); font-size: 11px; }
+.store-status.status-red i { background: var(--red); }
+.store-status.status-orange i { background: var(--amber); }
+.store-status.status-green i { background: var(--green); }
+.store-status.status-red { border-left: 3px solid var(--red); }
+.store-status.status-orange { border-left: 3px solid var(--amber); }
+.store-status.status-green { border-left: 3px solid var(--green); }
+@media (max-width: 760px) { .store-statuses { grid-template-columns: 1fr; } }
+.overview-cards .metric-card > div { min-width: 0; }
+.overview-cards .metric-card strong { white-space: nowrap; }
+.overview-cards .metric-card small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -4,6 +4,7 @@ import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
 import CheckPanel from "./components/CheckPanel.jsx";
 import DisputesPanel from "./components/DisputesPanel.jsx";
+import OverviewPanel from "./components/OverviewPanel.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
@@ -28,6 +29,7 @@ export default function App() {
   const [needsToken, setNeedsToken] = useState(false);
   const [stats, setStats] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [overviewKey, setOverviewKey] = useState(0);
 
   useEffect(() => {
     apiJson("/api/health")
@@ -67,8 +69,8 @@ export default function App() {
       <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Pay<span className="brand-accent">Recover</span> AI</span></a>
       <nav className="side-nav">
         <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
-        <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#check"><span aria-hidden="true">⌕</span> Check payments</a>
+        <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
         <a href="#alerts"><span aria-hidden="true"><svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg></span> Alerts</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
@@ -91,12 +93,14 @@ export default function App() {
 
       {needsToken && <p className="notice notice-error" role="status">This server needs an API token. Paste it under <strong>Settings</strong> at the bottom of the page.</p>}
 
-      <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
+      <OverviewPanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
 
       <CheckPanel
-        store={<ScanPanel embedded onRecovered={() => setRecoveryKey((value) => value + 1)} />}
+        store={<ScanPanel embedded onRecovered={() => setRecoveryKey((value) => value + 1)} onScanned={() => setOverviewKey((value) => value + 1)} />}
         order={<PaymentPanel embedded onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />}
       />
+
+      <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
 
       <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
 

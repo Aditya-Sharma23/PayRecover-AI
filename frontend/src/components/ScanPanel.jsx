@@ -79,7 +79,7 @@ const COLUMNS = [
   { field: "id", headerName: "Recover", width: 290, cellRenderer: ActionsCell, sortable: false, filter: false },
 ];
 
-export default function ScanPanel({ onRecovered, embedded = false }) {
+export default function ScanPanel({ onRecovered, onScanned, embedded = false }) {
   const [store, setStore] = useState("main");
   const [limit, setLimit] = useState(25);
   const [result, setResult] = useState(null);
@@ -97,6 +97,7 @@ export default function ScanPanel({ onRecovered, embedded = false }) {
     setOutcomes({});
     try {
       setResult(await apiJson("/api/stores/scan", { method: "POST", body: scanBody(store, limit) }, "The scan could not be completed."));
+      onScanned?.();
     } catch (reason) {
       setError(reason.message);
     } finally { setBusy(false); }

@@ -1761,6 +1761,60 @@
         "title": "OverallStatus",
         "type": "string"
       },
+      "Overview": {
+        "description": "The dashboard's headline numbers.",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "last_activity": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "money_at_risk": {
+            "type": "string"
+          },
+          "money_recovered": {
+            "type": "string"
+          },
+          "open_disputes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when PayPal could not be asked."
+          },
+          "orders_scanned": {
+            "type": "integer"
+          },
+          "stores": {
+            "items": {
+              "$ref": "#/components/schemas/StoreStatus"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "orders_scanned",
+          "money_at_risk",
+          "currency",
+          "money_recovered",
+          "stores"
+        ],
+        "title": "Overview",
+        "type": "object"
+      },
       "PaymentCheck": {
         "additionalProperties": false,
         "properties": {
@@ -2352,6 +2406,61 @@
           "checked"
         ],
         "title": "StoreSecurity",
+        "type": "object"
+      },
+      "StoreStatus": {
+        "description": "A store's result from its latest scan, for the overview.",
+        "properties": {
+          "currency": {
+            "default": "USD",
+            "type": "string"
+          },
+          "money_at_risk": {
+            "default": "0.00",
+            "type": "string"
+          },
+          "orders_checked": {
+            "default": 0,
+            "type": "integer"
+          },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "security_issues": {
+            "default": 0,
+            "type": "integer"
+          },
+          "store": {
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "leaking",
+                  "vulnerable",
+                  "clear"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "store"
+        ],
+        "title": "StoreStatus",
         "type": "object"
       },
       "SummaryCounts": {
@@ -3647,6 +3756,28 @@
           }
         },
         "summary": "Evidence Pack",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/overview": {
+      "get": {
+        "description": "Headline numbers (orders scanned, money at risk, open disputes, money recovered) and each store's latest result.",
+        "operationId": "dashboard_overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Dashboard Overview",
         "tags": [
           "PayRecover"
         ]
