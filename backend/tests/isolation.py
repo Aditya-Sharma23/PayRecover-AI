@@ -23,3 +23,22 @@ def restore_database() -> None:
     if _directory is not None:
         _directory.cleanup()
         _directory = None
+
+
+_alert_patch = None
+
+
+def isolate_alerts() -> None:
+    """Send alerts nowhere real: a temporary feed, and no Zapier hook or email key from the developer's .env."""
+    global _alert_patch
+    from unittest.mock import patch
+
+    folder = tempfile.mkdtemp()
+    _alert_patch = patch.dict(os.environ, {"TESTPILOT_ALERTS_DIR": folder, "TESTPILOT_ZAPIER_WEBHOOK_URL": "",
+                                           "TESTPILOT_BREVO_API_KEY": ""})
+    _alert_patch.start()
+
+
+def restore_alerts() -> None:
+    if _alert_patch is not None:
+        _alert_patch.stop()

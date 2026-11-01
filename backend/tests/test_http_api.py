@@ -1,5 +1,6 @@
 """End-to-end HTTP tests: authentication, per-user ownership, history and imports."""
 
+import isolation
 import json
 import os
 import unittest
@@ -13,8 +14,6 @@ from app.schemas import CheckName, CheckResult, CheckStatus
 from app.storage import save_artifact
 from isolation import restore_database, use_temporary_database
 
-setUpModule = use_temporary_database
-tearDownModule = restore_database
 
 ALICE = "a" * 40
 BOB = "b" * 40
@@ -33,6 +32,16 @@ def fake_checks(status: CheckStatus, artifact: str | None = None):
 
 def as_user(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
+
+
+def setUpModule():
+    use_temporary_database()
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    restore_database()
+    isolation.restore_alerts()
 
 
 class HttpApiTests(unittest.TestCase):

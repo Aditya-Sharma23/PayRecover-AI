@@ -896,3 +896,31 @@ class AgentReply(BaseModel):
 
 
 ScanResult.model_rebuild()
+
+
+class AlertSettings(BaseModel):
+    """Where one user's alerts go, besides the dashboard feed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: str | None = Field(default=None, max_length=254)
+    zapier_url: str | None = Field(default=None, max_length=300)
+
+
+class AlertItem(BaseModel):
+    alert_id: str
+    event: str
+    summary: str
+    message: str
+    order_id: str | None = None
+    dispute_id: str | None = None
+    store: str | None = None
+    created_at: datetime
+    channels: dict[str, str] = Field(default_factory=dict)
+
+
+class AlertsView(BaseModel):
+    settings: AlertSettings
+    alerts: list[AlertItem]
+    email_available: bool
+    zapier_default: bool

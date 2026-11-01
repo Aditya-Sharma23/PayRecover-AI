@@ -1,6 +1,9 @@
-# Render Blueprint: New > Blueprint > pick this repository.
-# The service refuses to start until every public-deployment gate passes;
-# set TESTPILOT_PUBLIC_URL and TESTPILOT_GOOGLE_API_KEY in the dashboard.
+# Render Blueprint: New > Blueprint > pick this repository. It creates three services:
+#   payrecover-ai          the PayRecover backend and dashboard (Docker)
+#   payrecover-main-store  the Main store it checks
+#   payrecover-vuln-store  the deliberately buggy demo store (PayPal Sandbox only)
+# Values marked sync: false are asked for in the Render dashboard; see docs/deployment.md.
+# The backend refuses to start until every public-deployment gate passes.
 services:
   - type: web
     name: payrecover-ai
@@ -34,3 +37,58 @@ services:
         value: gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.7-flash
       - key: FORWARDED_ALLOW_IPS
         value: "*"
+      # PayPal Sandbox app (Client ID and Secret), the same app the stores use.
+      - key: TESTPILOT_PAYPAL_CLIENT_ID
+        sync: false
+      - key: TESTPILOT_PAYPAL_CLIENT_SECRET
+        sync: false
+      # The stores' public addresses, e.g. https://payrecover-main-store.onrender.com
+      - key: TESTPILOT_STORE_URL
+        sync: false
+      - key: TESTPILOT_VULN_STORE_URL
+        sync: false
+      # PayPal webhook id (developer.paypal.com > your app > Webhooks, URL <public url>/api/paypal/webhook).
+      - key: TESTPILOT_PAYPAL_WEBHOOK_ID
+        sync: false
+      # Zapier Catch Hook and the key that signs approval links.
+      - key: TESTPILOT_ZAPIER_WEBHOOK_URL
+        sync: false
+      - key: TESTPILOT_APPROVAL_SECRET
+        generateValue: true
+      # Alert email through Brevo: API key and a Brevo-verified sender address.
+      - key: TESTPILOT_BREVO_API_KEY
+        sync: false
+      - key: TESTPILOT_ALERT_SENDER
+        sync: false
+
+  - type: web
+    name: payrecover-main-store
+    runtime: python
+    plan: free
+    rootDir: main-store
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/config
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+
+  - type: web
+    name: payrecover-vuln-store
+    runtime: python
+    plan: free
+    rootDir: vuln-store
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/config
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false

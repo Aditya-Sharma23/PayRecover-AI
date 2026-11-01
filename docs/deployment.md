@@ -50,11 +50,35 @@ docker compose up --build
 
 ## Deploy to Render (blueprint included)
 
+`render.yaml` creates three services: **payrecover-ai** (backend and dashboard, Docker, 1 GB disk at `/data`),
+**payrecover-main-store** and **payrecover-vuln-store** (the two Sandbox demo stores, free plan).
+
 1. Push the repository to GitHub.
-2. In Render: **New → Blueprint**, choose the repository. `render.yaml` creates a Docker web service with a 1 GB disk at `/data` and a generated `TESTPILOT_API_TOKEN`.
-3. Set `TESTPILOT_PUBLIC_URL` to the service URL (for example `https://payrecover-ai.onrender.com`) and `TESTPILOT_GOOGLE_API_KEY` to your key.
-4. Deploy. Check `https://<your-service>/api/deployment/readiness` shows `"ready": true`.
-5. Open the site, expand **API token**, and paste the token from the Render environment page.
+2. In Render: **New → Blueprint**, choose the repository. Render lists the values marked `sync: false`.
+3. Fill them in (the stores' URLs are `https://<service-name>.onrender.com` unless Render gives another):
+
+| Service | Setting | Value |
+|---|---|---|
+| both stores | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | your Sandbox app's Client ID and Secret |
+| payrecover-ai | `TESTPILOT_PAYPAL_CLIENT_ID`, `TESTPILOT_PAYPAL_CLIENT_SECRET` | the same Client ID and Secret |
+| payrecover-ai | `TESTPILOT_PUBLIC_URL` | `https://payrecover-ai.onrender.com` |
+| payrecover-ai | `TESTPILOT_STORE_URL` | `https://payrecover-main-store.onrender.com` |
+| payrecover-ai | `TESTPILOT_VULN_STORE_URL` | `https://payrecover-vuln-store.onrender.com` |
+| payrecover-ai | `TESTPILOT_GOOGLE_API_KEY` | your Gemini key |
+| payrecover-ai | `TESTPILOT_ZAPIER_WEBHOOK_URL` | your Zapier Catch Hook URL |
+| payrecover-ai | `TESTPILOT_BREVO_API_KEY`, `TESTPILOT_ALERT_SENDER` | your Brevo API key and the sender email you verified in Brevo |
+| payrecover-ai | `TESTPILOT_PAYPAL_WEBHOOK_ID` | leave empty for now (step 6) |
+
+4. Deploy. Check `https://payrecover-ai.onrender.com/api/deployment/readiness` shows `"ready": true`.
+5. Open the site, expand **API token**, and paste `TESTPILOT_API_TOKEN` from the Render environment page.
+6. PayPal webhooks: on developer.paypal.com open your Sandbox app → **Webhooks → Add webhook**, URL
+   `https://payrecover-ai.onrender.com/api/paypal/webhook`, events **Payment capture completed** and
+   **Customer dispute created**. Copy the webhook's **ID** into `TESTPILOT_PAYPAL_WEBHOOK_ID` and redeploy.
+   PayRecover verifies every event with PayPal before reading it.
+
+Free Render services sleep after about 15 minutes idle and take 30 to 60 seconds to wake; open the two stores
+first before a demo. The Vulnerable store is deliberately insecure (reflected XSS, editable prices); it only
+ever talks to the PayPal Sandbox, so never give it live PayPal keys.
 
 A persistent disk needs a paid Render plan. Without one, history is lost on each deploy.
 

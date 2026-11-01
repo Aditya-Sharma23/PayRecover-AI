@@ -170,9 +170,10 @@ def unrecorded_event(payment: UnrecordedPayment) -> dict[str, Any]:
     return {"event": "unrecorded_payment", "transaction_id": payment.transaction_id, "store": payment.store,
             "amount": payment.amount, "currency": payment.currency, "summary": summary, "message": message}
 
-async def send(event: dict[str, Any]) -> bool:
-    """Post one event to the Zapier webhook. Returns whether Zapier accepted it; never raises."""
-    url = _webhook_url()
+async def send(event: dict[str, Any], url: str | None = None) -> bool:
+    """Post one event to a Zapier webhook (the given one, else the operator's). Returns whether Zapier
+    accepted it; never raises."""
+    url = url or _webhook_url()
     if url is None:
         return False
     try:

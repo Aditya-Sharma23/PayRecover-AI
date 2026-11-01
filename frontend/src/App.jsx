@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiJson, getToken, setToken } from "./api/client.js";
+import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
 import DisputesPanel from "./components/DisputesPanel.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
@@ -66,6 +67,7 @@ export default function App() {
         <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#scan"><span aria-hidden="true">⌕</span> Scan my store</a>
         <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
+        <a href="#alerts"><span aria-hidden="true">🔔</span> Alerts</a>
         <a href="#payments"><span aria-hidden="true">$</span> Investigate order</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#report"><span aria-hidden="true">◉</span> Latest report</a>
@@ -102,6 +104,8 @@ export default function App() {
       <ScanPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
 
       <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
+
+      <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
 
       <PaymentPanel onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />
 

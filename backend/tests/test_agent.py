@@ -1,5 +1,6 @@
 """Ask PayRecover: Gemini calls tools in a loop, toolkit tools stay read-only, and money moves only as proposals."""
 
+import isolation
 import asyncio
 import unittest
 from datetime import datetime, timezone
@@ -26,6 +27,14 @@ def call(name, args, call_id=None):
     return part
 
 
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
+
+
 class AgentTests(unittest.TestCase):
     def converse(self, turns, toolkit=None):
         """turns: the model's parts for each step, in order."""
@@ -40,10 +49,12 @@ class AgentTests(unittest.TestCase):
             self.toolkit_calls.append((method, params))
             return toolkit or {"items": []}
 
-        async def fake_investigate(_request, *_):
+        async def fake_investigate(request, *_):
+            self.investigated.append(request.store)
             return investigation()
 
         self.toolkit_calls = []
+        self.investigated = []
         request = AgentRequest(messages=[{"role": "user", "text": "What am I losing?"}])
         with (
             patch("app.ai.generate_turn", fake_turn),
@@ -80,6 +91,17 @@ class AgentTests(unittest.TestCase):
         proposal = reply.proposals[0]
         self.assertEqual((proposal.kind, proposal.order_id, proposal.amount), ("recovery", ORDER_ID, "68.97"))
         self.assertIn('"executed": false', reply.tool_calls[0].summary)
+
+    def test_the_store_the_merchant_names_is_used_over_the_dashboard_selection(self):
+        reply = self.converse([[call("propose_recovery", {"order_id": ORDER_ID, "leak_kind": "never_captured",
+                                                          "store": "vulnerable"}),
+                                call("investigate_order", {"order_id": ORDER_ID})], [{"text": "Done."}]])
+        self.assertEqual(self.investigated, ["vulnerable", "main"])
+        self.assertEqual(reply.proposals[0].store, "vulnerable")
+
+    def test_an_unknown_store_is_refused(self):
+        reply = self.converse([[call("scan_store", {"store": "https://evil.example"})], [{"text": "No."}]])
+        self.assertFalse(reply.tool_calls[0].ok)
 
     def test_a_proposal_for_a_leak_that_does_not_exist_is_refused(self):
         reply = self.converse([[call("propose_recovery", {"order_id": ORDER_ID, "leak_kind": "wrong_amount"})],

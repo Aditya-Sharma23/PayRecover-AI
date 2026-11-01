@@ -16,6 +16,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    AlertItem,
+    AlertSettings,
+    AlertsView,
     AgentRequest,
     ApiRunReport,
     DisputeCase,
@@ -67,7 +70,7 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, disputes, evidence, investigate, notify, paypal, paypal_toolkit,
+from app import (agent, alerts, disputes, evidence, investigate, notify, paypal, paypal_toolkit,
                  recovery, scan, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
@@ -419,12 +422,12 @@ async def investigate_order(request: InvestigationRequest, http: Request, backgr
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.leaks:
         # Sent after the response, so a slow or failing Zapier never delays or fails the investigation.
-        background.add_task(notify.send, notify.leak_event(result, owner))
+        background.add_task(alerts.deliver, notify.leak_event(result, owner), owner)
     return result
 
 
 @app.post("/api/stores/scan", response_model=ScanResult, tags=["PayRecover"])
-async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanResult:
+async def scan_store(request: ScanRequest, http: Request, background: BackgroundTasks) -> ScanResult:
     """Check every recent paid order of a store against PayPal and plan the recovery.
 
     Leaks are ranked by urgency, then amount; Gemini only words the plan for that order.
@@ -440,7 +443,7 @@ async def scan_store(request: ScanRequest, background: BackgroundTasks) -> ScanR
     if request.check_paypal_side:
         result.unrecorded = await unrecorded.find(request.store)
     if result.leaking_orders:
-        background.add_task(notify.send, notify.scan_event(result))
+        background.add_task(alerts.deliver, notify.scan_event(result), request_owner(http))
     return result
 
 
@@ -468,14 +471,15 @@ async def approve_recovery(request: RecoveryRequest, http: Request, background: 
     by a fresh read of PayPal, and a recovery already done is returned instead of repeated.
     """
     try:
-        record = await recovery.recover(request, request_owner(http))
+        owner = request_owner(http)
+        record = await recovery.recover(request, owner)
     except recovery.RecoveryNotPossible as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except paypal.PayPalConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    background.add_task(notify.send, notify.recovery_event(record))
+    background.add_task(alerts.deliver, notify.recovery_event(record), owner)
     return record
 
 
@@ -594,6 +598,38 @@ def paypal_features() -> dict:
     return {"agent_toolkit": paypal_toolkit.available(), "webhooks": webhooks.status()}
 
 
+@app.get("/api/alerts", response_model=AlertsView, tags=["PayRecover"])
+def list_alerts(http: Request) -> AlertsView:
+    """The caller's recent alerts and where they are sent (dashboard, email, Zapier)."""
+    return alerts.view(request_owner(http))
+
+
+@app.put("/api/alerts/settings", response_model=AlertSettings, tags=["PayRecover"])
+def save_alert_settings(settings: AlertSettings, http: Request) -> AlertSettings:
+    """Save where the caller's alerts go: an email address and, optionally, their own Zapier Catch Hook."""
+    try:
+        return alerts.save_settings(request_owner(http), settings)
+    except alerts.InvalidAlertSettings as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/alerts/test", response_model=AlertItem, tags=["PayRecover"])
+async def send_test_alert(http: Request) -> AlertItem:
+    """Send a test alert to the caller's dashboard, email and Zapier, to check the set-up."""
+    owner = request_owner(http)
+    try:
+        alerts.allow_test(owner)
+    except alerts.TooManyTests as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    return await alerts.deliver(alerts.test_event(), owner)
+
+
+@app.delete("/api/alerts", tags=["PayRecover"])
+def clear_alerts(http: Request) -> dict[str, int]:
+    """Clear the caller's alert feed (settings are kept)."""
+    return {"deleted": alerts.clear(request_owner(http))}
+
+
 @app.get("/api/notify/status", tags=["PayRecover"])
 def notify_status() -> dict[str, bool]:
     """Whether the Zapier webhook and signed approval links are configured (never their values)."""
@@ -650,7 +686,7 @@ async def approval_submit(http: Request, background: BackgroundTasks) -> HTMLRes
         return _approval_page("Nothing to recover", f"<p>{html.escape(str(exc))}</p>", 409)
     except (paypal.PayPalConfigurationError, paypal.PayPalProviderError) as exc:
         return _approval_page("PayPal could not be reached", f"<p class='bad'>{html.escape(str(exc))}</p>", 502)
-    background.add_task(notify.send, notify.recovery_event(record))
+    background.add_task(alerts.deliver, notify.recovery_event(record), approval["owner"])
     tone = "ok" if record.status in recovery.DONE_STATUSES else "bad"
     checks = "".join(f"<li>{'✓' if c.status == 'passed' else '✗'} {html.escape(c.message)}</li>" for c in record.verification)
     return _approval_page("Recovery done" if tone == "ok" else "Recovery not completed",

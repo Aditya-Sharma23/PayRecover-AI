@@ -13,7 +13,7 @@ import asyncio
 import os
 from typing import Any
 
-from app import disputes, investigate, notify, paypal, unrecorded
+from app import alerts, disputes, investigate, notify, paypal, unrecorded
 from app.schemas import InvestigationRequest, UnrecordedPayment
 
 STORE_BY_TAG = {tag: store for store, tag in unrecorded.STORE_TAGS.items()}
@@ -92,11 +92,11 @@ async def handle(event: dict[str, Any], owner: str) -> list[dict[str, Any]]:
     kind = event.get("event_type")
     resource = event.get("resource") or {}
     if kind == "PAYMENT.CAPTURE.COMPLETED":
-        alerts = await on_capture(resource, owner)
+        found = await on_capture(resource, owner)
     elif kind == "CUSTOMER.DISPUTE.CREATED":
-        alerts = await on_dispute(resource)
+        found = await on_dispute(resource)
     else:
         return []
-    for alert in alerts:
-        await notify.send(alert)
-    return alerts
+    for alert in found:
+        await alerts.deliver_to_store_owners(alert, owner)
+    return found

@@ -164,13 +164,22 @@ Every leak comes with a recovery the merchant can approve, on the dashboard or f
 The **Money recovered** panel (AG Grid) lists every recovery with totals collected, invoiced and refunded.
 Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps & Credentials > your app > Features).
 
-### Zapier: approve from your phone
+### Alerts: dashboard, email and Zapier
 
-Set `TESTPILOT_ZAPIER_WEBHOOK_URL` (a Zapier *Catch Hook*) and `TESTPILOT_APPROVAL_SECRET` (32+ random characters)
-in `backend/.env`. PayRecover then posts a `leak_found` event for every leak, with a signed **Approve recovery** link
-that expires after 24 hours, and a `recovery_done` event after each recovery. In Zapier, forward `leak_found` by
-email, Slack or SMS, and append `recovery_done` to a Google Sheet as an audit log. Opening a link only shows a
-confirmation page; money moves when the button on it is pressed.
+PayRecover tells the merchant when money leaks, a payment goes unrecorded, a dispute opens or a recovery
+finishes, in three layers set in the dashboard's **Alerts** card:
+
+1. **The alert feed on the dashboard**: always on, no setup.
+2. **Email**: type an address once; PayRecover sends the alert itself through [Brevo](https://www.brevo.com)
+   (free plan). The server needs `TESTPILOT_BREVO_API_KEY` and a Brevo-verified sender in `TESTPILOT_ALERT_SENDER`.
+3. **Zapier (optional)**: paste your own Zapier *Catch Hook* to forward alerts to Slack, SMS, a Google Sheet or any
+   of 9,000+ apps. Without one, the operator's `TESTPILOT_ZAPIER_WEBHOOK_URL` is used if set. Only
+   `hooks.zapier.com` addresses are accepted.
+
+Each user's settings and feed are kept apart, **Send test alert** checks the setup (five an hour), and a failing
+channel is shown on the alert and never fails a scan or recovery. With `TESTPILOT_APPROVAL_SECRET` (32+ random
+characters) set, every leak alert carries a signed **Approve recovery** link that expires after 24 hours.
+Opening it only shows a confirmation page; money moves when the button on it is pressed.
 
 ### Catching payment bugs
 

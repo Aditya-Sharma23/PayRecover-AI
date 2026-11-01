@@ -1,5 +1,6 @@
 """Dispute defender: disputes link to their order and store, the AI only advises, and answers need approval."""
 
+import isolation
 import asyncio
 import unittest
 from datetime import datetime, timezone
@@ -37,6 +38,14 @@ DUPLICATE = Leak(kind="duplicate_charge", title="Charged twice", amount="18.00",
                  recovery_action="refund", recovery="Refund", targets=[RecoveryTarget(order_id=ORDER_ID,
                                                                                        capture_id=CAPTURE_ID,
                                                                                        amount="18.00")])
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class FakePayPal:

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, disputeBody, disputeQuestion, disputeReason, proposalRequest } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, timeAgo } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -32,4 +32,21 @@ test("approving a proposal sends the same approved calls as the dashboard", () =
   assert.deepEqual(proposalRequest({ kind: "dispute", dispute_id: "PP-D-1", dispute_action: "accept_claim", note: "We agree." }), {
     path: "/api/disputes/PP-D-1/respond", body: { action: "accept_claim", note: "We agree.", approved: true },
   });
+});
+
+test("alert settings send empty fields as null", () => {
+  assert.deepEqual(alertSettingsBody(" me@shop.example ", "  "), { email: "me@shop.example", zapier_url: null });
+});
+
+test("alerts are labelled, with unknown kinds kept readable", () => {
+  assert.deepEqual(alertLabel("leak_found"), ["Leak found", "failed"]);
+  assert.deepEqual(alertLabel("new_kind"), ["new kind", "skipped"]);
+});
+
+test("alert times read as minutes, hours or days ago", () => {
+  const now = Date.parse("2026-11-02T12:00:00Z");
+  assert.equal(timeAgo("2026-11-02T11:59:30Z", now), "just now");
+  assert.equal(timeAgo("2026-11-02T11:55:00Z", now), "5 min ago");
+  assert.equal(timeAgo("2026-11-02T09:00:00Z", now), "3 h ago");
+  assert.equal(timeAgo("2026-10-31T12:00:00Z", now), "2 d ago");
 });

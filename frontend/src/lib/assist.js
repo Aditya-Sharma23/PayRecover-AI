@@ -58,3 +58,26 @@ export const EXAMPLE_QUESTIONS = [
   "Did PayPal take any payments my store never recorded?",
   "Recover every urgent leak.",
 ];
+
+// Alerts: where they go, and how each kind is labelled in the feed.
+export const ALERT_EVENTS = {
+  leak_found: ["Leak found", "failed"],
+  scan_done: ["Scan", "job-running"],
+  recovery_done: ["Recovered", "passed"],
+  dispute_opened: ["Dispute", "warning"],
+  unrecorded_payment: ["Not recorded", "failed"],
+  test: ["Test", "skipped"],
+};
+
+export const alertLabel = (event) => ALERT_EVENTS[event] || [String(event || "alert").replaceAll("_", " "), "skipped"];
+
+export const alertSettingsBody = (email, zapierUrl) => ({ email: email.trim() || null, zapier_url: zapierUrl.trim() || null });
+
+export function timeAgo(when, now = Date.now()) {
+  const seconds = Math.max(0, Math.round((now - new Date(when).getTime()) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours} h ago` : `${Math.round(hours / 24)} d ago`;
+}

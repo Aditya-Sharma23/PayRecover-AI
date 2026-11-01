@@ -1,5 +1,6 @@
 """Evidence pack: a fresh, escaped, fingerprinted page with the order's recoveries and no buyer details."""
 
+import isolation
 import asyncio
 import os
 import tempfile
@@ -27,6 +28,14 @@ def investigation(note="<script>x</script>"):
         checks=[PaymentCheck(name="capture_completed", status="failed", message="No completed capture.")],
         leaks=[leak], money_at_risk="18.00", currency="USD",
     )
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class EvidenceTests(unittest.TestCase):

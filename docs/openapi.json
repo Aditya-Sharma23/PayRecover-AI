@@ -401,6 +401,128 @@
         "title": "AgentToolCall",
         "type": "object"
       },
+      "AlertItem": {
+        "properties": {
+          "alert_id": {
+            "type": "string"
+          },
+          "channels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dispute_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "alert_id",
+          "event",
+          "summary",
+          "message",
+          "created_at"
+        ],
+        "title": "AlertItem",
+        "type": "object"
+      },
+      "AlertSettings": {
+        "additionalProperties": false,
+        "description": "Where one user's alerts go, besides the dashboard feed.",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "zapier_url": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AlertSettings",
+        "type": "object"
+      },
+      "AlertsView": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/AlertItem"
+            },
+            "type": "array"
+          },
+          "email_available": {
+            "type": "boolean"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AlertSettings"
+          },
+          "zapier_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "settings",
+          "alerts",
+          "email_available",
+          "zapier_default"
+        ],
+        "title": "AlertsView",
+        "type": "object"
+      },
       "ApiRunReport": {
         "additionalProperties": false,
         "description": "Evidence report for one bounded API request.",
@@ -2683,6 +2805,115 @@
         "summary": "Ai Status",
         "tags": [
           "AI"
+        ]
+      }
+    },
+    "/api/alerts": {
+      "delete": {
+        "description": "Clear the caller's alert feed (settings are kept).",
+        "operationId": "clear_alerts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clear Alerts",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "get": {
+        "description": "The caller's recent alerts and where they are sent (dashboard, email, Zapier).",
+        "operationId": "list_alerts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Alerts",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/alerts/settings": {
+      "put": {
+        "description": "Save where the caller's alerts go: an email address and, optionally, their own Zapier Catch Hook.",
+        "operationId": "save_alert_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Alert Settings",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/alerts/test": {
+      "post": {
+        "description": "Send a test alert to the caller's dashboard, email and Zapier, to check the set-up.",
+        "operationId": "send_test_alert",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Send Test Alert",
+        "tags": [
+          "PayRecover"
         ]
       }
     },

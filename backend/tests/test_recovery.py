@@ -1,5 +1,6 @@
 """Recovery actions: approval, recomputed targets, PayPal calls, verification and the log."""
 
+import isolation
 import asyncio
 import os
 import tempfile
@@ -33,6 +34,14 @@ NEVER_CAPTURED = leak("never_captured", "capture", "18.00", RecoveryTarget(order
 WRONG_AMOUNT = leak("wrong_amount", "invoice", "17.00", RecoveryTarget(order_id=ORDER_ID, amount="17.00"))
 DUPLICATE = leak("duplicate_charge", "refund", "18.00",
                  RecoveryTarget(order_id="9ZZ00000000000002", capture_id="CAP2", amount="18.00"))
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class FakePayPal:

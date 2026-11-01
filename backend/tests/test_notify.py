@@ -1,5 +1,6 @@
 """Zapier events and signed approval links."""
 
+import isolation
 import asyncio
 import os
 import unittest
@@ -20,6 +21,14 @@ def leaking() -> Investigation:
                 recovery_action="capture", recovery="Capture it.", targets=[RecoveryTarget(order_id=ORDER_ID, amount="18.00")])
     return Investigation(order_id=ORDER_ID, verdict="leaking", store="vulnerable", checked_at="2026-10-31T00:00:00Z",
                          store_url="http://127.0.0.1:8200", checks=[], leaks=[leak], money_at_risk="18.00", currency="USD")
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class TokenTests(unittest.TestCase):

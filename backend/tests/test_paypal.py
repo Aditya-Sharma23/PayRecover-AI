@@ -1,5 +1,6 @@
 """PayPal Sandbox verifier: order evaluation, endpoint behaviour and request validation."""
 
+import isolation
 import asyncio
 import os
 import unittest
@@ -42,6 +43,14 @@ def verify(order, **expected):
 
     with patch("app.paypal.fetch_order", fake_fetch):
         return asyncio.run(paypal.verify_order(PaymentVerificationRequest(order_id=ORDER_ID, **expected)))
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class PayPalVerifierTests(unittest.TestCase):

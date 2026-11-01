@@ -25,6 +25,10 @@ from app.schemas import (
 MAX_STEPS = 6
 MAX_RESULT_CHARS = 6000
 ORDER_ID = {"type": "string", "pattern": "^[A-Z0-9]{8,40}$", "description": "A PayPal order id."}
+STORE_NAMES = ("main", "vulnerable")
+STORE = {"type": "string", "enum": list(STORE_NAMES),
+         "description": "Which store: 'main' (Main store) or 'vulnerable' (Vulnerable store). Use the store the "
+                        "merchant names; leave it out to use the store selected on the dashboard."}
 SYSTEM = (
     "You are PayRecover, an assistant for a merchant who sells through PayPal (Sandbox). You find money the "
     "store is losing on PayPal and help get it back. Use the tools for every fact: never guess amounts, ids, "
@@ -32,17 +36,20 @@ SYSTEM = (
     "dispute, call propose_dispute_answer. Both only show the merchant an Approve button; say so, and never "
     "claim money has moved. Tools marked [PayPal Agent Toolkit] read PayPal directly. Answer in short, plain "
     "sentences with the amounts and order ids that matter, and say what the merchant should approve next. "
-    "Write plain text without Markdown."
+    "Write plain text without Markdown. There are two stores, 'main' and 'vulnerable'; when the merchant names "
+    "one, pass it as the store argument, and say which store your answer is about."
 )
 
 PAYRECOVER_TOOLS = [
     {"name": "scan_store", "description": "Check the store's recent paid orders against PayPal and list every "
      "leak (never captured, fake paid, wrong amount, duplicate charge) with amounts and urgency.",
      "parametersJsonSchema": {"type": "object", "properties": {
-         "limit": {"type": "integer", "minimum": 1, "maximum": 50, "description": "How many recent orders."}}}},
+         "limit": {"type": "integer", "minimum": 1, "maximum": 50, "description": "How many recent orders."},
+         "store": STORE}}},
     {"name": "investigate_order", "description": "Every check for one order: the store's claim next to "
      "PayPal's record, and any leak.",
-     "parametersJsonSchema": {"type": "object", "properties": {"order_id": ORDER_ID}, "required": ["order_id"]}},
+     "parametersJsonSchema": {"type": "object", "properties": {"order_id": ORDER_ID, "store": STORE},
+                              "required": ["order_id"]}},
     {"name": "list_recoveries", "description": "Money PayRecover has already recovered, with totals.",
      "parametersJsonSchema": {"type": "object", "properties": {}}},
     {"name": "list_dispute_cases", "description": "Open PayPal disputes, each linked to its store order, with "
@@ -50,11 +57,11 @@ PAYRECOVER_TOOLS = [
      "parametersJsonSchema": {"type": "object", "properties": {}}},
     {"name": "find_unrecorded_payments", "description": "Payments PayPal completed for this store that the "
      "store never recorded (the buyer was charged, the store does not know).",
-     "parametersJsonSchema": {"type": "object", "properties": {}}},
+     "parametersJsonSchema": {"type": "object", "properties": {"store": STORE}}},
     {"name": "propose_recovery", "description": "Propose recovering one leak (PayRecover picks capture, refund "
      "or invoice). Shows the merchant an Approve button; nothing runs until they press it.",
      "parametersJsonSchema": {"type": "object", "properties": {
-         "order_id": ORDER_ID, "leak_kind": {"type": "string", "enum": list(LEAK_KINDS)}},
+         "order_id": ORDER_ID, "leak_kind": {"type": "string", "enum": list(LEAK_KINDS)}, "store": STORE},
          "required": ["order_id", "leak_kind"]}},
     {"name": "propose_dispute_answer", "description": "Propose an answer to a PayPal dispute: send evidence, "
      "or accept the claim (refunds the buyer). Shows the merchant an Approve button.",
@@ -83,7 +90,7 @@ def _leak_view(leaks) -> list[dict[str, Any]]:
 
 
 class Session:
-    """One assistant reply: runs tools for one store and collects proposals."""
+    """One assistant reply: runs tools (on the dashboard's store unless the model names the other) and collects proposals."""
 
     def __init__(self, store: str, owner: str):
         self.store = store
@@ -91,23 +98,29 @@ class Session:
         self.proposals: list[AgentProposal] = []
         self.calls: list[AgentToolCall] = []
 
-    async def _investigate(self, order_id: str):
+    def _store(self, args: dict[str, Any]) -> str:
+        store = args.get("store") or self.store
+        if store not in STORE_NAMES:
+            raise ToolRefused(f"Unknown store {store!r}; use 'main' or 'vulnerable'.")
+        return store
+
+    async def _investigate(self, order_id: str, store: str):
         return await investigate.investigate(InvestigationRequest(
-            order_id=order_id, store=self.store, probe_store=False, website_checks=False, xss_probe=False,
+            order_id=order_id, store=store, probe_store=False, website_checks=False, xss_probe=False,
             explain=False,
         ))
 
     async def payrecover(self, name: str, args: dict[str, Any]) -> Any:
         if name == "scan_store":
-            result = await scan.scan_store(ScanRequest(store=self.store, limit=int(args.get("limit") or 25),
+            result = await scan.scan_store(ScanRequest(store=self._store(args), limit=int(args.get("limit") or 25),
                                                        explain=False, check_paypal_side=False))
-            return {"orders_checked": result.orders_checked, "leaking_orders": result.leaking_orders,
+            return {"store": result.store, "orders_checked": result.orders_checked, "leaking_orders": result.leaking_orders,
                     "money_at_risk": f"{result.money_at_risk} {result.currency}",
                     "leaks": [{"order_id": item.order_id, "leaks": _leak_view(item.leaks)}
                               for item in result.items if item.leaks]}
         if name == "investigate_order":
-            found = await self._investigate(str(args["order_id"]))
-            return {"order_id": found.order_id, "verdict": found.verdict, "store_claim": found.store_claim,
+            found = await self._investigate(str(args["order_id"]), self._store(args))
+            return {"store": found.store, "order_id": found.order_id, "verdict": found.verdict, "store_claim": found.store_claim,
                     "paypal": found.paypal_order, "leaks": _leak_view(found.leaks),
                     "failed_checks": [c.message for c in found.checks if c.status in {"failed", "error"}]}
         if name == "list_recoveries":
@@ -122,9 +135,10 @@ class Session:
                  "currency": c.currency, "order_id": c.order_id, "store": c.store, "facts": c.facts,
                  "allowed_actions": c.allowed_actions, "advice": _compact(c.advice)} for c in cases.disputes]}
         if name == "find_unrecorded_payments":
-            return _compact(await unrecorded.find(self.store))
+            return _compact(await unrecorded.find(self._store(args)))
         if name == "propose_recovery":
-            found = await self._investigate(str(args["order_id"]))
+            store = self._store(args)
+            found = await self._investigate(str(args["order_id"]), store)
             leak = next((item for item in found.leaks if item.kind == args.get("leak_kind")), None)
             if leak is None:
                 raise ToolRefused(f"Order {found.order_id} has no {args.get('leak_kind')} leak to recover.")
@@ -134,7 +148,7 @@ class Session:
             self.proposals.append(AgentProposal(
                 kind="recovery", title=f"{leak.recovery_action.title()} {leak.amount} {leak.currency}: {leak.title}",
                 order_id=found.order_id, leak_kind=leak.kind, amount=leak.amount, currency=leak.currency,
-                store=self.store,
+                store=store,
             ))
             return {"proposed": True, "executed": False, "note": "Shown to the merchant with an Approve button."}
         if name == "propose_dispute_answer":
@@ -183,7 +197,7 @@ async def answer(request: AgentRequest, owner: str) -> AgentReply:
     session = Session(request.store, owner)
     contents = [{"role": "model" if m.role == "assistant" else "user", "parts": [{"text": m.text}]}
                 for m in request.messages]
-    system = f"{SYSTEM} The merchant is looking at the {request.store} store."
+    system = f"{SYSTEM} The store selected on the dashboard is '{request.store}'."
     tools = tool_declarations()
     for _ in range(MAX_STEPS):
         parts = await ai.generate_turn(contents, tools, system)

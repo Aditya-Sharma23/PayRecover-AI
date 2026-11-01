@@ -1,5 +1,6 @@
 """PayPal webhooks: verified with PayPal first, then checks run and alerts go out; nothing moves money."""
 
+import isolation
 import asyncio
 import os
 import unittest
@@ -24,6 +25,14 @@ def investigation(claim):
     return Investigation(order_id=ORDER_ID, verdict="healthy", store="vulnerable",
                          checked_at=datetime.now(timezone.utc), store_url="http://127.0.0.1:8200", store_claim=claim,
                          checks=[], leaks=[], money_at_risk="0.00", currency="USD")
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class WebhookTests(unittest.TestCase):

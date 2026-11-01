@@ -1,5 +1,6 @@
 """Store scan: only paid orders are checked, leaks are ranked, duplicates are kept once per cart."""
 
+import isolation
 import asyncio
 import json
 import unittest
@@ -56,6 +57,14 @@ def run_scan(explain=False, generate=None):
     finally:
         for p in patches:
             p.stop()
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class ScanTests(unittest.TestCase):

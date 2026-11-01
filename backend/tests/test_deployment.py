@@ -1,3 +1,4 @@
+import isolation
 import os
 import unittest
 from pathlib import Path
@@ -20,6 +21,14 @@ def readiness(values: dict, env_file_exists: bool = False) -> dict:
     with patch.dict(os.environ, values, clear=True), \
             patch("app.deployment.ENV_FILE", Path("missing.env") if not env_file_exists else Path(__file__)):
         return deployment_readiness()
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class DeploymentTests(unittest.TestCase):

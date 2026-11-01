@@ -1,5 +1,6 @@
 """PayRecover order investigation: leak detection from the store's claim and PayPal's record."""
 
+import isolation
 import asyncio
 import os
 import unittest
@@ -71,6 +72,14 @@ def run(store_claim, order, probe=None, catalog=CATALOG, run_website=None, websi
 
 def kinds(result):
     return [leak.kind for leak in result.leaks]
+
+
+def setUpModule():
+    isolation.isolate_alerts()
+
+
+def tearDownModule():
+    isolation.restore_alerts()
 
 
 class InvestigationTests(unittest.TestCase):
