@@ -62,6 +62,9 @@ services:
       - key: TESTPILOT_APPROVAL_SECRET
         generateValue: true
       # Alert email through Brevo: API key and a Brevo-verified sender address.
+      # Channel3 key for the market price check.
+      - key: TESTPILOT_CHANNEL3_API_KEY
+        sync: false
       - key: TESTPILOT_BREVO_API_KEY
         sync: false
       - key: TESTPILOT_ALERT_SENDER

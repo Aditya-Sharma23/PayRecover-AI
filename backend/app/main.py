@@ -17,6 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    PriceCheckReport,
     Timeline,
     AutoscanSettings,
     AutoscanStatus,
@@ -75,7 +76,7 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, autoscan, disputes, overview, store_security, timeline, evidence, investigate, notify, paypal, paypal_toolkit,
+from app import (agent, alerts, autoscan, disputes, overview, price_check, store_security, timeline, evidence, investigate, notify, paypal, paypal_toolkit,
                  recovery, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
@@ -617,6 +618,12 @@ async def dashboard_overview(http: Request) -> Overview:
     result = await overview.build(request_owner(http))
     result.autoscan = autoscan.status()
     return result
+
+
+@app.get("/api/stores/{store}/prices", response_model=PriceCheckReport, tags=["PayRecover"])
+async def market_prices(store: Literal[STORE_KEYS]) -> PriceCheckReport:
+    """Compare each product's price with what comparable products sell for across retailers (Channel3)."""
+    return await price_check.check(store)
 
 
 @app.get("/api/timeline", response_model=Timeline, tags=["PayRecover"])

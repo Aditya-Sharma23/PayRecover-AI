@@ -6,6 +6,7 @@ import {
   RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, scanBody, scanRows,
 } from "../lib/payment.js";
 import { SCAN_VERDICTS } from "../lib/assist.js";
+import MarketPrices from "./MarketPrices.jsx";
 import { EvidenceButton, WaitingClock } from "./PaymentPanel.jsx";
 
 function UrgencyCell({ value }) {
@@ -145,6 +146,7 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
       </button>
     </form>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
+    <MarketPrices store={store} />
     {result && <>
       {result.verdict && <Verdict result={result} />}
       <div className="scan-stats">

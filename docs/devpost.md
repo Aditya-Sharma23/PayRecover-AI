@@ -39,6 +39,8 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
   Red and orange are sent by email (Brevo) and Zapier at once; green stays on the dashboard.
 - **An always-on agent:** auto-scan checks every store on a timer, even with the dashboard closed, and alerts only
   when something changes. The dashboard shows money at risk, open disputes and money recovered at a glance.
+- **A market price check (Channel3):** compares each product's price with comparable products across 25,000+
+  retailers to catch price typos that PayPal's records cannot reveal, because the buyer paid exactly what was asked.
 - **A timeline (Bryntum Scheduler)** of every scan, recovery and dispute, with each dispute running to PayPal's
   response deadline, so nothing important is missed.
 - **Three demo stores** show each result live: a clean Main store (🟢), a Risky store with safe payments but an
@@ -112,7 +114,7 @@ alerts and the APIMatic SDKs.
 ## Built with
 
 paypal-server-sdk, paypal-agent-toolkit, paypal-orders-api, paypal-invoicing-api, paypal-disputes-api,
-paypal-webhooks, gemini, python, fastapi, react, vite, ag-grid, bryntum, apimatic, zapier, render, docker, playwright
+paypal-webhooks, gemini, python, fastapi, react, vite, ag-grid, bryntum, channel3, apimatic, zapier, render, docker, playwright
 
 ## Links
 

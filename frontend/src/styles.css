@@ -447,3 +447,14 @@ button.store-status:disabled { cursor: progress; }
 .timeline-legend .dot.green { background: #46a758; }
 .timeline-legend .dot.blue { background: #3e8ef7; }
 .timeline-legend .dot.grey { background: #8b8d98; }
+
+/* Market price check (Channel3) */
+.market-prices { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+.market-prices .check-row-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 14px; align-items: flex-start; }
+.market-prices .hint { margin: 4px 0 0; }
+.price-summary { margin: 10px 0 0; color: var(--green); font-size: 13px; font-weight: 600; }
+.price-summary.bad { color: var(--red-soft); }
+.price-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.price-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13px; }
+.price-list small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.price-list a { color: var(--blue); }

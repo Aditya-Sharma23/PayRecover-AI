@@ -35,9 +35,9 @@ load_dotenv(ROOT / ".env")
 SANDBOX_API = "https://api-m.sandbox.paypal.com"
 CURRENCY = "USD"
 CATALOG = {
-    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00")},
-    "mug": {"name": "Evidence mug", "price": Decimal("12.50")},
-    "stickers": {"name": "Sticker pack", "price": Decimal("4.99")},
+    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00"), "market": "cotton crew neck t-shirt"},
+    "mug": {"name": "Evidence mug", "price": Decimal("12.50"), "market": "ceramic coffee mug 11 oz"},
+    "stickers": {"name": "Sticker pack", "price": Decimal("4.99"), "market": "vinyl sticker pack"},
 }
 MAX_QUANTITY = 10
 ORDER_ID_PATTERN = r"^[A-Z0-9]{8,40}$"
@@ -154,6 +154,8 @@ class Product(BaseModel):
     id: str
     name: str
     price: str
+    # What the product is in plain words, so PayRecover can compare its price with the market.
+    market: str
 
 
 class StoreConfig(BaseModel):
@@ -273,7 +275,8 @@ def config() -> dict[str, Any]:
 
 @app.get("/api/products", response_model=list[Product])
 def products() -> list[dict[str, str]]:
-    return [{"id": key, "name": item["name"], "price": _money(item["price"])} for key, item in CATALOG.items()]
+    return [{"id": key, "name": item["name"], "price": _money(item["price"]), "market": item["market"]}
+            for key, item in CATALOG.items()]
 
 
 @app.post("/api/orders", response_model=CreatedOrder, responses=_errors(409, 502, 503))

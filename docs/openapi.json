@@ -1669,6 +1669,34 @@
         "title": "Leak",
         "type": "object"
       },
+      "MarketExample": {
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string"
+          },
+          "retailer": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "price",
+          "currency",
+          "retailer",
+          "url"
+        ],
+        "title": "MarketExample",
+        "type": "object"
+      },
       "OpenApiImportRequest": {
         "additionalProperties": false,
         "description": "An OpenAPI document to turn into reviewable API check suggestions.",
@@ -2013,6 +2041,121 @@
           "order_id"
         ],
         "title": "PaymentVerificationRequest",
+        "type": "object"
+      },
+      "PriceCheckItem": {
+        "description": "One product the store sells, next to what comparable products sell for elsewhere (from Channel3).",
+        "properties": {
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/MarketExample"
+            },
+            "type": "array"
+          },
+          "market_high": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_median": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_query": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "samples": {
+            "default": 0,
+            "type": "integer"
+          },
+          "store_price": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "underpriced",
+              "overpriced",
+              "ok",
+              "no_match"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "store_price",
+          "market_query",
+          "verdict",
+          "message"
+        ],
+        "title": "PriceCheckItem",
+        "type": "object"
+      },
+      "PriceCheckReport": {
+        "properties": {
+          "checked": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PriceCheckItem"
+            },
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "default": "Channel3",
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "store",
+          "checked"
+        ],
+        "title": "PriceCheckReport",
         "type": "object"
       },
       "RecoveryList": {
@@ -4501,6 +4644,53 @@
           }
         },
         "summary": "Scan Store",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/stores/{store}/prices": {
+      "get": {
+        "description": "Compare each product's price with what comparable products sell for across retailers (Channel3).",
+        "operationId": "market_prices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "store",
+            "required": true,
+            "schema": {
+              "enum": [
+                "main",
+                "vulnerable",
+                "risky"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceCheckReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Market Prices",
         "tags": [
           "PayRecover"
         ]

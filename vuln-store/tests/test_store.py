@@ -98,6 +98,13 @@ class VulnerableStoreTests(unittest.TestCase):
         self.assertIn("You searched for: <b>x</b>", page.text)
         self.assertNotIn("content-security-policy", page.headers)
 
+    def test_mistyped_price_lists_and_charges_the_mug_at_a_tenth(self):
+        self.bugs("mistyped_price")
+        mug = next(p for p in self.client.get("/api/products").json() if p["id"] == "mug")
+        self.assertEqual((mug["price"], mug["market"]), ("1.25", "ceramic coffee mug 11 oz"))
+        created = self.client.post("/api/orders", json={"items": [{"product_id": "mug", "quantity": 2}]}).json()
+        self.assertEqual(created["total"], "2.50")
+
     def test_search_box_reflects_input_unescaped_and_no_security_headers_are_sent(self):
         response = self.client.get("/", params={"q": "<b>x</b>"})
         self.assertIn("You searched for: <b>x</b>", response.text)

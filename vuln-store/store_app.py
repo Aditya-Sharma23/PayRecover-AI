@@ -8,6 +8,7 @@ Payment bugs, switched on and off from the store page (POST /api/bugs) and saved
   confirm_without_capture  show "paid" without ever asking PayPal to capture
   allow_double_payment  let one cart be paid again and again (no cart lock)
   lose_payment_record   capture the money at PayPal, then fail before saving it (buyer charged, store unaware)
+  mistyped_price        list the mug at 1.25 instead of 12.50 (a typo that loses money on every sale)
 
 Profiles (VULN_STORE_PROFILE): "vulnerable" (default, port 8200) lets every payment bug above be switched
 on; "risky" (port 8300) runs the same store with all payment bugs locked off, so its payments are correct
@@ -43,19 +44,21 @@ load_dotenv(ROOT.parent / "main-store" / ".env")
 SANDBOX_API = "https://api-m.sandbox.paypal.com"
 CURRENCY = "USD"
 CATALOG = {
-    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00")},
-    "mug": {"name": "Evidence mug", "price": Decimal("12.50")},
-    "stickers": {"name": "Sticker pack", "price": Decimal("4.99")},
+    "tee": {"name": "PayRecover T-shirt", "price": Decimal("18.00"), "market": "cotton crew neck t-shirt"},
+    "mug": {"name": "Evidence mug", "price": Decimal("12.50"), "market": "ceramic coffee mug 11 oz"},
+    "stickers": {"name": "Sticker pack", "price": Decimal("4.99"), "market": "vinyl sticker pack"},
 }
 MAX_QUANTITY = 10
 ORDER_ID_PATTERN = r"^[A-Z0-9]{8,40}$"
 CART_ID_PATTERN = r"^[a-z0-9-]{8,64}$"
-BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_payment", "lose_payment_record")
+BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_payment", "lose_payment_record",
+             "mistyped_price")
 BUG_LABELS = {
     "trust_client_price": "Charge the price the browser sends (buyer can edit prices)",
     "confirm_without_capture": "Show “paid” without capturing the money at PayPal",
     "allow_double_payment": "Let the same cart be paid multiple times",
     "lose_payment_record": "Charge the buyer, then lose the payment (store never records it)",
+    "mistyped_price": "List the mug at 1.25 instead of 12.50 (a price typo)",
 }
 
 PROFILES = {
@@ -170,13 +173,23 @@ async def paypal_request(method: str, path: str, body: dict | None = None, reque
     return response.json()
 
 
+MISTYPED = {"mug": Decimal("1.25")}
+
+
+def catalog_price(product_id: str) -> Decimal:
+    """The listed price; with the mistyped_price bug, the mug is listed at a tenth of its price."""
+    if "mistyped_price" in active_bugs and product_id in MISTYPED:
+        return MISTYPED[product_id]  # BUG: a typo in the catalog, charged on every sale.
+    return CATALOG[product_id]["price"]
+
+
 def price_cart(items: list[CartLine]) -> tuple[list[dict], Decimal]:
     lines, total = [], Decimal(0)
     for item in items:
         product = CATALOG.get(item.product_id)
         if product is None:
             raise HTTPException(status_code=422, detail=f"Unknown product {item.product_id}.")
-        price = product["price"]
+        price = catalog_price(item.product_id)
         if "trust_client_price" in active_bugs and item.unit_price is not None:
             price = Decimal(item.unit_price)  # BUG: the browser decides what it pays.
         lines.append({"product_id": item.product_id, "name": product["name"], "quantity": item.quantity, "unit_price": price})
@@ -210,7 +223,8 @@ def config() -> dict[str, Any]:
 
 @app.get("/api/products")
 def products() -> list[dict[str, str]]:
-    return [{"id": key, "name": item["name"], "price": _money(item["price"])} for key, item in CATALOG.items()]
+    return [{"id": key, "name": item["name"], "price": _money(catalog_price(key)), "market": item["market"]}
+            for key, item in CATALOG.items()]
 
 
 @app.get("/api/bugs")

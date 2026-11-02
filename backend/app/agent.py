@@ -11,7 +11,7 @@ verified path as the dashboard. Every tool call is returned, so the merchant see
 import json
 from typing import Any
 
-from app import ai, disputes, investigate, paypal, paypal_toolkit, recovery, scan, unrecorded
+from app import ai, disputes, investigate, paypal, paypal_toolkit, price_check, recovery, scan, unrecorded
 from app.schemas import (
     AgentProposal,
     AgentReply,
@@ -60,6 +60,10 @@ PAYRECOVER_TOOLS = [
      "parametersJsonSchema": {"type": "object", "properties": {}}},
     {"name": "find_unrecorded_payments", "description": "Payments PayPal completed for this store that the "
      "store never recorded (the buyer was charged, the store does not know).",
+     "parametersJsonSchema": {"type": "object", "properties": {"store": STORE}}},
+    {"name": "check_market_prices", "description": "[Channel3] Compare each product's price in the store with "
+     "what comparable new products sell for across 25,000+ retailers, to catch price typos (underpriced items "
+     "lose money on every sale) and overpricing.",
      "parametersJsonSchema": {"type": "object", "properties": {"store": STORE}}},
     {"name": "propose_recovery", "description": "Propose recovering one leak (PayRecover picks capture, refund "
      "or invoice). Shows the merchant an Approve button; nothing runs until they press it.",
@@ -137,6 +141,11 @@ class Session:
                 {"dispute_id": c.dispute_id, "reason": c.reason, "status": c.status, "amount": c.amount,
                  "currency": c.currency, "order_id": c.order_id, "store": c.store, "facts": c.facts,
                  "allowed_actions": c.allowed_actions, "advice": _compact(c.advice)} for c in cases.disputes]}
+        if name == "check_market_prices":
+            report = await price_check.check(self._store(args))
+            return {"store": report.store, "checked": report.checked, "note": report.note, "items": [
+                {"product": i.name, "store_price": i.store_price, "market_median": i.market_median,
+                 "verdict": i.verdict, "message": i.message} for i in report.items]}
         if name == "find_unrecorded_payments":
             return _compact(await unrecorded.find(self._store(args)))
         if name == "propose_recovery":

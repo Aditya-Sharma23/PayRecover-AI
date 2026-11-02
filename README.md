@@ -43,6 +43,7 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Charge the price the browser sends (prices are editable) | **Wrong amount** leak, and the price-tampering probe fails |
 | Show "paid" without capturing at PayPal | **Fake paid** or **Never captured** leak |
 | Let the same cart be paid multiple times | **Duplicate charge** leak, naming the other order to refund |
+| List the mug at 1.25 instead of 12.50 (a price typo) | **Likely typo** in the market price check (Channel3); payments still match PayPal, so only the market comparison sees it |
 | Charge the buyer, then lose the payment (store never records it) | **Payment the store never recorded**, from PayPal's side of the scan and from the payment webhook |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
@@ -62,6 +63,17 @@ so PayRecover shows how long it has waited rather than inventing a countdown). G
 for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice yields one refund, of the
 later charge, so approving every row never refunds the whole purchase. The scan reads past unpaid orders
 (abandoned checkouts, cancelled price probes) so the newest paid orders are always the ones checked.
+
+### Market price check (Channel3)
+
+A mistyped price is paid in full, so PayPal's records match and no payment check can see it, yet it loses money on
+every sale. **Check prices against the market** (under Check payments → Whole store, or *"Are any of my prices
+wrong?"* in the chat) searches [Channel3](https://trychannel3.com) (100M+ products from 25,000+ retailers) for
+comparable new, in-stock products, takes each product's cheapest US offer, and compares the store's price with the
+market median: under a third of it is a **likely typo**, over three times is **overpriced**. Each result shows the
+market range and example retailers. Each store product carries a plain `market` description ("ceramic coffee mug
+11 oz") so the search finds comparable products. Searches are cached for six hours. Set `TESTPILOT_CHANNEL3_API_KEY`
+(free for hackathon participants at trychannel3.com/developers).
 
 ### Timeline (Bryntum Scheduler)
 

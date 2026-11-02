@@ -1027,5 +1027,39 @@ class Timeline(BaseModel):
     note: str | None = None
 
 
+
+
+class MarketExample(BaseModel):
+    title: str
+    price: str
+    currency: str
+    retailer: str
+    url: str
+
+
+class PriceCheckItem(BaseModel):
+    """One product the store sells, next to what comparable products sell for elsewhere (from Channel3)."""
+
+    product_id: str
+    name: str
+    store_price: str
+    market_query: str
+    market_low: str | None = None
+    market_median: str | None = None
+    market_high: str | None = None
+    samples: int = 0
+    verdict: Literal["underpriced", "overpriced", "ok", "no_match"]
+    message: str
+    examples: list[MarketExample] = Field(default_factory=list)
+
+
+class PriceCheckReport(BaseModel):
+    store: str
+    checked: bool
+    items: list[PriceCheckItem] = Field(default_factory=list)
+    note: str | None = None
+    source: str = "Channel3"
+
+
 ScanResult.model_rebuild()
 Overview.model_rebuild()

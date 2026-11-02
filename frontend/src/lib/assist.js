@@ -56,6 +56,7 @@ export const EXAMPLE_QUESTIONS = [
   "How much money am I losing right now, and what should I fix first?",
   "Do I have any PayPal disputes? What should I answer?",
   "Did PayPal take any payments my store never recorded?",
+  "Are any of my prices wrong?",
   "Recover every urgent leak.",
 ];
 
@@ -151,3 +152,11 @@ export const timelineEvents = (events) => events.map((event) => ({
 }));
 
 export const escapeHtml = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+// Market price check (Channel3): how each verdict is labelled.
+export const PRICE_VERDICTS = {
+  underpriced: ["Likely typo", "failed"],
+  overpriced: ["Overpriced", "warning"],
+  ok: ["In line", "passed"],
+  no_match: ["No match", "skipped"],
+};
