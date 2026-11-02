@@ -1,7 +1,7 @@
 // Vulnerable store checkout. Same flow as the Main store, plus demo controls for its bugs.
 // Prices are editable and sent to the server; only the trust_client_price bug makes the server use them.
 
-const state = { products: [], quantities: {}, prices: {}, cartId: "", storeRefused: false };
+const state = { products: [], quantities: {}, prices: {}, cartId: "", storeRefused: false, editablePrices: true };
 const CART_KEY = "paytest-vuln-cart";
 const $ = (id) => document.getElementById(id);
 
@@ -44,15 +44,80 @@ function cartLines() {
     }));
 }
 
+// Simple line drawings for each product (24x24 paths), so the shop needs no image files.
+const ART = {
+  tee: ["M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3Z"],
+  mug: ["M5 6h11v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V6Z", "M16 9h1.5a2.5 2.5 0 0 1 0 5H16"],
+  stickers: ["m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3Z"],
+};
+const DEFAULT_ART = ["M5 8h14l-1.2 12H6.2L5 8Z", "M9 8V6a3 3 0 0 1 6 0v2"];
+
+function productArt(productId) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ART[productId] || DEFAULT_ART) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  const box = document.createElement("div");
+  box.className = "product-art";
+  box.append(svg);
+  return box;
+}
+
+function addLine(lines, product, quantity, cost) {
+  if (quantity <= 0) return;
+  const line = document.createElement("li");
+  const what = document.createElement("span");
+  what.textContent = `${quantity} × ${product.name}`;
+  const amount = document.createElement("span");
+  amount.textContent = cost.toFixed(2);
+  line.append(what, amount);
+  lines.append(line);
+}
+
 function renderCart() {
-  const body = $("cart").querySelector("tbody");
-  body.replaceChildren();
+  const grid = $("cart");
+  const lines = $("cart-lines");
+  grid.replaceChildren();
+  lines.replaceChildren();
   let total = 0;
   for (const product of state.products) {
-    const row = document.createElement("tr");
-    const name = document.createElement("td");
+    const quantity = state.quantities[product.id];
+    const card = document.createElement("article");
+    card.className = "product";
+    card.dataset.product = product.id;
+    card.dataset.selected = String(quantity > 0);
+    const name = document.createElement("h3");
     name.textContent = product.name;
-    const priceCell = document.createElement("td");
+    // The Risky store has no payment bugs, so it shows a plain price, like the Main store.
+    if (!state.editablePrices) {
+      const plain = document.createElement("p");
+      plain.className = "price";
+      plain.textContent = `${product.price} USD`;
+      const qty = document.createElement("label");
+      qty.textContent = "Quantity";
+      const choose = document.createElement("select");
+      choose.setAttribute("aria-label", `Quantity of ${product.name}`);
+      for (let n = 0; n <= 3; n += 1) choose.add(new Option(String(n), String(n)));
+      choose.value = String(quantity);
+      choose.addEventListener("change", () => {
+        state.quantities[product.id] = Number(choose.value);
+        renderCart();
+      });
+      qty.append(choose);
+      card.append(productArt(product.id), name, plain, qty);
+      grid.append(card);
+      addLine(lines, product, quantity, Number(product.price) * quantity);
+      total += Number(product.price) * quantity;
+      continue;
+    }
+    // The price box is sent to the server as is; with the trust_client_price bug, the store charges it.
+    const priceCell = document.createElement("label");
+    priceCell.className = "price-field";
+    priceCell.textContent = "Price (sent by your browser)";
     const price = document.createElement("input");
     price.type = "number";
     price.min = "0.01";
@@ -65,19 +130,28 @@ function renderCart() {
       renderCart();
     });
     priceCell.append(price);
-    const qtyCell = document.createElement("td");
+    const qtyCell = document.createElement("label");
+    qtyCell.textContent = "Quantity";
     const select = document.createElement("select");
     select.setAttribute("aria-label", `Quantity of ${product.name}`);
     for (let n = 0; n <= 3; n += 1) select.add(new Option(String(n), String(n)));
-    select.value = String(state.quantities[product.id]);
+    select.value = String(quantity);
     select.addEventListener("change", () => {
       state.quantities[product.id] = Number(select.value);
       renderCart();
     });
     qtyCell.append(select);
-    row.append(name, priceCell, qtyCell);
-    body.append(row);
-    total += Number(state.prices[product.id]) * state.quantities[product.id];
+    card.append(productArt(product.id), name, priceCell, qtyCell);
+    grid.append(card);
+    const cost = Number(state.prices[product.id]) * quantity;
+    addLine(lines, product, quantity, cost);
+    total += cost;
+  }
+  if (!lines.children.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Your cart is empty.";
+    lines.append(empty);
   }
   $("cart-total").textContent = total.toFixed(2);
 }
@@ -97,7 +171,8 @@ async function renderBugs() {
   const box = $("bugs");
   box.replaceChildren();
   // The Risky store has no payment bugs to switch on; hide the empty list.
-  box.hidden = bugs.available.length === 0;
+  box.closest("section").hidden = bugs.available.length === 0;
+  state.editablePrices = bugs.available.length > 0;
   for (const bug of bugs.available) {
     const label = document.createElement("label");
     const input = document.createElement("input");

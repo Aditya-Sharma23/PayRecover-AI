@@ -6,32 +6,37 @@
   <title>PayRecover Main Store</title>
   <link rel="stylesheet" href="/static/store.css">
 </head>
-<body>
+<body class="theme-main">
 <main>
-  <h1>PayRecover Main Store</h1>
-  <p class="note">The store PayRecover checks. Payments go to PayPal <strong>Sandbox</strong> only; no real money moves.</p>
-
-  <section aria-labelledby="cart-heading">
-    <h2 id="cart-heading">Your cart</h2>
-    <table id="cart" data-testid="cart">
-      <thead><tr><th scope="col">Item</th><th scope="col">Price</th><th scope="col">Quantity</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <p class="total">Total: <span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></p>
-  </section>
-
-  <section aria-labelledby="pay-heading">
-    <h2 id="pay-heading">Pay</h2>
-    <div id="paypal-buttons" data-testid="paypal-buttons"></div>
-    <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
-      Choose your items, then pay with PayPal.
+  <header class="store-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12H6.2L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span>
+      <div><h1>PayRecover Main Store</h1><p class="tagline">Everyday goods, paid safely with PayPal.</p></div>
     </div>
-    <dl class="order">
-      <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
-      <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
-    </dl>
-  </section>
+    <span class="ribbon">Demo store · PayPal Sandbox</span>
+  </header>
 
+  <div class="layout">
+    <section aria-labelledby="cart-heading">
+      <h2 id="cart-heading">Shop</h2>
+      <div id="cart" class="products" data-testid="cart"></div>
+    </section>
+
+    <aside class="checkout" aria-labelledby="pay-heading">
+      <h2 id="pay-heading">Your order</h2>
+      <ul id="cart-lines" class="lines"></ul>
+      <p class="total"><span>Total</span><span><span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></span></p>
+      <div id="paypal-buttons" data-testid="paypal-buttons"></div>
+      <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
+        Choose your items, then pay with PayPal.
+      </div>
+      <dl class="order">
+        <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
+        <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
+      </dl>
+    </aside>
+  </div>
+  <p class="footnote">The store PayRecover checks. Payments go to PayPal Sandbox only; no real money moves.</p>
 </main>
 <script src="/static/store.js" nonce="{{CSP_NONCE}}"></script>
 </body>

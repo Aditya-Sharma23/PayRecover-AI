@@ -63,8 +63,10 @@ BUG_LABELS = {
 
 PROFILES = {
     "vulnerable": {"title": "PayRecover Vulnerable Store", "tag": "payrecover-vulnerable", "data": "store.json",
-                   "bugs": BUG_NAMES},
-    "risky": {"title": "PayRecover Risky Store", "tag": "payrecover-risky", "data": "risky-store.json", "bugs": ()},
+                   "bugs": BUG_NAMES, "theme": "theme-vuln",
+                   "tagline": "A checkout with real bugs, to show PayRecover at work."},
+    "risky": {"title": "PayRecover Risky Store", "tag": "payrecover-risky", "data": "risky-store.json", "bugs": (),
+              "theme": "theme-risky", "tagline": "Correct payments, insecure website."},
 }
 
 
@@ -333,6 +335,7 @@ def index(q: str = Query(default="", max_length=500)) -> HTMLResponse:
     """The store page. BUG: the search term is pasted into the page without escaping (reflected XSS)."""
     page = (ROOT / "static" / "index.html").read_text(encoding="utf-8").replace("PayRecover Vulnerable Store",
                                                                                 _profile()["title"])
+    page = page.replace("{{STORE_THEME}}", _profile()["theme"]).replace("{{STORE_TAGLINE}}", _profile()["tagline"])
     if not _profile()["bugs"]:
         page = page.replace("Tick a bug, pay, then investigate the order in PayRecover.",
                             "This store's payment code is correct, so its payments always match PayPal.")

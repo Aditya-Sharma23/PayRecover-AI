@@ -47,33 +47,77 @@ function cartLines() {
     .map((product) => ({ product_id: product.id, quantity: state.quantities[product.id] }));
 }
 
+// Simple line drawings for each product (24x24 paths), so the shop needs no image files.
+const ART = {
+  tee: ["M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3Z"],
+  mug: ["M5 6h11v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V6Z", "M16 9h1.5a2.5 2.5 0 0 1 0 5H16"],
+  stickers: ["m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3Z"],
+};
+const DEFAULT_ART = ["M5 8h14l-1.2 12H6.2L5 8Z", "M9 8V6a3 3 0 0 1 6 0v2"];
+
+function productArt(productId) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ART[productId] || DEFAULT_ART) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  const box = document.createElement("div");
+  box.className = "product-art";
+  box.append(svg);
+  return box;
+}
+
 function renderCart() {
-  const body = $("cart").querySelector("tbody");
-  body.replaceChildren();
+  const grid = $("cart");
+  const lines = $("cart-lines");
+  grid.replaceChildren();
+  lines.replaceChildren();
   let total = 0;
   for (const product of state.products) {
-    const row = document.createElement("tr");
-    row.dataset.product = product.id;
-    row.dataset.price = product.price;
+    const quantity = state.quantities[product.id];
+    const card = document.createElement("article");
+    card.className = "product";
+    card.dataset.product = product.id;
+    card.dataset.price = product.price;
+    card.dataset.selected = String(quantity > 0);
+    const name = document.createElement("h3");
+    name.textContent = product.name;
+    const price = document.createElement("p");
+    price.className = "price";
+    price.textContent = `${product.price} USD`;
+    const label = document.createElement("label");
+    label.textContent = "Quantity";
     const select = document.createElement("select");
     select.id = `qty-${product.id}`;
     select.setAttribute("aria-label", `Quantity of ${product.name}`);
     for (let n = 0; n <= 3; n += 1) select.add(new Option(String(n), String(n)));
-    select.value = String(state.quantities[product.id]);
+    select.value = String(quantity);
     select.addEventListener("change", () => {
       state.quantities[product.id] = Number(select.value);
       renderCart();
     });
-    const cells = [product.name, product.price].map((text) => {
-      const cell = document.createElement("td");
-      cell.textContent = text;
-      return cell;
-    });
-    const qtyCell = document.createElement("td");
-    qtyCell.append(select);
-    row.append(...cells, qtyCell);
-    body.append(row);
-    total += Number(product.price) * state.quantities[product.id];
+    label.append(select);
+    card.append(productArt(product.id), name, price, label);
+    grid.append(card);
+    if (quantity > 0) {
+      const line = document.createElement("li");
+      const what = document.createElement("span");
+      what.textContent = `${quantity} × ${product.name}`;
+      const cost = document.createElement("span");
+      cost.textContent = (Number(product.price) * quantity).toFixed(2);
+      line.append(what, cost);
+      lines.append(line);
+    }
+    total += Number(product.price) * quantity;
+  }
+  if (!lines.children.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Your cart is empty.";
+    lines.append(empty);
   }
   $("cart-total").textContent = total.toFixed(2);
 }

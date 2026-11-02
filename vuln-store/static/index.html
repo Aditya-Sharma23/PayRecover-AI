@@ -6,18 +6,23 @@
   <title>PayRecover Vulnerable Store</title>
   <link rel="stylesheet" href="/static/store.css">
 </head>
-<body>
+<body class="{{STORE_THEME}}">
 <main>
-  <h1>PayRecover Vulnerable Store</h1>
-  <p class="warning-banner" role="note"><strong>Deliberately vulnerable, for demos only.</strong> Payments go to PayPal <strong>Sandbox</strong>; no real money moves.</p>
+  <header class="store-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12H6.2L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span>
+      <div><h1>PayRecover Vulnerable Store</h1><p class="tagline">{{STORE_TAGLINE}}</p></div>
+    </div>
+    <span class="ribbon">Demo store · PayPal Sandbox</span>
+  </header>
 
-  <section aria-labelledby="bugs-heading">
-    <h2 id="bugs-heading">Bugs to simulate</h2>
+  <section class="demo-controls" aria-labelledby="bugs-heading">
+    <h2 id="bugs-heading">Demo controls · bugs to simulate</h2>
     <p class="note">Tick a bug, pay, then investigate the order in PayRecover. The search box below always has a reflected-XSS bug, and this store sends no security headers.</p>
     <div id="bugs" class="bugs"></div>
   </section>
 
-  <section aria-labelledby="search-heading">
+  <section class="search" aria-labelledby="search-heading">
     <h2 id="search-heading">Search</h2>
     <form method="get" action="/">
       <label for="q">Search products</label>
@@ -27,28 +32,29 @@
     {{SEARCH_RESULTS}}
   </section>
 
-  <section aria-labelledby="cart-heading">
-    <h2 id="cart-heading">Your cart</h2>
-    <table id="cart" data-testid="cart">
-      <thead><tr><th scope="col">Item</th><th scope="col">Price (sent by your browser)</th><th scope="col">Quantity</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <p class="total">Total: <span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></p>
-  </section>
+  <div class="layout">
+    <section aria-labelledby="cart-heading">
+      <h2 id="cart-heading">Shop</h2>
+      <div id="cart" class="products" data-testid="cart"></div>
+    </section>
 
-  <section aria-labelledby="pay-heading">
-    <h2 id="pay-heading">Pay</h2>
-    <div id="paypal-buttons" data-testid="paypal-buttons"></div>
-    <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
-      Choose your items, then pay with PayPal.
-    </div>
-    <dl class="order">
-      <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
-      <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
-      <dt>Cart</dt><dd id="cart-id" data-testid="cart-id">none</dd>
-    </dl>
-    <button id="new-cart" type="button">Start a new cart</button>
-  </section>
+    <aside class="checkout" aria-labelledby="pay-heading">
+      <h2 id="pay-heading">Your order</h2>
+      <ul id="cart-lines" class="lines"></ul>
+      <p class="total"><span>Total</span><span><span id="cart-total" data-testid="cart-total">0.00</span> <span id="currency">USD</span></span></p>
+      <div id="paypal-buttons" data-testid="paypal-buttons"></div>
+      <div id="checkout-status" data-testid="checkout-status" data-state="idle" role="status" aria-live="polite">
+        Choose your items, then pay with PayPal.
+      </div>
+      <dl class="order">
+        <dt>Order</dt><dd id="order-id" data-testid="order-id">none yet</dd>
+        <dt>Store status</dt><dd id="order-status" data-testid="order-status">none</dd>
+        <dt>Cart</dt><dd id="cart-id" data-testid="cart-id">none</dd>
+      </dl>
+      <button id="new-cart" type="button">Start a new cart</button>
+    </aside>
+  </div>
+  <p class="footnote">Deliberately broken, for demos only. Payments go to PayPal Sandbox only; no real money moves.</p>
 </main>
 <script src="/static/store.js"></script>
 </body>
