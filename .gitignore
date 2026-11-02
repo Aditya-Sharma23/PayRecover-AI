@@ -28,3 +28,6 @@ vuln-store/data/
 
 # Claude Code local settings
 .claude/
+
+# Bryntum trial downloads (large, and their license forbids republishing them)
+bryntum-*.zip
