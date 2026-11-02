@@ -435,3 +435,15 @@ button.store-status:disabled { cursor: progress; }
 .switch input:checked + span[aria-hidden] { background: var(--green); }
 .switch input:checked + span[aria-hidden]::after { transform: translateX(13px); }
 .switch input:focus-visible + span[aria-hidden] { outline: 3px solid #ff7379; outline-offset: 2px; }
+
+/* Timeline (Bryntum Scheduler) */
+.timeline-view { height: 330px; margin-top: 12px; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
+.timeline-view > .b-scheduler, .timeline-view .b-schedulerbase { height: 100%; }
+.timeline-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--muted); font-size: 11px; }
+.timeline-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.timeline-legend .dot { width: 9px; height: 9px; border-radius: 50%; }
+.timeline-legend .dot.red { background: #e5484d; }
+.timeline-legend .dot.orange { background: #f5a524; }
+.timeline-legend .dot.green { background: #46a758; }
+.timeline-legend .dot.blue { background: #3e8ef7; }
+.timeline-legend .dot.grey { background: #8b8d98; }

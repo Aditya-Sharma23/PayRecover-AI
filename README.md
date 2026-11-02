@@ -63,6 +63,15 @@ for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice
 later charge, so approving every row never refunds the whole purchase. The scan reads past unpaid orders
 (abandoned checkouts, cancelled price probes) so the newest paid orders are always the ones checked.
 
+### Timeline (Bryntum Scheduler)
+
+A [Bryntum Scheduler](https://bryntum.com/products/scheduler/) timeline with one row per store plus PayPal disputes,
+from three days back to ten days ahead: every scan as a block coloured by its result, every recovery, and every open
+dispute as a bar from the day it opened to PayPal's response deadline, red when fewer than three days are left.
+Hover a block for details. It uses Bryntum's trial package (`@bryntum/scheduler-trial`, aliased to
+`@bryntum/scheduler`), which shows a trial watermark; Bryntum's install scripts are not needed and are not run.
+The timeline loads in its own chunk, so the rest of the dashboard opens fast.
+
 ### Overview and auto-scan
 
 The dashboard opens with four headline numbers (orders scanned, money at risk, open PayPal disputes, money

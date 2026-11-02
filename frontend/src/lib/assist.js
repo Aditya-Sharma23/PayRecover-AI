@@ -130,3 +130,24 @@ export function autoscanText(status, now = Date.now()) {
   const next = status.next_run ? `next scan ${timeUntil(status.next_run, now)}` : "starting";
   return `Auto-scan on · every ${status.interval_minutes} min · ${next}`;
 }
+
+// Timeline (Bryntum Scheduler): each tone's Bryntum colour and its legend label.
+export const TIMELINE_COLORS = {
+  red: ["red", "Money leaking / deadline close"],
+  orange: ["orange", "Vulnerable / dispute open"],
+  green: ["green", "All clear"],
+  blue: ["blue", "Recovered"],
+  grey: ["gray", "Other"],
+};
+
+export const timelineEvents = (events) => events.map((event) => ({
+  id: event.id,
+  resourceId: event.resource_id,
+  name: event.name,
+  detail: event.detail,
+  startDate: event.start,
+  endDate: event.end,
+  eventColor: (TIMELINE_COLORS[event.tone] || TIMELINE_COLORS.grey)[0],
+}));
+
+export const escapeHtml = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);

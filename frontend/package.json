@@ -11,6 +11,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@bryntum/scheduler": "npm:@bryntum/scheduler-trial@^7.3.8",
+    "@bryntum/scheduler-react": "^7.3.8",
     "@vitejs/plugin-react": "6.1.2",
     "ag-grid-community": "36.2.0",
     "ag-grid-react": "36.2.0",

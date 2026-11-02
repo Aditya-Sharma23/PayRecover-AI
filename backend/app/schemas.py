@@ -1001,5 +1001,31 @@ class AutoscanStatus(BaseModel):
     last_error: str | None = None
 
 
+class TimelineResource(BaseModel):
+    id: str
+    name: str
+
+
+class TimelineEvent(BaseModel):
+    """One block on the timeline: a scan, a recovery, or a dispute from opening to its response deadline."""
+
+    id: str
+    resource_id: str
+    name: str
+    kind: Literal["scan", "recovery", "dispute"]
+    tone: Literal["red", "orange", "green", "blue", "grey"]
+    start: datetime
+    end: datetime
+    detail: str = ""
+
+
+class Timeline(BaseModel):
+    resources: list[TimelineResource]
+    events: list[TimelineEvent]
+    start: datetime
+    end: datetime
+    note: str | None = None
+
+
 ScanResult.model_rebuild()
 Overview.model_rebuild()

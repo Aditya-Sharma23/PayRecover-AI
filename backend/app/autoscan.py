@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app import alerts, investigate, notify, overview, paypal, scan, store_security, unrecorded
+from app import alerts, investigate, notify, overview, paypal, scan, store_security, timeline, unrecorded
 from app.schemas import STORE_KEYS, AutoscanSettings, AutoscanStatus, ScanRequest, ScanResult
 from app.security import LOCAL_OWNER
 
@@ -34,6 +34,7 @@ async def full_scan(request: ScanRequest) -> tuple[ScanResult, dict[str, Any] | 
     result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
     previous = alerts._load("last-scans.json").get(request.store)
     overview.remember_scan(result)
+    timeline.record_scan(result)
     return result, previous
 
 

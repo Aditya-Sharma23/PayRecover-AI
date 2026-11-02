@@ -2597,6 +2597,119 @@
         "title": "TargetPreflightRequest",
         "type": "object"
       },
+      "Timeline": {
+        "properties": {
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvent"
+            },
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineResource"
+            },
+            "type": "array"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resources",
+          "events",
+          "start",
+          "end"
+        ],
+        "title": "Timeline",
+        "type": "object"
+      },
+      "TimelineEvent": {
+        "description": "One block on the timeline: a scan, a recovery, or a dispute from opening to its response deadline.",
+        "properties": {
+          "detail": {
+            "default": "",
+            "type": "string"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "scan",
+              "recovery",
+              "dispute"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "resource_id": {
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "red",
+              "orange",
+              "green",
+              "blue",
+              "grey"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resource_id",
+          "name",
+          "kind",
+          "tone",
+          "start",
+          "end"
+        ],
+        "title": "TimelineEvent",
+        "type": "object"
+      },
+      "TimelineResource": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TimelineResource",
+        "type": "object"
+      },
       "TriagePlan": {
         "additionalProperties": false,
         "description": "The recovery plan. Its order is fixed by the scan; the AI only words it.",
@@ -4573,6 +4686,28 @@
         "summary": "Run Website",
         "tags": [
           "website tests"
+        ]
+      }
+    },
+    "/api/timeline": {
+      "get": {
+        "description": "Scans, recoveries and dispute deadlines per store, from three days back to ten days ahead.",
+        "operationId": "store_timeline",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Timeline"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Store Timeline",
+        "tags": [
+          "PayRecover"
         ]
       }
     }

@@ -39,6 +39,8 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
   Red and orange are sent by email (Brevo) and Zapier at once; green stays on the dashboard.
 - **An always-on agent:** auto-scan checks every store on a timer, even with the dashboard closed, and alerts only
   when something changes. The dashboard shows money at risk, open disputes and money recovered at a glance.
+- **A timeline (Bryntum Scheduler)** of every scan, recovery and dispute, with each dispute running to PayPal's
+  response deadline, so nothing important is missed.
 - **Three demo stores** show each result live: a clean Main store (🟢), a Risky store with safe payments but an
   insecure website (🟠), and a Vulnerable store with switchable payment bugs (🔴).
 
@@ -51,7 +53,7 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
 | Other PayPal APIs | Invoicing v2, Disputes v1 (provide evidence, accept claim), Transaction Search, Webhooks with signature verification |
 | AI | **Gemini** (function calling for the agent, structured JSON for plans and explanations), with fallback models |
 | Backend | Python, FastAPI, pydantic; 260+ automated tests across backend, stores and dashboard; ruff, eslint |
-| Dashboard | React, Vite, **AG Grid** |
+| Dashboard | React, Vite, **AG Grid** (scan and recovery grids), **Bryntum Scheduler** (timeline of scans, recoveries and dispute deadlines) |
 | Developer experience | OpenAPI spec that passes **APIMatic** validation with zero errors; generated PayRecover SDKs (Python, TypeScript, C#) and an API portal |
 | Automation and alerts | **Zapier** (any of 9,000+ apps) and **Brevo** email for alerts with approve links; a built-in auto-scan agent |
 | Demo | A clean "Main store" and a "Vulnerable store" with switchable real bugs, both on the PayPal Sandbox |
@@ -110,7 +112,7 @@ alerts and the APIMatic SDKs.
 ## Built with
 
 paypal-server-sdk, paypal-agent-toolkit, paypal-orders-api, paypal-invoicing-api, paypal-disputes-api,
-paypal-webhooks, gemini, python, fastapi, react, vite, ag-grid, apimatic, zapier, render, docker, playwright
+paypal-webhooks, gemini, python, fastapi, react, vite, ag-grid, bryntum, apimatic, zapier, render, docker, playwright
 
 ## Links
 

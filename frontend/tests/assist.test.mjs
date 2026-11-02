@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, autoscanText, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, autoscanText, escapeHtml, timelineEvents, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -80,4 +80,14 @@ test("auto-scan status reads as a short line", () => {
   assert.equal(autoscanText({ enabled: true, running: true }), "Auto-scan running…");
   assert.equal(autoscanText({ enabled: true, interval_minutes: 10, next_run: "2026-11-02T12:07:00Z" }, now), "Auto-scan on · every 10 min · next scan in 7 min");
   assert.equal(timeUntil("2026-11-02T11:59:00Z", now), "now");
+});
+
+test("timeline events become Bryntum events with a colour", () => {
+  const [event] = timelineEvents([{ id: "scan-1", resource_id: "risky", name: "Vulnerable", detail: "2 issues", tone: "orange", start: "2026-11-03T10:00:00Z", end: "2026-11-03T10:20:00Z" }]);
+  assert.deepEqual(event, { id: "scan-1", resourceId: "risky", name: "Vulnerable", detail: "2 issues", startDate: "2026-11-03T10:00:00Z", endDate: "2026-11-03T10:20:00Z", eventColor: "orange" });
+  assert.equal(timelineEvents([{ tone: "unknown" }])[0].eventColor, "gray");
+});
+
+test("tooltip text is escaped", () => {
+  assert.equal(escapeHtml(`<img src=x onerror="a">`), "&lt;img src=x onerror=&quot;a&quot;&gt;");
 });

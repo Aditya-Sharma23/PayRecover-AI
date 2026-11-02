@@ -17,6 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    Timeline,
     AutoscanSettings,
     AutoscanStatus,
     Overview,
@@ -74,7 +75,7 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, autoscan, disputes, overview, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
+from app import (agent, alerts, autoscan, disputes, overview, store_security, timeline, evidence, investigate, notify, paypal, paypal_toolkit,
                  recovery, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
@@ -616,6 +617,12 @@ async def dashboard_overview(http: Request) -> Overview:
     result = await overview.build(request_owner(http))
     result.autoscan = autoscan.status()
     return result
+
+
+@app.get("/api/timeline", response_model=Timeline, tags=["PayRecover"])
+async def store_timeline(http: Request) -> Timeline:
+    """Scans, recoveries and dispute deadlines per store, from three days back to ten days ahead."""
+    return await timeline.build(request_owner(http))
 
 
 @app.get("/api/autoscan", response_model=AutoscanStatus, tags=["PayRecover"])

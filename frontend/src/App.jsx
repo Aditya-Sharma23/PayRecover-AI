@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { apiJson, getToken, setToken } from "./api/client.js";
 import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
@@ -10,6 +10,9 @@ import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
 import ScanPanel from "./components/ScanPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
+
+// Bryntum Scheduler is large; load the timeline in its own chunk so the rest of the dashboard opens fast.
+const TimelinePanel = lazy(() => import("./components/TimelinePanel.jsx"));
 
 const METRICS = [
   ["total_runs", "Total runs", "▤", "Saved"],
@@ -72,6 +75,7 @@ export default function App() {
         <a href="#check"><span aria-hidden="true">⌕</span> Check payments</a>
         <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
         <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
+        <a href="#timeline"><span aria-hidden="true">▦</span> Timeline</a>
         <a href="#alerts"><span aria-hidden="true"><svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg></span> Alerts</a>
         <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
         <a href="#more" onClick={() => setMoreOpen(true)}><span aria-hidden="true">▤</span> More tools</a>
@@ -103,6 +107,10 @@ export default function App() {
       <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
 
       <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
+
+      <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
+        <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
+      </Suspense>
 
       <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
 
