@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
-import { STORE_VERDICTS, storeStatusText, timeAgo } from "../lib/assist.js";
+import { storeStatusText, storeVerdict, timeAgo } from "../lib/assist.js";
 import { STORES } from "../lib/payment.js";
 
 const REFRESH_MS = 30000;
@@ -15,6 +15,9 @@ export default function OverviewPanel({ refreshKey }) {
 
   useEffect(() => {
     apiJson("/api/overview").then(setData).catch(() => setData(null));
+    // A recovery re-checks its store in the background; read the overview again once that is done.
+    const later = setTimeout(() => apiJson("/api/overview").then(setData).catch(() => {}), 6000);
+    return () => clearTimeout(later);
   }, [refreshKey]);
   useEffect(() => {
     const timer = setInterval(() => {
@@ -57,15 +60,19 @@ export default function OverviewPanel({ refreshKey }) {
         <div><p>{title}</p><strong>{value}</strong><small>{note}</small></div>
       </article>)}
     </div>
-    <div className="store-statuses" aria-label="Store results">
+    <div className="demo-stores-heading">
+      <strong>Demo stores · PayPal Sandbox</strong>
+      <span>Three test shops that show each result. Click one to scan it. In real use, you connect your own store.</span>
+    </div>
+    <div className="store-statuses" aria-label="Demo store results">
       {(data?.stores || STORES.map(([store]) => ({ store }))).map((status) => {
-        const [label, tone] = STORE_VERDICTS[status.verdict] || STORE_VERDICTS.none;
+        const [label, tone] = storeVerdict(status);
         const busy = scanning[status.store];
         return <button type="button" className={`store-status ${busy ? "status-scanning" : tone}`} key={status.store}
           disabled={busy} onClick={() => scanStore(status.store)} title="Scan this store now">
           <i aria-hidden="true" />
-          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {busy ? "Scanning…" : label}</span>
-          <small>{busy ? "Checking payments and security" : storeStatusText(status, now)}</small>
+          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {busy ? "Scanning…" : data ? label : "Loading…"}</span>
+          <small>{busy ? "Checking payments and security" : data ? storeStatusText(status, now) : "Reading the latest result"}</small>
         </button>;
       })}
     </div>

@@ -8,8 +8,8 @@ for a minute, so refreshing the dashboard does not call PayPal every time.
 import time
 from decimal import Decimal
 
-from app import alerts, paypal, paypal_toolkit, recovery
-from app.schemas import STORE_KEYS, Overview, ScanResult, StoreStatus
+from app import alerts, investigate, paypal, paypal_toolkit, recovery, scan
+from app.schemas import STORE_KEYS, Overview, ScanRequest, ScanResult, StoreStatus
 
 DISPUTES_CACHE_SECONDS = 60
 OPEN_DISPUTE_STATES = ("REQUIRED_ACTION", "REQUIRED_OTHER_PARTY_ACTION", "UNDER_PAYPAL_REVIEW")
@@ -58,3 +58,28 @@ async def build(owner: str) -> Overview:
         stores=stores,
         last_activity=max(moments) if moments else None,
     )
+
+
+async def refresh_after_recovery(store: str) -> None:
+    """Re-check the store's payments after a recovery, so money at risk drops right away.
+
+    Only payments are re-read (no security probe, no AI plan, no alerts); the store's last
+    security result is kept, and the verdict is worked out again from both.
+    """
+    data = alerts._load("last-scans.json")
+    previous = data.get(store)
+    if previous is None:
+        return
+    try:
+        result = await scan.scan_store(ScanRequest(store=store, explain=False, check_paypal_side=False,
+                                                   check_security=False))
+    except (investigate.StoreUnavailable, paypal.PayPalConfigurationError, paypal.PayPalProviderError):
+        return
+    issues = int(previous.get("security_issues") or 0)
+    previous.update(
+        verdict="leaking" if result.leaking_orders else ("vulnerable" if issues else "clear"),
+        orders_checked=result.orders_checked, money_at_risk=result.money_at_risk, currency=result.currency,
+        scanned_at=result.scanned_at.isoformat(),
+    )
+    data[store] = previous
+    alerts._save("last-scans.json", data)

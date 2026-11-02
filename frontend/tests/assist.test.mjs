@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, timeAgo } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -65,4 +65,11 @@ test("store results read as a short line", () => {
   assert.equal(storeStatusText({ verdict: "leaking", money_at_risk: "18.00", currency: "USD", scanned_at: at }, now), "18.00 USD at risk · 5 min ago");
   assert.equal(storeStatusText({ verdict: "vulnerable", security_issues: 1, scanned_at: at }, now), "1 security issue · 5 min ago");
   assert.equal(storeStatusText({ verdict: "clear", orders_checked: 4, scanned_at: at }, now), "4 paid orders match PayPal · 5 min ago");
+});
+
+test("a clean scan with no paid orders is not called all clear", () => {
+  assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 0 }), ["No paid orders yet", "status-none"]);
+  assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 3 }), ["All clear", "status-green"]);
+  assert.deepEqual(storeVerdict({ verdict: null }), ["Not scanned yet", "status-none"]);
+  assert.equal(storeStatusText({ verdict: "clear", orders_checked: 0 }), "Security checks passed");
 });

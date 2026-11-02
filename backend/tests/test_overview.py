@@ -8,7 +8,10 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from app import overview, paypal_toolkit
+from app import store_security
 from app.schemas import ScanResult, StoreSecurity, TriagePlan
+
+XSS = store_security.xss_finding("XSS found.")
 
 
 def scan(store, verdict, at_risk="0.00", checked=3, findings=()):
@@ -57,6 +60,18 @@ class OverviewTests(unittest.TestCase):
     def test_paypal_refusing_disputes_shows_unknown_not_an_error(self):
         view = self.build(error=paypal_toolkit.ToolkitError("refused", 403))
         self.assertIsNone(view.open_disputes)
+
+    def test_a_recovery_updates_the_money_at_risk_and_keeps_the_security_result(self):
+        overview.remember_scan(scan("vulnerable", "leaking", "18.00", 5, findings=[XSS]))
+
+        async def recovered_scan(request):
+            self.assertFalse(request.check_security)
+            return scan("vulnerable", None, "0.00", 5)
+
+        with patch("app.scan.scan_store", recovered_scan):
+            asyncio.run(overview.refresh_after_recovery("vulnerable"))
+        status = next(s for s in self.build(disputes=0).stores if s.store == "vulnerable")
+        self.assertEqual((status.verdict, status.money_at_risk, status.security_issues), ("vulnerable", "0.00", 1))
 
 
 if __name__ == "__main__":

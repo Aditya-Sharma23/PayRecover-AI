@@ -494,6 +494,8 @@ async def approve_recovery(request: RecoveryRequest, http: Request, background: 
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     background.add_task(alerts.deliver, notify.recovery_event(record), owner)
+    if record.status in recovery.DONE_STATUSES:
+        background.add_task(overview.refresh_after_recovery, record.store)
     return record
 
 
@@ -707,6 +709,8 @@ async def approval_submit(http: Request, background: BackgroundTasks) -> HTMLRes
     except (paypal.PayPalConfigurationError, paypal.PayPalProviderError) as exc:
         return _approval_page("PayPal could not be reached", f"<p class='bad'>{html.escape(str(exc))}</p>", 502)
     background.add_task(alerts.deliver, notify.recovery_event(record), approval["owner"])
+    if record.status in recovery.DONE_STATUSES:
+        background.add_task(overview.refresh_after_recovery, record.store)
     tone = "ok" if record.status in recovery.DONE_STATUSES else "bad"
     checks = "".join(f"<li>{'✓' if c.status == 'passed' else '✗'} {html.escape(c.message)}</li>" for c in record.verification)
     return _approval_page("Recovery done" if tone == "ok" else "Recovery not completed",
