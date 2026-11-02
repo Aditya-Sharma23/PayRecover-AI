@@ -153,7 +153,7 @@ async def read_store(order_id: str) -> tuple[dict | None, dict[str, Decimal] | N
 
 
 async def probe_store(catalog: dict[str, Decimal] | None) -> list[PaymentCheck]:
-    """Whether the store trusts a price sent by the browser. Creates one unapproved Sandbox order."""
+    """Whether the store trusts a price sent by the browser. Creates one unapproved Sandbox order, then cancels it."""
     checks = []
     if not catalog:
         return checks
@@ -162,6 +162,9 @@ async def probe_store(catalog: dict[str, Decimal] | None) -> list[PaymentCheck]:
         status, created = await _store_json(session, "POST", "/api/orders", {
             "items": [{"product_id": product_id, "quantity": 1, "unit_price": TAMPERED_PRICE}],
         })
+        if isinstance(created, dict) and created.get("id"):
+            # The probe order is never paid; cancel it so probes do not pile up in the store's order list.
+            await _store_json(session, "POST", f"/api/orders/{created['id']}/cancel")
     charged = _decimal(created.get("total")) if isinstance(created, dict) else None
     if status >= 400 or charged is None:
         checks.append(PaymentCheck(

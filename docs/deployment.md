@@ -51,7 +51,9 @@ docker compose up --build
 ## Deploy to Render (blueprint included)
 
 `render.yaml` creates four services: **payrecover-ai** (backend and dashboard, Docker, 1 GB disk at `/data`),
-**payrecover-main-store**, **payrecover-vuln-store** and **payrecover-risky-store** (the Sandbox demo stores, free plan).
+**payrecover-main-store**, **payrecover-vuln-store** and **payrecover-risky-store** (the Sandbox demo stores). All four
+use the Starter plan, about USD 7 each a month (the hackathon's USD 50 Render credit covers it): auto-scan keeps the
+stores busy around the clock, which would use up the free plan's monthly instance hours and get them suspended.
 
 1. Push the repository to GitHub.
 2. In Render: **New → Blueprint**, choose the repository. Render lists the values marked `sync: false`.
@@ -72,13 +74,16 @@ docker compose up --build
 
 4. Deploy. Check `https://payrecover-ai.onrender.com/api/deployment/readiness` shows `"ready": true`.
 5. Open the site, expand **API token**, and paste `TESTPILOT_API_TOKEN` from the Render environment page.
-6. PayPal webhooks: on developer.paypal.com open your Sandbox app → **Webhooks → Add webhook**, URL
+6. Give judges their own token, so they never share your alert email, auto-scan setting or history: set
+   `TESTPILOT_API_TOKENS` to `judges:<token>` (make the token with the command above) and put that token, not yours,
+   on the Devpost page.
+7. Turn on **Auto-scan** in the dashboard's top bar (every 10 minutes is plenty for judging).
+8. PayPal webhooks: on developer.paypal.com open your Sandbox app → **Webhooks → Add webhook**, URL
    `https://payrecover-ai.onrender.com/api/paypal/webhook`, events **Payment capture completed** and
    **Customer dispute created**. Copy the webhook's **ID** into `TESTPILOT_PAYPAL_WEBHOOK_ID` and redeploy.
    PayRecover verifies every event with PayPal before reading it.
 
-Free Render services sleep after about 15 minutes idle and take 30 to 60 seconds to wake; open the two stores
-first before a demo. The Vulnerable store is deliberately insecure (reflected XSS, editable prices); it only
+The Vulnerable store is deliberately insecure (reflected XSS, editable prices); it only
 ever talks to the PayPal Sandbox, so never give it live PayPal keys.
 
 A persistent disk needs a paid Render plan. Without one, history is lost on each deploy.

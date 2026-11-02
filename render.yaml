@@ -28,6 +28,9 @@ services:
       # users, set TESTPILOT_API_TOKENS="alice:<token>,bob:<token>" instead.
       - key: TESTPILOT_API_TOKEN
         generateValue: true
+      # Optional extra users with their own settings and history, e.g. "judges:<a random 32+ character token>".
+      - key: TESTPILOT_API_TOKENS
+        sync: false
       - key: TESTPILOT_PUBLIC_URL
         sync: false
       - key: TESTPILOT_GOOGLE_API_KEY
@@ -67,7 +70,8 @@ services:
   - type: web
     name: payrecover-main-store
     runtime: python
-    plan: free
+    # Starter, not free: auto-scan keeps the stores busy, and free instance hours would run out.
+    plan: starter
     rootDir: main-store
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT
@@ -83,7 +87,8 @@ services:
   - type: web
     name: payrecover-vuln-store
     runtime: python
-    plan: free
+    # Starter, not free: auto-scan keeps the stores busy, and free instance hours would run out.
+    plan: starter
     rootDir: vuln-store
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT
@@ -99,7 +104,8 @@ services:
   - type: web
     name: payrecover-risky-store
     runtime: python
-    plan: free
+    # Starter, not free: auto-scan keeps the stores busy, and free instance hours would run out.
+    plan: starter
     rootDir: vuln-store
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn store_app:app --host 0.0.0.0 --port $PORT

@@ -33,15 +33,16 @@ LEAKS = {
 }
 
 
-def run_scan(explain=False, generate=None):
+def run_scan(explain=False, generate=None, orders=None, limit=25):
     checked = []
+    listed = ORDERS if orders is None else orders
 
-    async def fake_recent(limit):
-        return ORDERS[:limit]
+    async def fake_recent(read_limit):
+        return listed[:read_limit]
 
     async def fake_investigate(request):
         checked.append(request.order_id)
-        found = LEAKS[request.order_id]
+        found = LEAKS.get(request.order_id, [])
         return Investigation(order_id=request.order_id, verdict="leaking" if found else "healthy",
                              checked_at="2026-10-31T05:00:00Z", store_url="http://127.0.0.1:8200", checks=[],
                              leaks=[item.model_copy() for item in found],
@@ -53,7 +54,7 @@ def run_scan(explain=False, generate=None):
     for p in patches:
         p.start()
     try:
-        return asyncio.run(scan.scan_store(ScanRequest(store="vulnerable", explain=explain))), checked
+        return asyncio.run(scan.scan_store(ScanRequest(store="vulnerable", explain=explain, limit=limit))), checked
     finally:
         for p in patches:
             p.stop()
@@ -68,6 +69,11 @@ def tearDownModule():
 
 
 class ScanTests(unittest.TestCase):
+    def test_paid_orders_behind_many_unpaid_ones_are_still_checked(self):
+        probes = [{"order_id": f"PROBE{n:012d}", "status": "CANCELLED"} for n in range(40)]
+        _, checked = run_scan(orders=probes + [{"order_id": "PAIDLATE0000001", "status": "PAID"}], limit=10)
+        self.assertEqual(checked, ["PAIDLATE0000001"])
+
     def test_only_paid_orders_are_checked(self):
         result, checked = run_scan()
         self.assertNotIn("ORDERCCC0003", checked)

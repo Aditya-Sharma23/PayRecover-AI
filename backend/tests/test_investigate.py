@@ -271,6 +271,22 @@ class DuplicateChargeTests(unittest.TestCase):
         self.assertEqual([(s["order_id"], s["captured"]) for s in siblings], [("9ZZ00000000000002", "18.00")])
 
 
+class PriceProbeTests(unittest.TestCase):
+    def test_the_probe_order_is_cancelled_so_probes_do_not_pile_up(self):
+        calls = []
+
+        async def fake_store_json(_session, method, path, body=None):
+            calls.append((method, path))
+            if path == "/api/orders":
+                return 200, {"id": "PROBE0000000001", "total": "18.00"}
+            return 200, {"order_id": "PROBE0000000001", "status": "CANCELLED"}
+
+        with patch("app.investigate._store_json", fake_store_json):
+            checks = asyncio.run(investigate.probe_store({"tee": investigate.Decimal("18.00")}))
+        self.assertEqual(calls, [("POST", "/api/orders"), ("POST", "/api/orders/PROBE0000000001/cancel")])
+        self.assertEqual(checks[0].status, CheckStatus.PASSED)
+
+
 class StorePickerTests(unittest.TestCase):
     def test_each_store_has_its_own_operator_setting(self):
         env = {"TESTPILOT_STORE_URL": "http://127.0.0.1:8100", "TESTPILOT_VULN_STORE_URL": "http://127.0.0.1:8200"}

@@ -35,6 +35,12 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
   the moment a payment or dispute needs attention.
 - **Security checks of the store:** price-tampering probe, reflected-XSS check, security headers and a full
   website scan, so the merchant sees the hole behind the leak.
+- **Three clear results for every scan:** 🔴 money leaking, 🟠 no leak but the store is vulnerable, 🟢 all clear.
+  Red and orange are sent by email (Brevo) and Zapier at once; green stays on the dashboard.
+- **An always-on agent:** auto-scan checks every store on a timer, even with the dashboard closed, and alerts only
+  when something changes. The dashboard shows money at risk, open disputes and money recovered at a glance.
+- **Three demo stores** show each result live: a clean Main store (🟢), a Risky store with safe payments but an
+  insecure website (🟠), and a Vulnerable store with switchable payment bugs (🔴).
 
 ## How we built it
 
@@ -47,7 +53,7 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
 | Backend | Python, FastAPI, pydantic; 260+ automated tests across backend, stores and dashboard; ruff, eslint |
 | Dashboard | React, Vite, **AG Grid** |
 | Developer experience | OpenAPI spec that passes **APIMatic** validation with zero errors; generated PayRecover SDKs (Python, TypeScript, C#) and an API portal |
-| Automation | **Zapier** for alerts and approve links |
+| Automation and alerts | **Zapier** (any of 9,000+ apps) and **Brevo** email for alerts with approve links; a built-in auto-scan agent |
 | Demo | A clean "Main store" and a "Vulnerable store" with switchable real bugs, both on the PayPal Sandbox |
 | Deploy | Docker, **Render** blueprint, GitHub Actions CI |
 
@@ -58,8 +64,8 @@ refunds twice, and is verified by a fresh read of PayPal. The agent gets only re
 
 ## Challenges we ran into
 
-- **Telling a leak from a normal state.** A refunded capture first looked like "never captured"; a duplicate
-  cart could be refunded twice. We now model PayPal's capture and refund states precisely and keep one refund
+- **Telling a leak from a normal state.** A refunded capture first looked like "never captured", and so did a
+  capture PayPal holds while a buyer's dispute is open; a duplicate cart could be refunded twice. We now model PayPal's capture and refund states precisely and keep one refund
   per cart.
 - **Linking a dispute to an order and a store.** PayPal disputes name a capture, not an order. We follow the
   capture to its order and tag each store's payments with a `custom_id`, so disputes, transactions and

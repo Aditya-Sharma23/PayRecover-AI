@@ -19,6 +19,8 @@ from app import ai, investigate
 from app.schemas import InvestigationRequest, ScanItem, ScanRequest, ScanResult, TriagePlan, TriageStep
 
 MAX_CONCURRENT = 4
+# The most a store lists at once (GET /api/recent-orders?limit=...).
+STORE_READ_LIMIT = 100
 URGENCY_RANK = {"now": 0, "soon": 1, "normal": 2}
 URGENCY_WHY = {
     "now": "the buyer approved this payment and it is still uncollected; capture it before the approval lapses",
@@ -94,8 +96,9 @@ Leaks: {json.dumps(facts, default=str)}"""
 async def scan_store(request: ScanRequest) -> ScanResult:
     """Check every recent order the store calls PAID, then rank the leaks and plan the recovery."""
     investigate._active_store.set(request.store)
-    orders = await recent_orders(request.limit)
-    paid = [order for order in orders if order.get("status") == "PAID"]
+    # Read past unpaid orders (abandoned checkouts, price probes) so the newest `limit` paid orders are checked.
+    orders = await recent_orders(STORE_READ_LIMIT)
+    paid = [order for order in orders if order.get("status") == "PAID"][:request.limit]
     gate = asyncio.Semaphore(MAX_CONCURRENT)
 
     async def check(order: dict[str, Any]) -> ScanItem:

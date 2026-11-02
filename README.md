@@ -60,7 +60,20 @@ urgency, then amount: an approved payment still uncollected comes first, with a 
 taken from PayPal's own timestamp (PayPal does not publish a fixed deadline for capturing an approved order,
 so PayRecover shows how long it has waited rather than inventing a countdown). Gemini writes the recovery plan
 for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice yields one refund, of the
-later charge, so approving every row never refunds the whole purchase.
+later charge, so approving every row never refunds the whole purchase. The scan reads past unpaid orders
+(abandoned checkouts, cancelled price probes) so the newest paid orders are always the ones checked.
+
+### Overview and auto-scan
+
+The dashboard opens with four headline numbers (orders scanned, money at risk, open PayPal disputes, money
+recovered) and a strip with each demo store's latest result: 🟢 all clear, 🟠 vulnerable, 🔴 money leaking, or not
+scanned yet. Click a store to scan it now. After a recovery, the store's payments are re-checked in the background
+so money at risk drops right away.
+
+**Auto-scan**, switched on and off in the top bar, scans every store every 5, 10, 30 or 60 minutes while the server
+runs, even with the dashboard closed, and keeps the setting across restarts. It skips the AI plan (no AI calls),
+and alerts only when a store's result changes, so the same alert is not sent every few minutes. A manual scan
+always alerts.
 
 ### Ask PayRecover (Gemini + PayPal's Agent Toolkit)
 

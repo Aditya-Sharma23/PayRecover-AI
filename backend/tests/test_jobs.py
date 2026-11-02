@@ -20,8 +20,12 @@ class JobTests(unittest.TestCase):
                 checks=[CheckName.API_STATUS],
             )
             record = await manager.submit(JobType.API, request.model_dump(mode="json"))
-            await asyncio.sleep(2)
-            finished = manager.get(record.job_id)
+            # Wait for the run to finish (it calls example.com, so allow for a slow network) instead of a fixed pause.
+            for _ in range(40):
+                finished = manager.get(record.job_id)
+                if finished and finished.status in {JobStatus.COMPLETED, JobStatus.FAILED}:
+                    break
+                await asyncio.sleep(0.25)
             await manager.close()
             return finished
 
