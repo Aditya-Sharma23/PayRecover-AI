@@ -34,6 +34,10 @@ class JudgeTests(unittest.TestCase):
         item = price_check.judge("mug", "Mug", Decimal("12.50"), "q", MUGS)
         self.assertEqual((item.market_low, item.market_high), ("10.00", "14.00"))
 
+    def test_a_cheap_but_normal_price_in_a_wide_market_is_not_a_typo(self):
+        stickers = [product(f"Pack {n}", price) for n, price in enumerate([3.0, 4.5, 6.0, 12, 15, 18, 18, 18, 25, 40])]
+        self.assertEqual(price_check.judge("stickers", "Sticker pack", Decimal("4.99"), "q", stickers).verdict, "ok")
+
     def test_too_few_matches_are_not_judged(self):
         self.assertEqual(price_check.judge("mug", "Mug", Decimal("1.00"), "q", MUGS[:2]).verdict, "no_match")
 

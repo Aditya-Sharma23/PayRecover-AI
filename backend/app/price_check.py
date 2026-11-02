@@ -3,9 +3,10 @@
 A store that lists a mug at 1.25 instead of 12.50 is paid exactly what it asked, so PayPal's
 records match and no payment check can see the problem. For each product the store sells,
 PayRecover searches Channel3 (100M+ products from 25,000+ retailers) for comparable new,
-in-stock products, and compares the store's price with the middle of the market:
-  * under a third of the market median: "underpriced", likely a typo that loses money;
-  * over three times the median: "overpriced", which costs sales.
+in-stock products, and compares the store's price with the edges of the market, so a cheap but normal
+price (most products in the range cost more, a few cost less) is not mistaken for a typo:
+  * under half the price of the cheapest tenth: "underpriced", likely a typo that loses money;
+  * over one and a half times the dearest tenth: "overpriced", which costs sales.
 Searches are cached for six hours, so repeated checks do not use Channel3 credits.
 The key is the operator's TESTPILOT_CHANNEL3_API_KEY and is never sent to the browser.
 """
@@ -28,8 +29,8 @@ TIMEOUT_SECONDS = 20
 RESULTS_PER_PRODUCT = 20
 CACHE_FILE = "channel3-cache.json"
 CACHE_SECONDS = 6 * 60 * 60
-UNDERPRICED = Decimal("0.33")
-OVERPRICED = Decimal("3")
+UNDERPRICED = Decimal("0.5")  # of the 10th-percentile market price
+OVERPRICED = Decimal("1.5")  # of the 90th-percentile market price
 MIN_SAMPLES = 3
 CENT = Decimal("0.01")
 
@@ -102,18 +103,21 @@ def judge(product_id: str, name: str, store_price: Decimal, query: str, products
                               message=f"Too few comparable products found for \"{query}\" to judge the price.")
     amounts = sorted(amount for amount, _, _ in offers)
     middle = Decimal(str(median(amounts))).quantize(CENT)
+    cheap = amounts[int(0.1 * (len(amounts) - 1))]
+    dear = amounts[int(0.9 * (len(amounts) - 1))]
     examples = [MarketExample(title=str(product.get("title", ""))[:120], price=str(amount.quantize(CENT)), currency="USD",
                               retailer=str(offer.get("domain", "")), url=str(offer.get("url", "")))
                 for amount, product, offer in sorted(offers, key=lambda item: abs(item[0] - middle))[:3]]
     market = {"market_low": str(amounts[0].quantize(CENT)), "market_median": str(middle),
               "market_high": str(amounts[-1].quantize(CENT)), "examples": examples}
-    if store_price < middle * UNDERPRICED:
+    if store_price < cheap * UNDERPRICED:
         verdict, message = "underpriced", (
             f"{name} sells for {store_price:.2f} USD, but comparable products sell for about {middle} USD. "
             f"If this is a typo, every sale loses about {(middle - store_price).quantize(CENT)} USD.")
-    elif store_price > middle * OVERPRICED:
+    elif store_price > dear * OVERPRICED:
         verdict, message = "overpriced", (
-            f"{name} sells for {store_price:.2f} USD, over three times the usual {middle} USD, which can cost sales.")
+            f"{name} sells for {store_price:.2f} USD, far above comparable products (most under {dear:.2f} USD), "
+            "which can cost sales.")
     else:
         verdict, message = "ok", f"{name} at {store_price:.2f} USD is in line with the market (about {middle} USD)."
     return PriceCheckItem(**base, **market, verdict=verdict, message=message)
