@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import html
 import logging
@@ -16,6 +17,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    AutoscanSettings,
+    AutoscanStatus,
     Overview,
     AlertItem,
     AlertSettings,
@@ -71,8 +74,8 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, disputes, overview, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
-                 recovery, scan, unrecorded, webhooks)
+from app import (agent, alerts, autoscan, disputes, overview, store_security, evidence, investigate, notify, paypal, paypal_toolkit,
+                 recovery, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -96,7 +99,9 @@ async def lifespan(_app: FastAPI):
         # Fail closed: a public deployment with a missing safeguard never starts.
         raise RuntimeError("Public deployment blocked: " + "; ".join(readiness["blockers"]))
     JobManager.recover()
+    scanner = asyncio.create_task(autoscan.loop())
     yield
+    scanner.cancel()
     await job_manager.close()
 
 
@@ -438,26 +443,17 @@ async def scan_store(request: ScanRequest, http: Request, background: Background
     Leaks are ranked by urgency, then amount; Gemini only words the plan for that order.
     """
     try:
-        result = await scan.scan_store(request)
+        result, _ = await autoscan.full_scan(request)
     except investigate.StoreUnavailable as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except paypal.PayPalConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except paypal.PayPalProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    if request.check_paypal_side:
-        result.unrecorded = await unrecorded.find(request.store)
-    if request.check_security:
-        result.security = await store_security.check(request.store)
-    result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
-    overview.remember_scan(result)
-    # Red when money is leaking, orange when it is not but the store has holes; an all-clear scan sends nothing.
-    if result.verdict == "leaking":
-        background.add_task(alerts.deliver, notify.scan_event(result), request_owner(http))
-    elif result.verdict == "vulnerable":
-        background.add_task(alerts.deliver, notify.vulnerable_event(
-            result.store, result.security, f"PayRecover checked {result.orders_checked} paid order(s)."),
-            request_owner(http))
+    # A manual scan always alerts: red when money is leaking, orange when the store has holes, nothing when clear.
+    event = autoscan.alert_for(result)
+    if event:
+        background.add_task(alerts.deliver, event, request_owner(http))
     return result
 
 
@@ -617,7 +613,21 @@ def paypal_features() -> dict:
 @app.get("/api/overview", response_model=Overview, tags=["PayRecover"])
 async def dashboard_overview(http: Request) -> Overview:
     """Headline numbers (orders scanned, money at risk, open disputes, money recovered) and each store's latest result."""
-    return await overview.build(request_owner(http))
+    result = await overview.build(request_owner(http))
+    result.autoscan = autoscan.status()
+    return result
+
+
+@app.get("/api/autoscan", response_model=AutoscanStatus, tags=["PayRecover"])
+def autoscan_status() -> AutoscanStatus:
+    """Whether auto-scan is on, how often it runs, and when it last ran and runs next."""
+    return autoscan.status()
+
+
+@app.put("/api/autoscan", response_model=AutoscanStatus, tags=["PayRecover"])
+def set_autoscan(settings: AutoscanSettings) -> AutoscanStatus:
+    """Turn auto-scan on or off and choose how often it scans every store (5, 10, 30 or 60 minutes)."""
+    return autoscan.configure(settings)
 
 
 @app.get("/api/alerts", response_model=AlertsView, tags=["PayRecover"])

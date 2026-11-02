@@ -114,3 +114,19 @@ export function storeStatusText(status, now = Date.now()) {
       : `${status.orders_checked} paid order${status.orders_checked === 1 ? "" : "s"} match PayPal`;
   return status.scanned_at ? `${detail} · ${timeAgo(status.scanned_at, now)}` : detail;
 }
+
+export const AUTOSCAN_INTERVALS = [5, 10, 30, 60];
+
+// "in 7 min" for a time ahead; "now" once it has passed.
+export function timeUntil(when, now = Date.now()) {
+  const minutes = Math.round((new Date(when).getTime() - now) / 60000);
+  if (minutes <= 0) return "now";
+  return minutes < 60 ? `in ${minutes} min` : `in ${Math.round(minutes / 60)} h`;
+}
+
+export function autoscanText(status, now = Date.now()) {
+  if (!status?.enabled) return "Auto-scan off";
+  if (status.running) return "Auto-scan running…";
+  const next = status.next_run ? `next scan ${timeUntil(status.next_run, now)}` : "starting";
+  return `Auto-scan on · every ${status.interval_minutes} min · ${next}`;
+}

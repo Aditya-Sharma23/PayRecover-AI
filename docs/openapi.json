@@ -695,6 +695,77 @@
         "title": "ApiRunRequest",
         "type": "object"
       },
+      "AutoscanSettings": {
+        "additionalProperties": false,
+        "description": "Turn the background auto-scan on or off, and how often it runs.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "interval_minutes": {
+            "default": 10,
+            "description": "How often to scan: 5, 10, 30 or 60 minutes.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "AutoscanSettings",
+        "type": "object"
+      },
+      "AutoscanStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "interval_minutes": {
+            "type": "integer"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_run": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "running": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "interval_minutes"
+        ],
+        "title": "AutoscanStatus",
+        "type": "object"
+      },
       "CheckChange": {
         "additionalProperties": false,
         "properties": {
@@ -1764,6 +1835,16 @@
       "Overview": {
         "description": "The dashboard's headline numbers.",
         "properties": {
+          "autoscan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutoscanStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "currency": {
             "type": "string"
           },
@@ -3178,6 +3259,68 @@
         "summary": "Artifact",
         "tags": [
           "run history"
+        ]
+      }
+    },
+    "/api/autoscan": {
+      "get": {
+        "description": "Whether auto-scan is on, how often it runs, and when it last ran and runs next.",
+        "operationId": "autoscan_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoscanStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Autoscan Status",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "put": {
+        "description": "Turn auto-scan on or off and choose how often it scans every store (5, 10, 30 or 60 minutes).",
+        "operationId": "set_autoscan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoscanSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoscanStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Autoscan",
+        "tags": [
+          "PayRecover"
         ]
       }
     },

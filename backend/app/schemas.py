@@ -971,6 +971,35 @@ class Overview(BaseModel):
     money_recovered: str
     stores: list[StoreStatus]
     last_activity: datetime | None = None
+    autoscan: "AutoscanStatus | None" = None
+
+AUTOSCAN_INTERVALS = (5, 10, 30, 60)
+
+
+class AutoscanSettings(BaseModel):
+    """Turn the background auto-scan on or off, and how often it runs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+    interval_minutes: int = Field(default=10, description="How often to scan: 5, 10, 30 or 60 minutes.")
+
+    @field_validator("interval_minutes")
+    @classmethod
+    def allowed_interval(cls, value: int) -> int:
+        if value not in AUTOSCAN_INTERVALS:
+            raise ValueError("Choose 5, 10, 30 or 60 minutes.")
+        return value
+
+
+class AutoscanStatus(BaseModel):
+    enabled: bool
+    interval_minutes: int
+    running: bool = False
+    last_run: datetime | None = None
+    next_run: datetime | None = None
+    last_error: str | None = None
 
 
 ScanResult.model_rebuild()
+Overview.model_rebuild()

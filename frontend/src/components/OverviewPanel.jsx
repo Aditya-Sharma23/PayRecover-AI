@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
-import { storeStatusText, storeVerdict, timeAgo } from "../lib/assist.js";
+import { AUTOSCAN_INTERVALS, autoscanText, storeStatusText, storeVerdict, timeAgo } from "../lib/assist.js";
 import { STORES } from "../lib/payment.js";
 
 const REFRESH_MS = 30000;
@@ -41,6 +41,17 @@ export default function OverviewPanel({ refreshKey }) {
     }
   }
 
+  async function setAutoscan(enabled, interval) {
+    setError(null);
+    try {
+      await apiJson("/api/autoscan", { method: "PUT", body: { enabled, interval_minutes: interval } }, "Auto-scan could not be changed.");
+      setData(await apiJson("/api/overview"));
+    } catch (reason) {
+      setError(reason.message);
+    }
+  }
+
+  const auto = data?.autoscan;
   const money = (value) => (data ? `${value} ${data.currency}` : "–");
   const cards = [
     ["Orders scanned", data ? data.orders_scanned : "–", "⌕", "Latest scan of each store", ""],
@@ -50,9 +61,23 @@ export default function OverviewPanel({ refreshKey }) {
   ];
 
   return <section className="overview" aria-label="Overview">
-    <div className="live-indicator" role="status">
-      <i aria-hidden="true" />
-      <span>Live{data?.last_activity ? ` · last check ${timeAgo(data.last_activity, now)}` : " · no checks yet"}</span>
+    <div className="overview-bar">
+      <div className="live-indicator" role="status">
+        <i aria-hidden="true" />
+        <span>Live{data?.last_activity ? ` · last check ${timeAgo(data.last_activity, now)}` : " · no checks yet"}</span>
+      </div>
+      {auto && <div className={`autoscan ${auto.enabled ? "on" : ""}`}>
+        <label className="switch">
+          <input type="checkbox" checked={auto.enabled} onChange={(event) => setAutoscan(event.target.checked, auto.interval_minutes)} />
+          <span aria-hidden="true" />
+          <span className="sr-only">Auto-scan every store</span>
+        </label>
+        <span role="status">{autoscanText(auto, now)}</span>
+        <select className="text-input" aria-label="How often to auto-scan" value={auto.interval_minutes}
+          onChange={(event) => setAutoscan(auto.enabled, Number(event.target.value))}>
+          {AUTOSCAN_INTERVALS.map((minutes) => <option key={minutes} value={minutes}>Every {minutes} min</option>)}
+        </select>
+      </div>}
     </div>
     <div className="metrics overview-cards">
       {cards.map(([title, value, icon, note, tone]) => <article className={`metric-card ${tone}`} key={title}>

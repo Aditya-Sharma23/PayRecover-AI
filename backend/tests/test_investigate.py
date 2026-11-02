@@ -109,6 +109,14 @@ class InvestigationTests(unittest.TestCase):
         self.assertEqual(result.leaks, [])
         self.assertEqual(result.money_at_risk, "0.00")
 
+    def test_a_capture_held_for_a_buyer_dispute_is_not_a_never_captured_leak(self):
+        order = paypal_order()
+        capture = order["purchase_units"][0]["payments"]["captures"][0]
+        capture.update(status="PENDING", status_details={"reason": "BUYER_COMPLAINT"})
+        result = run(claim(), order)
+        self.assertEqual(result.leaks, [])
+        self.assertEqual(result.money_at_risk, "0.00")
+
     def test_a_partly_refunded_capture_still_counts_as_collected(self):
         order = paypal_order()
         order["purchase_units"][0]["payments"]["captures"][0]["status"] = "PARTIALLY_REFUNDED"

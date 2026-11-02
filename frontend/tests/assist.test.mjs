@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, autoscanText, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -72,4 +72,12 @@ test("a clean scan with no paid orders is not called all clear", () => {
   assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 3 }), ["All clear", "status-green"]);
   assert.deepEqual(storeVerdict({ verdict: null }), ["Not scanned yet", "status-none"]);
   assert.equal(storeStatusText({ verdict: "clear", orders_checked: 0 }), "Security checks passed");
+});
+
+test("auto-scan status reads as a short line", () => {
+  const now = Date.parse("2026-11-02T12:00:00Z");
+  assert.equal(autoscanText({ enabled: false }), "Auto-scan off");
+  assert.equal(autoscanText({ enabled: true, running: true }), "Auto-scan running…");
+  assert.equal(autoscanText({ enabled: true, interval_minutes: 10, next_run: "2026-11-02T12:07:00Z" }, now), "Auto-scan on · every 10 min · next scan in 7 min");
+  assert.equal(timeUntil("2026-11-02T11:59:00Z", now), "now");
 });

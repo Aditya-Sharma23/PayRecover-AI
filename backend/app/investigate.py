@@ -285,6 +285,10 @@ def find_leaks(
         # The money was collected and then deliberately returned (for example, a duplicate charge
         # PayRecover refunded). That is not a leak, and capturing again is impossible anyway.
         return []
+    if not captures and any(c.get("status") == "PENDING" for c in _captures(order)):
+        # Captured, but PayPal is holding the money (for example BUYER_COMPLAINT while a dispute is open).
+        # Capturing again is impossible; the dispute defender is where this payment is decided.
+        return []
     if not captures:
         return [Leak(
             kind="never_captured", title="Buyer approved, but the money was never captured", urgency="now",
