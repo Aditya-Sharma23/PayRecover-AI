@@ -1,3 +1,5 @@
+![PayRecover AI: your store says "paid", PayPal knows better](docs/banner.png)
+
 # PayRecover AI
 
 **An AI agent for PayPal merchants: it finds money a store has lost, proves each leak, and shows how to get it back.**
