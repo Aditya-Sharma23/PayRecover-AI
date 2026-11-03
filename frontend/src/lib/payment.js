@@ -2,7 +2,7 @@
 
 export const CHECK_GROUPS = [
   ["Store's claim", ["store_claim_found", "store_claim_matches", "price_integrity"]],
-  ["PayPal's record", ["order_found", "order_status", "capture_completed", "amount_matches", "single_capture", "no_duplicate_charge"]],
+  ["PayPal's record", ["order_found", "order_status", "capture_completed", "payment_hold", "amount_matches", "single_capture", "no_duplicate_charge"]],
   ["Security probes", ["price_tampering_probe"]],
 ];
 
@@ -13,6 +13,7 @@ export const CHECK_LABELS = {
   order_found: "Order exists at PayPal",
   order_status: "Order status",
   capture_completed: "Payment captured",
+  payment_hold: "Held payment collected",
   amount_matches: "Amount and currency",
   single_capture: "Captured only once",
   no_duplicate_charge: "Cart charged only once",
@@ -23,9 +24,13 @@ export const VERDICTS = {
   healthy: ["Healthy", "passed", "The store's claim matches PayPal's record."],
   leaking: ["Money leak found", "failed", "The store and PayPal disagree, and money is at risk."],
   review: ["Needs review", "warning", "Some checks could not be completed."],
+  waiting: ["Waiting for PayPal", "waiting", "No leak found, but PayPal has not settled this payment yet."],
 };
 
-export const RECOVERY_LABELS = { capture: "Capture payment", invoice: "Send invoice", refund: "Refund extra charge", hold_shipment: "Hold shipment" };
+export const RECOVERY_LABELS = {
+  capture: "Capture payment", capture_hold: "Capture held payment", invoice: "Send invoice", refund: "Refund extra charge",
+  hold_shipment: "Hold shipment",
+};
 
 // Recovery outcomes: label and badge class.
 export const RECOVERY_STATUS = {
@@ -38,7 +43,7 @@ export const RECOVERY_STATUS = {
 
 // What the merchant is asked before any money moves.
 export function approvalQuestion(leak, orderId) {
-  const verb = { capture: "Capture", invoice: "Invoice the buyer for", refund: "Refund" }[leak.recovery_action];
+  const verb = { capture: "Capture", capture_hold: "Capture the held", invoice: "Invoice the buyer for", refund: "Refund" }[leak.recovery_action];
   return `${verb} ${leak.amount} ${leak.currency} for order ${orderId} in PayPal Sandbox?\n\n${leak.recovery}`;
 }
 
@@ -46,6 +51,7 @@ export const recoveryBody = (orderId, store, kind) => ({ order_id: orderId, stor
 
 const LEAK_NAMES = {
   never_captured: "Never captured", fake_paid: "Fake paid", wrong_amount: "Wrong amount", duplicate_charge: "Duplicate charge",
+  hold_expiring: "Held, not collected", hold_expired: "Hold expired",
 };
 
 // Grid rows for the recovery table; "when" sorts correctly as text.
@@ -138,13 +144,38 @@ export function waitingText(since, now = Date.now()) {
   return `Buyer approved ${span} ago, still not captured`;
 }
 
+// "Hold expires in 1d 4h" from PayPal's own expiration_time; "Hold expired" once it has passed.
+export function expiresText(until, now = Date.now()) {
+  if (!until) return null;
+  const minutes = Math.floor((new Date(until).getTime() - now) / 60000);
+  if (minutes <= 0) return "Hold expired: PayPal gave the money back";
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  return `Hold expires in ${days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`}`;
+}
+
 export const evidencePath = (orderId, store) => `/api/orders/${encodeURIComponent(orderId)}/evidence?store=${encodeURIComponent(store)}`;
 
 export const scanBody = (store, limit = 25) => ({ store, limit, explain: true });
 
-// One grid row per leak, in the scan's ranked order.
+const DONE = new Set(["recovered", "invoice_sent", "refunded"]);
+
+// What a scan still has at risk once some rows were approved and confirmed: money and orders.
+export function remainingAtRisk(result, outcomes = {}) {
+  let money = 0;
+  let orders = 0;
+  for (const item of result.items) {
+    const open = item.leaks.filter((leak) => !DONE.has(outcomes[`${item.order_id}-${leak.kind}`]?.record?.status));
+    money += open.reduce((sum, leak) => sum + Math.round(Number(leak.amount) * 100), 0);
+    if (open.length) orders += 1;
+  }
+  return { money: (money / 100).toFixed(2), orders };
+}
+
+// One grid row per leak, in the scan's ranked order, with the plan's reason to act now beside it.
 export function scanRows(result) {
   let rank = 0;
+  const why = Object.fromEntries((result.plan?.steps || []).map((step) => [`${step.order_id}-${step.kind}`, step.why]));
   return result.items.flatMap((item) => item.leaks.map((leak) => ({
     id: `${item.order_id}-${leak.kind}`,
     rank: (rank += 1),
@@ -153,7 +184,9 @@ export function scanRows(result) {
     title: leak.title,
     amount: `${leak.amount} ${leak.currency}`,
     urgency: leak.urgency,
+    why: why[`${item.order_id}-${leak.kind}`] || "",
     waiting_since: leak.waiting_since,
+    expires_at: leak.expires_at,
     action: leak.recovery_action,
   })));
 }

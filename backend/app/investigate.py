@@ -14,6 +14,9 @@ TESTPILOT_VULN_STORE_URL for the Vulnerable store, TESTPILOT_RISKY_STORE_URL for
 only picks one of them by name.
 Duplicate charges are found across orders: every other order opened for the same cart
 is looked up at PayPal, because a double click pays a second order, not the same one twice.
+Payments PayPal only holds (intent AUTHORIZE) are followed to their authorization: a hold nobody
+captures is released back to the buyer when it expires, so it is a leak with its own deadline.
+The rules live in judge(), which works on plain data, so the demo scenarios run the same code.
 Leaks and money at risk come only from these checks. The AI model explains them; it cannot
 add, remove or change a leak, and the suggested recovery is never executed here.
 """
@@ -23,7 +26,7 @@ import json
 import os
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -58,6 +61,9 @@ _active_store: ContextVar[str] = ContextVar("active_store", default="main")
 STORE_TIMEOUT_SECONDS = 10
 TAMPERED_PRICE = "0.01"
 CENT = Decimal("0.01")
+# A hold this close to expiring is collected first; PayPal only guarantees a hold's funds for the first days.
+HOLD_URGENT = timedelta(days=3)
+OPEN_HOLD_STATES = {"CREATED", "PENDING", "PARTIALLY_CAPTURED"}
 
 
 class StoreUnavailable(RuntimeError):
@@ -198,6 +204,41 @@ def _captures(order: dict[str, Any]) -> list[dict[str, Any]]:
     return captures
 
 
+def _authorizations(order: dict[str, Any]) -> list[dict[str, Any]]:
+    holds = []
+    for unit in order.get("purchase_units") or []:
+        holds.extend((unit.get("payments") or {}).get("authorizations") or [])
+    return holds
+
+
+def _hold_expired(hold: dict[str, Any], now: datetime) -> bool:
+    expires = _paypal_time(hold.get("expiration_time"))
+    return hold.get("status") == "EXPIRED" or (
+        hold.get("status") in OPEN_HOLD_STATES and expires is not None and expires <= now)
+
+
+def _hold_check(order: dict[str, Any], now: datetime) -> PaymentCheck | None:
+    """For a payment PayPal only holds: is the hold still open, and when does it expire."""
+    holds = _authorizations(order)
+    if order.get("intent") != "AUTHORIZE" or not holds:
+        return None
+    hold = holds[0]
+    state = hold.get("status")
+    expires = _paypal_time(hold.get("expiration_time"))
+    amount = (hold.get("amount") or {}).get("value")
+    evidence = {"authorization_id": hold.get("id"), "status": state, "expiration_time": hold.get("expiration_time")}
+    if state == "CAPTURED":
+        return PaymentCheck(name="payment_hold", status=CheckStatus.PASSED,
+                            message=f"PayPal held {amount} and the store captured it.", evidence=evidence)
+    when = f", expiring {expires:%d %b %Y %H:%M} UTC" if expires else ""
+    return PaymentCheck(
+        name="payment_hold", status=CheckStatus.FAILED,
+        message=(f"PayPal's hold on {amount} expired before anyone captured it." if _hold_expired(hold, now)
+                 else f"PayPal only holds {amount} (authorization {state}{when}); nothing has captured it."),
+        evidence=evidence,
+    )
+
+
 def expected_total(claim: dict | None, catalog: dict[str, Decimal] | None) -> Decimal | None:
     """What the order should cost: catalog price x quantity, or the store's own total if the catalog is unknown."""
     if claim is None:
@@ -255,9 +296,58 @@ def _paypal_time(value: Any) -> datetime | None:
         return None
 
 
+def _in_days(left: timedelta) -> str:
+    # Rounded to the nearest day or hour: PayPal's timestamps have whole seconds, so "2 days" is 1 day 23:59:59.
+    hours = left.total_seconds() / 3600
+    if hours >= 24:
+        days = round(hours / 24)
+        return f"in {days} day{'s' if days != 1 else ''}"
+    hours = max(1, round(hours))
+    return f"in {hours} hour{'s' if hours != 1 else ''}"
+
+
+def _hold_leaks(claim: dict, order: dict, currency: str, also: str, now: datetime) -> list[Leak] | None:
+    """Leaks for a payment PayPal only holds, or None when the order is not an uncaptured held payment."""
+    holds = _authorizations(order)
+    if order.get("intent") != "AUTHORIZE" or not holds or holds[0].get("status") == "CAPTURED":
+        return None
+    hold = holds[0]
+    amount = _decimal((hold.get("amount") or {}).get("value")) or Decimal(0)
+    expires = _paypal_time(hold.get("expiration_time"))
+    held_since = _paypal_time(hold.get("create_time") or order.get("update_time"))
+    cause = "The store marks an order PAID when PayPal has only held the payment, and nothing captures it later."
+    if also:
+        cause += " " + also
+    if _hold_expired(hold, now):
+        buyer_known = bool((order.get("payer") or {}).get("email_address"))
+        return [Leak(
+            kind="hold_expired", title="The payment hold expired before it was captured", urgency="soon",
+            amount=_money(amount), currency=currency, root_cause=cause, recovery_action="invoice",
+            recovery=(f"PayPal gave the {_money(amount)} {currency} back to the buyer. Send them a PayPal invoice "
+                      "for it, or hold the shipment." if buyer_known else
+                      "PayPal gave the money back to the buyer. Hold the shipment and contact the buyer."),
+            targets=[RecoveryTarget(order_id=claim["order_id"], amount=_money(amount))] if buyer_known else [],
+            waiting_since=held_since, expires_at=expires,
+        )]
+    if hold.get("status") not in OPEN_HOLD_STATES:
+        return None
+    left = expires - now if expires else None
+    return [Leak(
+        kind="hold_expiring",
+        title="Money held at PayPal, never collected" + (f": the hold expires {_in_days(left)}" if left else ""),
+        urgency="now" if left is None or left <= HOLD_URGENT else "soon",
+        amount=_money(amount), currency=currency, root_cause=cause, recovery_action="capture_hold",
+        recovery=(f"Capture the held {_money(amount)} {currency} at PayPal"
+                  + (f" before {expires:%d %b %Y}" if expires else "")
+                  + "; after that PayPal gives it back to the buyer."),
+        targets=[RecoveryTarget(order_id=order["id"], authorization_id=hold.get("id"), amount=_money(amount))],
+        waiting_since=held_since, expires_at=expires,
+    )]
+
+
 def find_leaks(
     claim: dict | None, order: dict | None, expected: Decimal | None, checks: list[PaymentCheck],
-    siblings: list[dict] | None = None,
+    siblings: list[dict] | None = None, now: datetime | None = None,
 ) -> list[Leak]:
     """Turn failed checks into leaks with an amount and a suggested recovery. Deterministic."""
     if claim is None or claim.get("status") != "PAID" or expected is None:
@@ -284,6 +374,11 @@ def find_leaks(
         )]
     # A partly refunded capture still collected money, so it counts as a capture here.
     captures = [c for c in _captures(order) if c.get("status") in {"COMPLETED", "PARTIALLY_REFUNDED"}]
+    if not captures:
+        held = _hold_leaks(claim, order, currency, "It also trusts prices sent by the browser." if price_hole else "",
+                           now or datetime.now(timezone.utc))
+        if held is not None:
+            return held
     if not captures and any(c.get("status") == "REFUNDED" for c in _captures(order)):
         # The money was collected and then deliberately returned (for example, a duplicate charge
         # PayRecover refunded). That is not a leak, and capturing again is impossible anyway.
@@ -459,47 +554,51 @@ def _website_digest(report: WebsiteRunReport | None) -> dict[str, Any] | None:
     }
 
 
-async def investigate(request: InvestigationRequest, run_website: WebsiteRunner | None = None) -> Investigation:
-    """Run every check for one order. PayPal configuration and provider errors propagate to the caller."""
-    _active_store.set(request.store)
-    checks: list[PaymentCheck] = []
-    try:
-        base = store_url()
-        claim, catalog, store_note = await read_store(request.order_id)
-    except StoreUnavailable as exc:
-        variable, default = _store_setting()
-        base = os.environ.get(variable, default)
-        claim, catalog, store_note = None, None, str(exc)
-    checks.append(PaymentCheck(
-        name="store_claim_found",
-        status=CheckStatus.PASSED if claim else CheckStatus.ERROR,
-        message=(f"The store says this order is {claim.get('status')}, total {claim.get('total')} {claim.get('currency')}."
-                 if claim else store_note),
-        evidence={"store_url": base, "status": claim and claim.get("status")},
-    ))
+def waiting_reason(order: dict | None, leaks: list[Leak]) -> str | None:
+    """Why an order with no leak still cannot be called healthy: PayPal has not settled the payment."""
+    if leaks or not order:
+        return None
+    if any(c.get("status") == "PENDING" for c in _captures(order)):
+        return ("PayPal is holding this payment (capture PENDING), often while a buyer dispute is open. "
+                "PayRecover will judge it once PayPal settles it.")
+    return None
 
-    try:
-        order = await paypal.fetch_order(request.order_id)
-    except paypal.PayPalOrderNotFound as exc:
-        order = None
+
+def judge(
+    claim: dict | None, catalog: dict[str, Decimal] | None, order: dict | None, order_note: str | None = None,
+    probe_checks: list[PaymentCheck] | None = None, siblings: list[dict] | None = None,
+    sibling_note: str | None = None, now: datetime | None = None,
+) -> dict[str, Any]:
+    """Every rule, on plain data: the store's claim, its catalog and PayPal's record in; checks and leaks out.
+
+    Free of network calls, so investigate() and the demo scenarios share it. siblings are the cart's
+    other orders with what PayPal captured for each; sibling_note says why they could not be read.
+    """
+    checks: list[PaymentCheck] = []
+    current = now or datetime.now(timezone.utc)
+    if order is None:
         checks.append(PaymentCheck(
-            name="order_found", status=CheckStatus.FAILED, message=str(exc), evidence={"order_id": request.order_id}
+            name="order_found", status=CheckStatus.FAILED,
+            message=order_note or "PayPal Sandbox has no record of this order.",
+            evidence={"order_id": (claim or {}).get("order_id")},
         ))
     summary = paypal.order_summary(order) if order else None
     if summary:
         summary["capture_count"] = len(_captures(order))
-
     expected = expected_total(claim, catalog)
     currency = (claim or {}).get("currency") or (summary or {}).get("currency") or "USD"
     if order:
         claims_paid = claim is None or claim.get("status") == "PAID"
         checks.extend(paypal.evaluate_order(order, PaymentVerificationRequest(
-            order_id=request.order_id,
+            order_id=order["id"],
             expected_status="COMPLETED" if claims_paid else order.get("status"),
             require_capture=claims_paid,
             expected_amount=_money(expected) if expected is not None and claims_paid else None,
             expected_currency=currency,
         )))
+        hold = _hold_check(order, current)
+        if hold:
+            checks.append(hold)
         checks.append(PaymentCheck(
             name="single_capture",
             status=CheckStatus.PASSED if summary["capture_count"] <= 1 else CheckStatus.FAILED,
@@ -509,32 +608,11 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
     if claim:
         checks.append(_claim_check(claim, summary))
         checks.append(_price_check(claim, catalog, expected))
-    if request.probe_store and claim is not None:
-        try:
-            checks.extend(await probe_store(catalog))
-        except StoreUnavailable as exc:
-            checks.append(PaymentCheck(
-                name="price_tampering_probe", status=CheckStatus.ERROR, message=str(exc), evidence={}
-            ))
+    checks.extend(probe_checks or [])
 
-    website_report = None
-    if request.website_checks and run_website is not None and claim is not None:
-        website_report = await scan_store(run_website)
-    xss_scan = None
-    if request.xss_probe and claim is not None:
-        try:
-            xss_scan = await scan_xss()
-        except StoreUnavailable as exc:
-            xss_scan = {"status": "error", "summary": str(exc), "payloads": [], "findings": [],
-                        "parameters": [], "payload_count": 0, "requests": 0,
-                        "content_security_policy": False, "limitations": []}
-
-    siblings: list[dict] = []
+    charged_siblings: list[dict] = []
     if claim is not None:
-        try:
-            siblings, sibling_note = await sibling_payments(claim)
-        except StoreUnavailable as exc:
-            sibling_note = str(exc)
+        siblings = siblings or []
         charged = [s for s in siblings if Decimal(s["captured"]) > 0]
         this_charged = bool(summary) and summary["capture_status"] == "COMPLETED"
         if sibling_note:
@@ -554,31 +632,96 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
                 ),
                 evidence={"cart_id": claim.get("cart_id"), "other_orders": siblings},
             ))
-        if not this_charged:
-            siblings = []
+        if this_charged:
+            charged_siblings = siblings
 
-    leaks = find_leaks(claim, order, expected, checks, siblings)
+    leaks = find_leaks(claim, order, expected, checks, charged_siblings, current)
+    waiting = waiting_reason(order, leaks)
     if leaks:
         verdict = "leaking"
+    elif waiting:
+        verdict = "waiting"
     elif claim and order and all(c.status in {CheckStatus.PASSED, CheckStatus.WARNING, CheckStatus.SKIPPED} for c in checks):
         verdict = "healthy"
     else:
         verdict = "review"
-    at_risk = sum((Decimal(leak.amount) for leak in leaks), Decimal(0))
+    return {
+        "checks": checks, "leaks": leaks, "verdict": verdict, "waiting_reason": waiting, "summary": summary,
+        "expected": expected, "currency": currency,
+        "money_at_risk": _money(sum((Decimal(leak.amount) for leak in leaks), Decimal(0))),
+    }
+
+
+async def investigate(request: InvestigationRequest, run_website: WebsiteRunner | None = None) -> Investigation:
+    """Run every check for one order. PayPal configuration and provider errors propagate to the caller."""
+    _active_store.set(request.store)
+    checks: list[PaymentCheck] = []
+    try:
+        base = store_url()
+        claim, catalog, store_note = await read_store(request.order_id)
+    except StoreUnavailable as exc:
+        variable, default = _store_setting()
+        base = os.environ.get(variable, default)
+        claim, catalog, store_note = None, None, str(exc)
+    checks.append(PaymentCheck(
+        name="store_claim_found",
+        status=CheckStatus.PASSED if claim else CheckStatus.ERROR,
+        message=(f"The store says this order is {claim.get('status')}, total {claim.get('total')} {claim.get('currency')}."
+                 if claim else store_note),
+        evidence={"store_url": base, "status": claim and claim.get("status")},
+    ))
+
+    order_note = None
+    try:
+        order = await paypal.fetch_order(request.order_id)
+    except paypal.PayPalOrderNotFound as exc:
+        order, order_note = None, str(exc)
+
+    probe_checks: list[PaymentCheck] = []
+    if request.probe_store and claim is not None:
+        try:
+            probe_checks = await probe_store(catalog)
+        except StoreUnavailable as exc:
+            probe_checks = [PaymentCheck(name="price_tampering_probe", status=CheckStatus.ERROR, message=str(exc),
+                                         evidence={})]
+
+    website_report = None
+    if request.website_checks and run_website is not None and claim is not None:
+        website_report = await scan_store(run_website)
+    xss_scan = None
+    if request.xss_probe and claim is not None:
+        try:
+            xss_scan = await scan_xss()
+        except StoreUnavailable as exc:
+            xss_scan = {"status": "error", "summary": str(exc), "payloads": [], "findings": [],
+                        "parameters": [], "payload_count": 0, "requests": 0,
+                        "content_security_policy": False, "limitations": []}
+
+    siblings, sibling_note = None, None
+    if claim is not None:
+        try:
+            siblings, sibling_note = await sibling_payments(claim)
+        except StoreUnavailable as exc:
+            sibling_note = str(exc)
+
+    judged = judge(claim, catalog, order, order_note, probe_checks, siblings, sibling_note)
+    checks.extend(judged["checks"])
+    expected, currency, leaks = judged["expected"], judged["currency"], judged["leaks"]
     result = Investigation(
         order_id=request.order_id,
-        verdict=verdict,
+        verdict=judged["verdict"],
+        waiting_reason=judged["waiting_reason"],
         checked_at=datetime.now(timezone.utc),
         store=request.store,
         store_url=base,
         store_claim=claim,
         expected_total=_money(expected) if expected is not None else None,
-        paypal_order=summary,
+        paypal_order=judged["summary"],
         checks=checks,
         website_report=website_report,
         xss_scan=xss_scan,
         leaks=leaks,
-        money_at_risk=_money(at_risk),
+        money_at_risk=judged["money_at_risk"],
         currency=currency,
     )
     if request.explain:

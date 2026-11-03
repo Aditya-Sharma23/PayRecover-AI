@@ -32,14 +32,33 @@ async def full_scan(request: ScanRequest) -> tuple[ScanResult, dict[str, Any] | 
     if request.check_security:
         result.security = await store_security.check(request.store)
     result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
+    if result.verdict == "clear":
+        result.waiting_reasons = waiting_reasons(result)
+        if result.waiting_reasons:
+            result.verdict = "waiting"
     previous = alerts._load("last-scans.json").get(request.store)
     overview.remember_scan(result)
     timeline.record_scan(result)
     return result, previous
 
 
+def waiting_reasons(result: ScanResult) -> list[str]:
+    """Why a scan that found nothing wrong is still not "all clear": a check that was asked for did not finish."""
+    reasons = []
+    held = [item for item in result.items if item.waiting_reason]
+    if held:
+        reasons.append(f"PayPal is still holding {len(held)} payment(s) (for example during a dispute), so "
+                       "they cannot be judged yet.")
+    if result.unrecorded is not None and not result.unrecorded.checked:
+        reasons.append("PayPal's transaction list could not be read, so payments the store never recorded were "
+                       f"not checked. {result.unrecorded.note or ''}".strip())
+    if result.security is not None and not result.security.checked:
+        reasons.append(f"The store's security check did not finish. {result.security.note or ''}".strip())
+    return reasons
+
+
 def alert_for(result: ScanResult) -> dict[str, Any] | None:
-    """Red when money is leaking, orange when it is not but the store has holes; nothing when all clear."""
+    """Red when money is leaking, orange when it is not but the store has holes; nothing when all clear or waiting."""
     if result.verdict == "leaking":
         return notify.scan_event(result)
     if result.verdict == "vulnerable":

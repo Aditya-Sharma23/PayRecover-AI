@@ -11,6 +11,7 @@ import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
 import ScanPanel from "./components/ScanPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
+import { PAGES, pageFor } from "./lib/pages.js";
 
 // Bryntum Scheduler is large; load the timeline in its own chunk so the rest of the dashboard opens fast.
 const TimelinePanel = lazy(() => import("./components/TimelinePanel.jsx"));
@@ -22,6 +23,9 @@ const METRICS = [
   ["accessibility_issues", "Accessibility issues", "♿", "WCAG"],
 ];
 
+const ALERTS_ICON = <svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg>;
+const ICONS = { dashboard: "⌂", check: "⌕", assistant: "✦", disputes: "⚖", timeline: "▦", alerts: ALERTS_ICON, recoveries: "↺", more: "▤" };
+
 export default function App() {
   const [serviceState, setServiceState] = useState("Connecting");
   const [aiState, setAiState] = useState("AI status unknown");
@@ -32,8 +36,24 @@ export default function App() {
   const [token, setTokenState] = useState(getToken());
   const [needsToken, setNeedsToken] = useState(false);
   const [stats, setStats] = useState(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [overviewKey, setOverviewKey] = useState(0);
+  const [page, setPage] = useState(() => pageFor(window.location.hash));
+
+  // Each sidebar entry is its own page (#check, #disputes, ...). Every page stays mounted, so a scan's
+  // results or a half-written chat survive switching pages; only the visible one is shown.
+  useEffect(() => {
+    const follow = () => {
+      setPage(pageFor(window.location.hash));
+      window.scrollTo(0, 0);
+    };
+    // hashchange covers links; popstate covers Back and Forward, and addresses changed by history.pushState.
+    window.addEventListener("hashchange", follow);
+    window.addEventListener("popstate", follow);
+    return () => {
+      window.removeEventListener("hashchange", follow);
+      window.removeEventListener("popstate", follow);
+    };
+  }, []);
 
   useEffect(() => {
     apiJson("/api/health")
@@ -63,64 +83,65 @@ export default function App() {
 
   function openReport(report) {
     setResult(report);
-    setMoreOpen(true);
-    setTimeout(() => document.getElementById("report")?.scrollIntoView({ behavior: "smooth" }), 50);
+    window.location.hash = "#more";
   }
 
+  const recovered = () => setRecoveryKey((value) => value + 1);
   const online = serviceState === "API connected";
+  const shown = (key) => ({ className: "page", hidden: page !== key });
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Main navigation">
       <a className="brand" href="#dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg></span><span>Pay<span className="brand-accent">Recover</span> AI</span></a>
       <nav className="side-nav">
-        <a href="#dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
-        <a href="#check"><span aria-hidden="true">⌕</span> Check payments</a>
-        <a href="#assistant"><span aria-hidden="true">✦</span> Ask PayRecover</a>
-        <a href="#disputes"><span aria-hidden="true">⚖</span> Disputes</a>
-        <a href="#timeline"><span aria-hidden="true">▦</span> Timeline</a>
-        <a href="#alerts"><span aria-hidden="true"><svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg></span> Alerts</a>
-        <a href="#recoveries"><span aria-hidden="true">↺</span> Money recovered</a>
-        <a href="#more" onClick={() => setMoreOpen(true)}><span aria-hidden="true">▤</span> More tools</a>
+        {Object.entries(PAGES).map(([key, label]) => <a key={key} href={`#${key}`} className={page === key ? "active" : ""}
+          aria-current={page === key ? "page" : undefined}><span aria-hidden="true">{ICONS[key]}</span> {label}</a>)}
       </nav>
       <div className="sidebar-note">
         <span className="shield" aria-hidden="true">⬡</span>
         <strong>Evidence first</strong>
-        <p>PayPal&apos;s own record and real browser checks decide every result. {aiName} explains; it never changes a verdict.</p>
+        <p>PayPal&apos;s own record decides every result. {aiName} explains; it never changes a verdict.</p>
       </div>
     </aside>
-    <main className="main-content" id="dashboard">
-      <section className="welcome">
-        <div><p className="eyebrow">PayRecover AI · PayPal Sandbox</p><h1>Payment &amp; Security Overview</h1><p>Find money a store has lost on PayPal, prove each leak, and check the store for the hole behind it.</p></div>
+    <main className="main-content" id="top">
+      {/* The big title is the dashboard's; every other page opens with its own panel heading. */}
+      <section className={`welcome ${page === "dashboard" ? "" : "compact"}`}>
+        {page === "dashboard" && <div><p className="eyebrow">PayRecover AI · PayPal Sandbox</p><h1>Payment &amp; Security Overview</h1>
+          <p>Find money a store has lost on PayPal, prove each leak, and get it back.</p></div>}
         <div className="date-label">
           <span className={`status-pill ${online ? "online" : ""}`}><i />{serviceState}</span>
           <span className="status-pill"><i className="ai" />{aiState}</span>
         </div>
       </section>
 
-      {needsToken && <p className="notice notice-error" role="status">This server needs an API token. Paste it under <strong>Settings</strong> at the bottom of the page.</p>}
+      {needsToken && <p className="notice notice-error" role="status">This server needs an API token. Paste it under <a href="#more">More tools → Settings</a>.</p>}
 
-      <OverviewPanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
+      <div {...shown("dashboard")}><OverviewPanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} /></div>
 
-      <CheckPanel
-        store={<ScanPanel embedded onRecovered={() => setRecoveryKey((value) => value + 1)} onScanned={() => setOverviewKey((value) => value + 1)} />}
-        order={<PaymentPanel embedded onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={() => setRecoveryKey((value) => value + 1)} />}
-      />
+      <div {...shown("check")}>
+        <CheckPanel
+          store={<ScanPanel embedded onRecovered={recovered} onScanned={() => setOverviewKey((value) => value + 1)} />}
+          order={<PaymentPanel embedded onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={recovered} />}
+        />
+      </div>
 
-      <AssistantPanel onRecovered={() => setRecoveryKey((value) => value + 1)} />
+      <div {...shown("assistant")}><AssistantPanel onRecovered={recovered} /></div>
 
-      <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
+      <div {...shown("disputes")}><DisputesPanel onAnswered={recovered} /></div>
 
-      <OnVisible fallback={<section className="panel" id="timeline"><p className="hint">The timeline loads when you scroll here.</p></section>}>
-        <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
-          <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
-        </Suspense>
-      </OnVisible>
+      <div {...shown("timeline")}>
+        {/* Hidden pages are never on screen, so the timeline (and Bryntum) loads the first time this page opens. */}
+        <OnVisible fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
+          <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
+            <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
+          </Suspense>
+        </OnVisible>
+      </div>
 
-      <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
+      <div {...shown("alerts")}><AlertsPanel refreshKey={`${recoveryKey}-${token}`} /></div>
 
-      <RecoveryPanel refreshKey={`${recoveryKey}-${token}`} />
+      <div {...shown("recoveries")}><RecoveryPanel refreshKey={`${recoveryKey}-${token}`} /></div>
 
-      <details className="more-tools" id="more" open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)}>
-        <summary>More tools · website and API testing, reports and run history</summary>
+      <div {...shown("more")}>
         <section className="metrics" aria-label="Run statistics">
           {METRICS.map(([key, title, icon, trend]) => <article className="metric-card" key={key}>
             <span className="metric-icon" aria-hidden="true">{icon}</span>
@@ -129,17 +150,17 @@ export default function App() {
           </article>)}
         </section>
 
-        {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Latest report</p><h2>No report yet</h2></div></div><p className="empty-state">Check one order in depth to scan its store, or open a run from Run history, to see results grouped by HTTP response, content, security, accessibility and API contract.</p></section>}
+        {result ? <ReportView key={result.run_id} report={result} /> : <section className="panel" id="report"><div className="section-heading"><div><p className="eyebrow">Website and API testing</p><h2>No report yet</h2></div></div><p className="empty-state">Check one order in depth, or open a run from Run history, to see its website report here.</p></section>}
 
         <HistoryPanel refreshKey={`${historyKey}-${token}`} onOpen={openReport} />
-      </details>
 
-      <details className="panel token-settings" id="settings" open={needsToken || undefined}>
-        <summary>{needsToken ? "Settings · this server needs an API token" : "Settings · API token (only when backend authentication is enabled)"}</summary>
-        <input type="password" className="text-input" autoComplete="off" aria-label="API token" placeholder="Paste your PayRecover API token" defaultValue={token} onBlur={(event) => saveToken(event.target.value)} />
-        <p className="hint">Kept in this browser tab&apos;s session storage only.</p>
-      </details>
-      <footer>PayRecover AI · PayPal Sandbox · Playwright + axe · security and XSS probes · Schemathesis · {aiName}</footer>
+        <details className="panel token-settings" id="settings" open={needsToken || undefined}>
+          <summary>{needsToken ? "Settings · this server needs an API token" : "Settings · API token (only when backend authentication is enabled)"}</summary>
+          <input type="password" className="text-input" autoComplete="off" aria-label="API token" placeholder="Paste your PayRecover API token" defaultValue={token} onBlur={(event) => saveToken(event.target.value)} />
+          <p className="hint">Kept in this browser tab&apos;s session storage only.</p>
+        </details>
+      </div>
+      <footer>PayRecover AI · PayPal Sandbox · {aiName}</footer>
     </main>
   </div>;
 }

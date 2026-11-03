@@ -88,6 +88,7 @@ export function timeAgo(when, now = Date.now()) {
 export const SCAN_VERDICTS = {
   leaking: ["Money leaking", "verdict-red", "PayRecover found payments that do not match PayPal. Approve the recoveries below."],
   vulnerable: ["No money leaking, but the store is vulnerable", "verdict-orange", "Every paid order matches PayPal, but these holes could let money leak. Fix them before they cost you."],
+  waiting: ["Nothing wrong found yet, but not every check finished", "verdict-blue", "PayRecover will not call this store all clear until these finish:"],
   clear: ["All clear", "verdict-green", "Every paid order matches PayPal and the store passed the security checks."],
 };
 
@@ -95,6 +96,7 @@ export const SCAN_VERDICTS = {
 export const STORE_VERDICTS = {
   leaking: ["Money leaking", "status-red"],
   vulnerable: ["Vulnerable", "status-orange"],
+  waiting: ["Waiting for PayPal", "status-blue"],
   clear: ["All clear", "status-green"],
   none: ["Not scanned yet", "status-none"],
 };
@@ -112,7 +114,8 @@ export function storeStatusText(status, now = Date.now()) {
   }
   const detail = status.verdict === "leaking" ? `${status.money_at_risk} ${status.currency} at risk`
     : status.verdict === "vulnerable" ? `${status.security_issues} security issue${status.security_issues === 1 ? "" : "s"}`
-      : `${status.orders_checked} paid order${status.orders_checked === 1 ? "" : "s"} match PayPal`;
+      : status.verdict === "waiting" ? "Some checks could not finish"
+        : `${status.orders_checked} paid order${status.orders_checked === 1 ? "" : "s"} match PayPal`;
   return status.scanned_at ? `${detail} · ${timeAgo(status.scanned_at, now)}` : detail;
 }
 
@@ -160,3 +163,19 @@ export const PRICE_VERDICTS = {
   ok: ["In line", "passed"],
   no_match: ["No match", "skipped"],
 };
+
+// Back-to-back alerts that say the same thing become one row with a count, newest first, so a store that keeps
+// leaking the same 18.00 USD shows once ("x4") instead of four identical lines.
+export function groupAlerts(alerts) {
+  const groups = [];
+  for (const alert of alerts) {
+    const last = groups[groups.length - 1];
+    if (last && last.alert.event === alert.event && last.alert.summary === alert.summary) {
+      last.count += 1;
+      last.since = alert.created_at;
+    } else {
+      groups.push({ alert, count: 1, since: alert.created_at });
+    }
+  }
+  return groups;
+}

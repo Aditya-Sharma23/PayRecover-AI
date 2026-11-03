@@ -24,6 +24,7 @@ from app.schemas import (
 )
 
 MAX_STEPS = 6
+ACTION_WORDS = {"capture": "Capture", "capture_hold": "Capture held", "refund": "Refund", "invoice": "Invoice"}
 MAX_RESULT_CHARS = 6000
 ORDER_ID = {"type": "string", "pattern": "^[A-Z0-9]{8,40}$", "description": "A PayPal order id."}
 STORE_NAMES = STORE_KEYS
@@ -45,7 +46,8 @@ SYSTEM = (
 
 PAYRECOVER_TOOLS = [
     {"name": "scan_store", "description": "Check the store's recent paid orders against PayPal and list every "
-     "leak (never captured, fake paid, wrong amount, duplicate charge) with amounts and urgency.",
+     "leak (never captured, fake paid, wrong amount, duplicate charge, a held payment nobody captured) with "
+     "amounts and urgency.",
      "parametersJsonSchema": {"type": "object", "properties": {
          "limit": {"type": "integer", "minimum": 1, "maximum": 50, "description": "How many recent orders."},
          "store": STORE}}},
@@ -65,8 +67,8 @@ PAYRECOVER_TOOLS = [
      "what comparable new products sell for across 25,000+ retailers, to catch price typos (underpriced items "
      "lose money on every sale) and overpricing.",
      "parametersJsonSchema": {"type": "object", "properties": {"store": STORE}}},
-    {"name": "propose_recovery", "description": "Propose recovering one leak (PayRecover picks capture, refund "
-     "or invoice). Shows the merchant an Approve button; nothing runs until they press it.",
+    {"name": "propose_recovery", "description": "Propose recovering one leak (PayRecover picks capture, capture "
+     "of a held payment, refund or invoice). Shows the merchant an Approve button; nothing runs until they press it.",
      "parametersJsonSchema": {"type": "object", "properties": {
          "order_id": ORDER_ID, "leak_kind": {"type": "string", "enum": list(LEAK_KINDS)}, "store": STORE},
          "required": ["order_id", "leak_kind"]}},
@@ -158,7 +160,7 @@ class Session:
                 raise ToolRefused("PayPal has nothing to act on for this leak (the buyer never approved); "
                                   "advise holding the shipment instead.")
             self.proposals.append(AgentProposal(
-                kind="recovery", title=f"{leak.recovery_action.title()} {leak.amount} {leak.currency}: {leak.title}",
+                kind="recovery", title=f"{ACTION_WORDS[leak.recovery_action]} {leak.amount} {leak.currency}: {leak.title}",
                 order_id=found.order_id, leak_kind=leak.kind, amount=leak.amount, currency=leak.currency,
                 store=store,
             ))

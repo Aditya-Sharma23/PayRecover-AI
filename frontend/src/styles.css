@@ -458,3 +458,47 @@ button.store-status:disabled { cursor: progress; }
 .price-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13px; }
 .price-list small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 .price-list a { color: var(--blue); }
+
+/* "Waiting for PayPal": nothing wrong found, but a check has not finished (blue, never green) */
+.scan-verdict.verdict-blue { border-left-color: var(--blue); background: #121a24; }
+.scan-verdict.verdict-blue > strong { color: var(--blue); }
+.waiting-reasons { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12px; }
+.store-status.status-blue i { background: var(--blue); }
+.store-status.status-blue { border-left: 3px solid var(--blue); }
+.verdict-banner.waiting strong { color: var(--blue); }
+.expires-clock { color: var(--red-soft); }
+
+/* Sample data: demo scenarios and the sample dispute */
+.badge.sample { margin-left: 8px; background: #20324b; color: var(--blue); vertical-align: middle; }
+.demo-scenarios { margin-top: 12px; padding: 11px 13px; border: 1px dashed var(--line-strong); border-radius: 9px; }
+.demo-scenarios .hint { margin: 0; }
+.demo-buttons { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.demo-buttons .secondary-button { padding: 6px 11px; font-size: 12px; }
+
+/* PayPal setup: which Sandbox app features are on, asked of PayPal */
+.paypal-setup { margin-top: 10px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 12px; }
+.paypal-setup > summary { display: flex; align-items: center; gap: 9px; color: var(--text-2); cursor: pointer; }
+.paypal-setup > summary i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+.paypal-setup.not-ready { border-color: #4b3a22; }
+.paypal-setup.not-ready > summary i { background: var(--amber); }
+.paypal-setup.not-ready > summary b { color: var(--amber); font-weight: 600; }
+.paypal-setup ul { display: grid; gap: 8px; margin: 10px 0; padding: 0; list-style: none; }
+.paypal-setup li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: start; }
+.paypal-setup li .badge { justify-self: start; }
+.paypal-setup li small { display: block; margin-top: 2px; color: var(--text-2); overflow-wrap: anywhere; }
+.paypal-setup li small.fix { color: var(--muted); }
+
+/* Pages: each sidebar entry shows only its own panels */
+.page[hidden] { display: none; }
+.side-nav a.active { color: #ff636b; background: #28161a; box-shadow: inset 3px 0 #fa3342; }
+
+/* Scan results: recovered rows step back; security sits apart from the money */
+.recovery-grid .row-done { opacity: .55; }
+.scan-stats article.good strong { color: var(--green); }
+.store-security { margin-top: 12px; padding: 11px 14px; border: 1px solid #4b3a22; border-radius: 9px; background: var(--panel-2); }
+.store-security > summary { display: flex; align-items: center; gap: 9px; color: var(--text-2); font-size: 13px; cursor: pointer; }
+.security-clear { display: flex; align-items: center; gap: 9px; margin-top: 12px; color: var(--text-2); font-size: 12px; }
+.repeat-count { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 99px; background: #282f38; color: #cbd2db; }
+.welcome.compact { justify-content: flex-end; min-height: 0; padding: 14px 0 0; }
+.welcome.compact::after { display: none; }
+.welcome.compact .date-label { display: flex; gap: 8px; }

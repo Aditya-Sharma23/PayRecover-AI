@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { approvalQuestion, evidencePath, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, scanRows, sortPayloads, waitingText } from "../src/lib/payment.js";
+import { approvalQuestion, evidencePath, expiresText, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, remainingAtRisk, scanRows, sortPayloads, waitingText } from "../src/lib/payment.js";
 
 test("the investigation body normalizes the order id", () => {
   assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
@@ -50,6 +50,19 @@ test("an approval names the action, amount and order, and sends no amount", () =
   });
 });
 
+test("collecting a held payment is asked in plain words", () => {
+  const leak = { recovery_action: "capture_hold", amount: "18.00", currency: "USD", recovery: "Capture it before 05 Nov." };
+  assert.match(approvalQuestion(leak, "5O190127TN364715T"), /^Capture the held 18.00 USD for order 5O190127TN364715T/);
+});
+
+test("the hold clock counts down to PayPal's expiration time", () => {
+  const until = "2026-11-05T12:00:00Z";
+  assert.equal(expiresText(until, Date.parse("2026-11-03T08:00:00Z")), "Hold expires in 2d 4h");
+  assert.equal(expiresText(until, Date.parse("2026-11-05T09:30:00Z")), "Hold expires in 2h 30m");
+  assert.equal(expiresText(until, Date.parse("2026-11-05T13:00:00Z")), "Hold expired: PayPal gave the money back");
+  assert.equal(expiresText(null), null);
+});
+
 test("recovery records become readable grid rows", () => {
   const [row] = recoveryRows([{
     recovery_id: "r1", created_at: "2026-10-31T09:15:42.1Z", order_id: "5O190127TN364715T", store: "vulnerable",
@@ -74,4 +87,21 @@ test("scan rows keep the ranked order and number every leak", () => {
   const rows = scanRows({ items: [{ order_id: "A", leaks: [leak("never_captured")] }, { order_id: "B", leaks: [leak("fake_paid"), leak("wrong_amount")] }] });
   assert.deepEqual(rows.map((row) => [row.rank, row.order_id, row.leak.kind]), [[1, "A", "never_captured"], [2, "B", "fake_paid"], [3, "B", "wrong_amount"]]);
   assert.equal(evidencePath("A1B2", "vulnerable"), "/api/orders/A1B2/evidence?store=vulnerable");
+});
+
+test("approved rows leave the money still at risk", () => {
+  const result = { items: [
+    { order_id: "A", leaks: [{ kind: "never_captured", amount: "54.00" }] },
+    { order_id: "B", leaks: [{ kind: "fake_paid", amount: "18.00" }] },
+  ] };
+  assert.deepEqual(remainingAtRisk(result), { money: "72.00", orders: 2 });
+  assert.deepEqual(remainingAtRisk(result, { "A-never_captured": { record: { status: "recovered" } } }), { money: "18.00", orders: 1 });
+  // A recovery PayPal did not confirm still counts as at risk.
+  assert.deepEqual(remainingAtRisk(result, { "A-never_captured": { record: { status: "unverified" } } }), { money: "72.00", orders: 2 });
+});
+
+test("each grid row carries the plan's reason to act now", () => {
+  const [row] = scanRows({ items: [{ order_id: "A", leaks: [{ kind: "never_captured", amount: "1.00" }] }],
+    plan: { steps: [{ order_id: "A", kind: "never_captured", why: "The approval can lapse." }] } });
+  assert.equal(row.why, "The approval can lapse.");
 });

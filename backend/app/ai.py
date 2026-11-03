@@ -80,7 +80,7 @@ def _ollama_settings() -> tuple[str, str]:
     return url, model
 
 
-def configuration_status() -> dict[str, str | bool]:
+def configuration_status() -> dict[str, str | bool | int]:
     if _provider() == "ollama":
         _, model = _ollama_settings()
         return {"configured": True, "model": model, "name": ai_name(model), "provider": "ollama_local"}
@@ -90,6 +90,8 @@ def configuration_status() -> dict[str, str | bool]:
         "model": _env("MODEL", DEFAULT_MODEL),
         "name": ai_name(_env("MODEL", DEFAULT_MODEL)),
         "provider": "google_generative_language_api",
+        "daily_limit": daily_limit(),
+        "used_today": usage_today(),
     }
 
 
@@ -245,13 +247,50 @@ async def _generate_google(prompt: str, api_key: str, model: str, timeout_second
         raise AIProviderError(f"{model} returned an incomplete response.") from exc
 
 
+DEFAULT_DAILY_LIMIT = 300
+USAGE_FILE = "ai-usage.json"
+
+
+def daily_limit() -> int:
+    """How many AI requests a day this server makes (TESTPILOT_AI_DAILY_LIMIT; 0 means no limit)."""
+    try:
+        return max(0, int(_env("DAILY_LIMIT", str(DEFAULT_DAILY_LIMIT))))
+    except ValueError:
+        return DEFAULT_DAILY_LIMIT
+
+
+def usage_today(now: float | None = None) -> int:
+    from app import alerts
+
+    saved = alerts._load(USAGE_FILE)
+    return int(saved.get("count") or 0) if saved.get("day") == time.strftime("%Y-%m-%d", time.gmtime(now)) else 0
+
+
+def _spend_one(now: float | None = None) -> None:
+    """Count one AI request against today's limit (UTC days), or refuse it once the limit is reached.
+
+    A refusal is an AIProviderError, so every caller falls back to its built-in, rule-based answer;
+    the limit only protects the API quota, for example while judges try a hosted demo.
+    """
+    from app import alerts
+
+    limit = daily_limit()
+    day = time.strftime("%Y-%m-%d", time.gmtime(now))
+    used = usage_today(now)
+    if limit and used >= limit:
+        raise AIProviderError(f"Today's AI limit ({limit} requests) is used up; PayRecover's built-in answers are "
+                              "shown instead. It resets at midnight UTC.")
+    alerts._save(USAGE_FILE, {"day": day, "count": used + 1})
+
+
 async def _with_fallbacks(attempt):
     """Ask the primary model twice, then each fallback model once, within one overall time budget.
 
     attempt(api_key, model, timeout) makes one call. A model that stalls is not asked again;
-    a model that answers "busy" gets its second try.
+    a model that answers "busy" gets its second try. Each call counts once against the daily limit.
     """
     api_key, model = _settings()
+    _spend_one()
     attempts = [model, model, *_fallback_models(model)]
     now = time.monotonic()
     ready = [name for name in attempts if _stalled_until.get(name, 0) <= now]

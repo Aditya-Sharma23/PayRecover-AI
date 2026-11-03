@@ -22,7 +22,7 @@ export default function MarketPrices({ store }) {
   return <div className="market-prices">
     <div className="check-row-head">
       <div><strong>Market price check</strong> <span className="count-chip">Channel3 · 25,000+ retailers</span>
-        <p className="hint">A mistyped price is paid in full, so PayPal&apos;s records match and no payment check sees it. This compares each product with what comparable products sell for.</p></div>
+        <p className="hint">Catches price typos that PayPal&apos;s records cannot show, by comparing each product with the market.</p></div>
       <button className="secondary-button" type="button" onClick={check} disabled={busy}>{busy ? "Asking Channel3…" : "Check prices against the market"}</button>
     </div>
     {error && <p className="notice notice-error" role="alert">{error}</p>}

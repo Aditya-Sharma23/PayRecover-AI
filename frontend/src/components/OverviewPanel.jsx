@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
 import { AUTOSCAN_INTERVALS, autoscanText, storeStatusText, storeVerdict, timeAgo } from "../lib/assist.js";
 import { STORES } from "../lib/payment.js";
+import PayPalSetup from "./PayPalSetup.jsx";
 
 const REFRESH_MS = 30000;
 const STORE_NAMES = Object.fromEntries(STORES.map(([key, label]) => [key, label.replace(/ \(.*\)$/, "")]));
@@ -79,6 +80,7 @@ export default function OverviewPanel({ refreshKey }) {
         </select>
       </div>}
     </div>
+    <PayPalSetup />
     <div className="metrics overview-cards">
       {cards.map(([title, value, icon, note, tone]) => <article className={`metric-card ${tone}`} key={title}>
         <span className="metric-icon" aria-hidden="true">{icon}</span>
@@ -87,7 +89,7 @@ export default function OverviewPanel({ refreshKey }) {
     </div>
     <div className="demo-stores-heading">
       <strong>Demo stores · PayPal Sandbox</strong>
-      <span>Three test shops that show each result. Click one to scan it. In real use, you connect your own store.</span>
+      <span>Click a store to scan it now.</span>
     </div>
     <div className="store-statuses" aria-label="Demo store results">
       {(data?.stores || STORES.map(([store]) => ({ store }))).map((status) => {

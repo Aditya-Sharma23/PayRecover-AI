@@ -127,6 +127,16 @@ async def capture_order(order_id: str, request_id: str) -> tuple[int, Any]:
     return await _sdk("capture_order", order_id, request_id)
 
 
+async def capture_authorization(authorization_id: str, request_id: str) -> tuple[int, Any]:
+    """Payments: capture a held (authorized) payment, through the PayPal Server SDK, after approval."""
+    return await _sdk("capture_authorization", authorization_id, request_id)
+
+
+async def get_authorization(authorization_id: str) -> tuple[int, Any]:
+    """Payments: show a held (authorized) payment, through the PayPal Server SDK."""
+    return await _sdk("get_authorization", authorization_id)
+
+
 async def refund_capture(capture_id: str, amount: str, currency: str, note: str, request_id: str) -> tuple[int, Any]:
     """Payments: refund a captured payment, through the PayPal Server SDK, after approval."""
     return await _sdk("refund_capture", capture_id, amount, currency, note, request_id)
@@ -202,6 +212,10 @@ def order_summary(order: dict[str, Any]) -> dict[str, Any]:
     amount = unit.get("amount") or {}
     captures = (unit.get("payments") or {}).get("captures") or []
     capture = captures[0] if captures else {}
+    holds = (unit.get("payments") or {}).get("authorizations") or []
+    hold = holds[0] if holds else {}
+    held = {"authorization_id": hold.get("id"), "authorization_status": hold.get("status"),
+            "authorization_expires": hold.get("expiration_time")} if hold else {}
     return {
         "order_id": order.get("id"),
         "status": order.get("status"),
@@ -215,6 +229,7 @@ def order_summary(order: dict[str, Any]) -> dict[str, Any]:
         "capture_amount": (capture.get("amount") or {}).get("value"),
         "create_time": order.get("create_time"),
         "update_time": order.get("update_time"),
+        **held,
     }
 
 

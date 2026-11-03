@@ -182,6 +182,8 @@ async function renderBugs() {
     input.addEventListener("change", async () => {
       const active = [...box.querySelectorAll("input:checked")].map((item) => item.value);
       await api("/api/bugs", { method: "POST", body: JSON.stringify({ bugs: active }) });
+      // PayPal's buttons are loaded for one intent (capture or authorize), so switching it reloads them.
+      if (bug.id === "authorize_and_forget") window.location.reload();
     });
     const text = document.createElement("span");
     text.textContent = bug.label;
@@ -193,7 +195,9 @@ async function renderBugs() {
 function loadSdk(clientId, currency) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    const params = new URLSearchParams({ "client-id": clientId, currency, intent: "capture" });
+    // The authorize_and_forget bug creates AUTHORIZE orders, which PayPal's buttons must be loaded for.
+    const intent = bugOn("authorize_and_forget") ? "authorize" : "capture";
+    const params = new URLSearchParams({ "client-id": clientId, currency, intent });
     script.src = `https://www.paypal.com/sdk/js?${params}`;
     script.onload = resolve;
     script.onerror = () => reject(new Error("PayPal SDK failed to load"));
@@ -226,7 +230,7 @@ function renderButtons() {
       return order.id;
     },
     async onApprove(data) {
-      setStatus("capturing", "Capturing payment...");
+      setStatus("capturing", bugOn("authorize_and_forget") ? "Holding payment..." : "Capturing payment...");
       try {
         const order = await api(`/api/orders/${data.orderID}/capture`, { method: "POST" });
         showOrder(order);

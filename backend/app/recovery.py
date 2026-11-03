@@ -1,4 +1,4 @@
-"""PayRecover's recovery actions: capture, refund or invoice one leak, after the merchant approves.
+"""PayRecover's recovery actions: capture, capture a held payment, refund or invoice one leak, after approval.
 
 Rules that keep money movements safe:
   * Nothing runs without an explicit approval (RecoveryRequest.approved must be true).
@@ -123,6 +123,34 @@ async def _capture(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
             {"capture_id": summary["capture_id"]}, checks)
 
 
+async def _capture_hold(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
+    """Collect a payment PayPal only holds, before the hold expires, then confirm it from the order."""
+    target = leak.targets[0]
+    status, body = await paypal.capture_authorization(target.authorization_id, f"payrecover-hold-{target.authorization_id}")
+    if status >= 400:
+        return ("failed", f"PayPal refused to capture the held payment ({_issue(body, status)}). "
+                "An expired hold can no longer be captured.", {}, [])
+    _, hold = await paypal.get_authorization(target.authorization_id)
+    order = await paypal.fetch_order(target.order_id)
+    captures = [c for c in investigate._captures(order) if c.get("status") == "COMPLETED"]
+    captured = sum((Decimal(str((c.get("amount") or {}).get("value") or 0)) for c in captures), Decimal(0))
+    hold_state = (hold or {}).get("status")
+    checks = [
+        _check("hold_captured", hold_state in {"CAPTURED", "PARTIALLY_CAPTURED"},
+               f"PayPal now shows the hold {target.authorization_id} as {hold_state}.",
+               {"authorization_id": target.authorization_id, "status": hold_state}),
+        _check("amount_collected", captured == Decimal(target.amount),
+               f"PayPal captured {investigate._money(captured)} {leak.currency}; the hold was {target.amount} {leak.currency}.",
+               {"captured": investigate._money(captured), "expected": target.amount}),
+    ]
+    ok = all(c.status == CheckStatus.PASSED for c in checks)
+    return ("recovered" if ok else "unverified",
+            f"Collected the held {target.amount} {leak.currency} for order {target.order_id}." if ok
+            else "PayPal accepted the capture, but a fresh read does not confirm the full amount.",
+            {"authorization_id": target.authorization_id, "capture_id": captures[0].get("id") if captures else None},
+            checks)
+
+
 async def _refund(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
     refunds, checks = [], []
     for target in leak.targets:
@@ -220,7 +248,7 @@ async def _invoice(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
             else "The invoice was sent, but a fresh read does not confirm it.", {"invoice_id": invoice_id}, checks)
 
 
-ACTIONS = {"capture": _capture, "refund": _refund, "invoice": _invoice}
+ACTIONS = {"capture": _capture, "refund": _refund, "invoice": _invoice, "capture_hold": _capture_hold}
 
 
 async def recover(request: RecoveryRequest, owner: str) -> RecoveryRecord:

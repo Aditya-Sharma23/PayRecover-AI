@@ -24,6 +24,8 @@ class FakePayPal:
             return {"id": f"7AB0000000000{len(self.calls):03d}", "status": "CREATED"}
         if path.endswith("/capture"):
             return {"purchase_units": [{"payments": {"captures": [{"id": "CAP1", "status": "COMPLETED"}]}}]}
+        if path.endswith("/authorize"):
+            return {"purchase_units": [{"payments": {"authorizations": [{"id": "AUTH1", "status": "CREATED"}]}}]}
         raise AssertionError(f"unexpected PayPal call {method} {path}")
 
 
@@ -81,6 +83,13 @@ class VulnerableStoreTests(unittest.TestCase):
         self.assertTrue(any(call[1].endswith("/capture") for call in self.paypal.calls))
         record = self.client.get(f"/api/orders/{order_id}").json()
         self.assertEqual((record["status"], record["capture_id"]), ("PENDING", None))
+
+    def test_authorize_and_forget_only_holds_the_money_but_says_paid(self):
+        self.bugs("authorize_and_forget")
+        order_id, paid = self.pay()
+        self.assertEqual(self.paypal.calls[0][2]["intent"], "AUTHORIZE")
+        self.assertEqual((paid.json()["status"], paid.json()["authorization_id"]), ("PAID", "AUTH1"))
+        self.assertFalse(any(call[1].endswith("/capture") for call in self.paypal.calls))
 
     def test_payments_are_tagged_with_the_store(self):
         self.pay()

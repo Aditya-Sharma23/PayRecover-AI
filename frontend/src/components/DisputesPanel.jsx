@@ -6,6 +6,8 @@ import { EvidenceButton } from "./PaymentPanel.jsx";
 const ACTION_BUTTONS = { provide_evidence: "Approve: send evidence", accept_claim: "Approve: accept claim" };
 
 function DisputeCard({ dispute, onAnswered }) {
+  // The sample dispute (store "demo") is made up: there is no PayPal dispute to answer or order to print.
+  const sample = dispute.store === "demo";
   const advice = dispute.advice;
   const [note, setNote] = useState(advice?.note || "");
   const [busy, setBusy] = useState(null);
@@ -30,7 +32,7 @@ function DisputeCard({ dispute, onAnswered }) {
   return <article className="dispute-card">
     <div className="check-row-head">
       <strong>{disputeReason(dispute.reason)} · {dispute.amount} {dispute.currency}</strong>
-      <span className="badge skipped">{(dispute.status || "").replaceAll("_", " ").toLowerCase()}</span>
+      <span>{sample && <span className="badge sample">Sample data</span>} <span className="badge skipped">{(dispute.status || "").replaceAll("_", " ").toLowerCase()}</span></span>
     </div>
     <p className="hint">
       Dispute <code>{dispute.dispute_id}</code>
@@ -45,7 +47,9 @@ function DisputeCard({ dispute, onAnswered }) {
         <textarea rows={4} value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} />
       </label>
     </div>}
-    {result
+    {sample
+      ? <p className="notice" role="note">Sample data: on a real dispute you would edit this message and press <b>Approve</b>; PayRecover would send it to PayPal and confirm it.</p>
+      : result
       ? <p className={`notice ${result.status === "failed" ? "notice-error" : ""}`} role="status">{result.message} {result.dispute_status_after && <>PayPal now shows: <strong>{result.dispute_status_after}</strong>.</>}</p>
       : <div className="grid-actions dispute-actions">
         {dispute.allowed_actions.map((action) => <button key={action} type="button" disabled={Boolean(busy) || note.trim().length < 10}
@@ -64,6 +68,16 @@ export default function DisputesPanel({ onAnswered }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
+  async function loadSample() {
+    setError(null);
+    try {
+      const sample = await apiJson("/api/demo/dispute", {}, "The sample dispute could not be loaded.");
+      setData((current) => ({ note: null, disputes: [...(current?.disputes || []).filter((d) => d.store !== "demo"), sample] }));
+    } catch (reason) {
+      setError(reason.message);
+    }
+  }
+
   async function load() {
     setBusy(true);
     setError(null);
@@ -77,9 +91,12 @@ export default function DisputesPanel({ onAnswered }) {
   return <section className="panel" id="disputes" aria-labelledby="disputes-heading">
     <div className="section-heading">
       <div><p className="eyebrow">PayRecover · PayPal Agent Toolkit</p><h2 id="disputes-heading">Dispute defender</h2></div>
-      <button className="secondary-button" type="button" onClick={load} disabled={busy}>{busy ? "Reading PayPal…" : data ? "Refresh" : "Load disputes"}</button>
+      <div className="grid-actions">
+        <button className="secondary-button" type="button" onClick={loadSample}>Show a sample dispute</button>
+        <button className="secondary-button" type="button" onClick={load} disabled={busy}>{busy ? "Reading PayPal…" : data ? "Refresh" : "Load disputes"}</button>
+      </div>
     </div>
-    <p className="hint">Reads your PayPal disputes with PayPal&apos;s Agent Toolkit, links each one to its store order, and has the AI recommend an answer from the evidence. You edit the message and approve; PayRecover then confirms the result with PayPal.</p>
+    <p className="hint">Each PayPal dispute, linked to its order, with a recommended answer you edit and approve.</p>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {data && (data.disputes.length
       ? <div className="dispute-list">{data.disputes.map((dispute) => <DisputeCard key={dispute.dispute_id} dispute={dispute} onAnswered={onAnswered} />)}</div>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
-import { alertLabel, alertSettingsBody, timeAgo } from "../lib/assist.js";
+import { alertLabel, alertSettingsBody, groupAlerts, timeAgo } from "../lib/assist.js";
 
 const REFRESH_MS = 30000;
-const LINKS = { leak_found: "#check", money_leaking: "#check", store_vulnerable: "#check", recovery_done: "#recoveries", dispute_opened: "#disputes", unrecorded_payment: "#check" };
+const LINKS = { leak_found: "#check", money_leaking: "#check", store_vulnerable: "#check", store_waiting: "#check", recovery_done: "#recoveries", dispute_opened: "#disputes", unrecorded_payment: "#check" };
 
 function Channels({ channels }) {
   const entries = Object.entries(channels || {});
@@ -61,7 +61,7 @@ export default function AlertsPanel({ refreshKey }) {
       <div><p className="eyebrow">PayRecover · email + Zapier</p><h2 id="alerts-heading">Alerts</h2></div>
       {view?.alerts.length > 0 && <button className="secondary-button" type="button" onClick={clear} disabled={Boolean(busy)}>Clear list</button>}
     </div>
-    <p className="hint">PayRecover tells you when money leaks, a payment goes unrecorded, a dispute opens or a recovery finishes: always here, by email if you add one, and anywhere else through your own Zap.</p>
+    <p className="hint">Leaks, unrecorded payments, new disputes and finished recoveries: here, by email, and through your Zap.</p>
     <form className="alert-settings" onSubmit={save}>
       <label className="field-label">Email me at
         <input className="text-input" type="email" value={email} maxLength={254} placeholder="you@example.com"
@@ -80,12 +80,13 @@ export default function AlertsPanel({ refreshKey }) {
     {notice && <p className="notice" role="status">{notice}</p>}
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {view && (view.alerts.length
-      ? <ul className="alert-feed">{view.alerts.map((alert) => {
+      ? <ul className="alert-feed">{groupAlerts(view.alerts).map(({ alert, count, since }) => {
         const [label, tone] = alertLabel(alert.event);
         return <li key={alert.alert_id}>
           <span className={`badge ${tone}`}>{label}</span>
           <div>
             <a href={LINKS[alert.event] || "#dashboard"}>{alert.summary}</a>
+            {count > 1 && <span className="count-chip repeat-count" title={`First sent ${new Date(since).toLocaleString()}`}>×{count} · since {timeAgo(since)}</span>}
             <Channels channels={alert.channels} />
           </div>
           <small className="hint" title={new Date(alert.created_at).toLocaleString()}>{timeAgo(alert.created_at)}</small>

@@ -3,18 +3,19 @@ import { AgGridReact } from "ag-grid-react";
 import { apiJson } from "../api/client.js";
 import { gridTheme } from "../lib/grid.js";
 import {
-  RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, scanBody, scanRows,
+  RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, remainingAtRisk, scanBody, scanRows,
 } from "../lib/payment.js";
 import { SCAN_VERDICTS } from "../lib/assist.js";
 import MarketPrices from "./MarketPrices.jsx";
-import { EvidenceButton, WaitingClock } from "./PaymentPanel.jsx";
+import { EvidenceButton, ExpiresClock, WaitingClock } from "./PaymentPanel.jsx";
 
 function UrgencyCell({ value }) {
   const [label, tone] = URGENCY[value] || URGENCY.normal;
   return <span className={`badge ${tone}`}>{label}</span>;
 }
 
-function WaitingCell({ value }) {
+function WaitingCell({ value, data }) {
+  if (data.expires_at) return <ExpiresClock until={data.expires_at} />;
   return value ? <WaitingClock since={value} /> : <span className="hint">—</span>;
 }
 
@@ -39,18 +40,30 @@ function ActionsCell({ data, context }) {
   </div>;
 }
 
-function Verdict({ result }) {
+// The money result only: what leaked, or why the store is not called all clear. Security has its own card.
+function Verdict({ result, plan }) {
   const [title, tone, text] = SCAN_VERDICTS[result.verdict] || SCAN_VERDICTS.clear;
-  const findings = result.security?.findings || [];
   return <div className={`scan-verdict ${tone}`} role="status">
     <strong>{title}</strong>
-    <p>{text}</p>
-    {findings.length > 0 && <ul className="security-findings">{findings.map((finding) => <li key={finding.name}>
+    <p>{result.verdict === "leaking" ? plan.summary : text}</p>
+    {result.waiting_reasons?.length > 0 && <ul className="waiting-reasons">{result.waiting_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+    {result.verdict === "leaking" && <small className="hint">Plan by {plan.source}{plan.notes.length > 0 ? ` · ${plan.notes.join(" ")}` : ""}</small>}
+  </div>;
+}
+
+// The store-wide security check, apart from the money: holes that could let money leak later.
+function StoreSecurity({ security, open }) {
+  if (!security) return null;
+  const findings = security.findings || [];
+  if (!security.checked) return <p className="hint">Security check incomplete: {security.note}</p>;
+  if (!findings.length) return <p className="security-clear"><span className="badge passed">Store security</span> No holes found: prices are fixed on the server, no XSS, security headers sent.</p>;
+  return <details className="store-security" open={open}>
+    <summary><span className="badge warning">Store security</span> {findings.length} hole{findings.length === 1 ? "" : "s"} that could let money leak</summary>
+    <ul className="security-findings">{findings.map((finding) => <li key={finding.name}>
       <span className={`badge ${finding.severity === "high" ? "failed" : "warning"}`}>{finding.severity} risk</span>
       <div><strong>{finding.title}</strong><small>{finding.detail}</small><small className="fix">Fix: {finding.fix}</small></div>
-    </li>)}</ul>}
-    {result.security && !result.security.checked && <small className="hint">Security check incomplete: {result.security.note}</small>}
-  </div>;
+    </li>)}</ul>
+  </details>;
 }
 
 // PayPal's side of the scan: payments PayPal took for this store that the store never recorded.
@@ -76,7 +89,8 @@ const COLUMNS = [
   { field: "title", headerName: "Leak", flex: 1, minWidth: 220, tooltipField: "title" },
   { field: "amount", headerName: "At risk", width: 110, type: "rightAligned" },
   { field: "urgency", headerName: "Urgency", width: 110, cellRenderer: UrgencyCell },
-  { field: "waiting_since", headerName: "Waiting", width: 270, cellRenderer: WaitingCell, sortable: false },
+  { field: "why", headerName: "Why now", flex: 1, minWidth: 220, tooltipField: "why" },
+  { field: "waiting_since", headerName: "Waiting", width: 250, cellRenderer: WaitingCell, sortable: false },
   { field: "id", headerName: "Recover", width: 290, cellRenderer: ActionsCell, sortable: false, filter: false },
 ];
 
@@ -89,6 +103,8 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
   const [outcomes, setOutcomes] = useState({});
 
   const rows = useMemo(() => (result ? scanRows(result) : []), [result]);
+  // After an approval the numbers drop at once, as they do on the overview, instead of waiting for a rescan.
+  const remaining = useMemo(() => (result ? remainingAtRisk(result, outcomes) : null), [result, outcomes]);
 
   async function scan(event) {
     event.preventDefault();
@@ -118,10 +134,10 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
 
   const context = useMemo(() => ({ outcomes, approve, store: result?.store || store }), [outcomes, result, store]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The grid does not watch its context, so redraw the Recover cells whenever an approval changes state.
+  // The grid does not watch its context, so redraw the rows (Recover cell and the done shading) on every approval.
   const grid = useRef(null);
   useEffect(() => {
-    grid.current?.api?.refreshCells({ columns: ["id"], force: true });
+    grid.current?.api?.redrawRows();
   }, [context]);
 
   const Wrapper = embedded ? "div" : "section";
@@ -129,7 +145,7 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
     <div className="section-heading">
       <div>{!embedded && <p className="eyebrow">PayRecover · whole store</p>}<h2 id="scan-heading">{embedded ? "Check the whole store" : "Scan my store"}</h2></div>
     </div>
-    <p className="hint">Checks every recent order the store calls paid against PayPal, ranks the leaks by urgency and amount, and has the AI write the recovery plan. Nothing moves until you approve a row.</p>
+    <p className="hint">Every recent paid order, checked against PayPal. Nothing moves until you approve a row.</p>
     <form className="scan-form" onSubmit={scan}>
       <label className="field-label">Store
         <select className="text-input" value={store} onChange={(event) => setStore(event.target.value)}>
@@ -146,26 +162,23 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
       </button>
     </form>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
-    <MarketPrices store={store} />
     {result && <>
-      {result.verdict && <Verdict result={result} />}
+      {result.verdict && <Verdict result={result} plan={result.plan} />}
       <div className="scan-stats">
         <article><span>Paid orders checked</span><strong>{result.orders_checked}</strong></article>
-        <article><span>Orders leaking</span><strong>{result.leaking_orders}</strong></article>
-        <article className="risk"><span>Money at risk</span><strong>{result.money_at_risk} {result.currency}</strong></article>
-      </div>
-      <div className="triage-plan">
-        <div className="check-row-head"><strong>Recovery plan</strong><span className="count-chip">{result.plan.source}</span></div>
-        <p>{result.plan.summary}</p>
-        {result.plan.steps.length > 0 && <ol>{result.plan.steps.map((step) => <li key={`${step.order_id}-${step.kind}`}><code>{step.order_id}</code> · {step.amount} {result.currency} · {step.why}</li>)}</ol>}
-        {result.plan.notes.length > 0 && <small className="hint">{result.plan.notes.join(" ")}</small>}
+        <article><span>Orders still leaking</span><strong>{remaining.orders}</strong></article>
+        <article className={Number(remaining.money) > 0 ? "risk" : "good"}><span>Money still at risk</span><strong>{remaining.money} {result.currency}</strong></article>
       </div>
       {rows.length > 0
         ? <div className="recovery-grid"><AgGridReact ref={grid} theme={gridTheme} rowData={rows} columnDefs={COLUMNS} context={context}
             getRowId={({ data }) => data.id} domLayout="autoHeight" rowHeight={44} suppressColumnVirtualisation
+            rowClassRules={{ "row-done": ({ data, context: current }) => Boolean(current.outcomes[data.id]?.record) }}
             defaultColDef={{ sortable: true, filter: true, resizable: true }} /></div>
         : <p className="empty-state">No leaks: every paid order in this store matches PayPal&apos;s record.</p>}
       {result.unrecorded && <UnrecordedPayments report={result.unrecorded} />}
+      <StoreSecurity security={result.security} open={result.verdict === "vulnerable"} />
     </>}
+    {/* A separate check, so it comes after the scan's own results. */}
+    <MarketPrices store={store} />
   </Wrapper>;
 }

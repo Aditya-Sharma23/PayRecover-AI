@@ -589,7 +589,8 @@ class AIExplanation(BaseModel):
     source: str = "AI"
 
 
-LEAK_KINDS = ("never_captured", "fake_paid", "wrong_amount", "duplicate_charge")
+LEAK_KINDS = ("never_captured", "fake_paid", "wrong_amount", "duplicate_charge", "hold_expiring", "hold_expired")
+RECOVERY_ACTIONS = ("capture", "invoice", "refund", "capture_hold")
 
 
 class InvestigationRequest(BaseModel):
@@ -613,6 +614,8 @@ class RecoveryTarget(BaseModel):
 
     order_id: str
     capture_id: str | None = None
+    # A payment PayPal only holds (intent AUTHORIZE) is collected by capturing its authorization.
+    authorization_id: str | None = None
     amount: str
 
 
@@ -624,13 +627,15 @@ class Leak(BaseModel):
     amount: str
     currency: str
     root_cause: str
-    recovery_action: Literal["capture", "invoice", "refund"]
+    recovery_action: Literal[RECOVERY_ACTIONS]
     recovery: str
     targets: list[RecoveryTarget] = Field(default_factory=list)
     # How soon to act: "now" (an approved payment still uncollected), "soon" (stop a shipment or a
     # chargeback), "normal". waiting_since is PayPal's own timestamp for when the money became recoverable.
     urgency: Literal["now", "soon", "normal"] = "normal"
     waiting_since: datetime | None = None
+    # When PayPal releases a held payment back to the buyer (hold leaks only), from PayPal's own record.
+    expires_at: datetime | None = None
 
 
 class Investigation(BaseModel):
@@ -639,7 +644,10 @@ class Investigation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     order_id: str
-    verdict: Literal["healthy", "leaking", "review"]
+    # "waiting": no leak, but PayPal has not settled the payment yet (it holds the money, for example
+    # during a dispute), so the order cannot be called healthy.
+    verdict: Literal["healthy", "leaking", "review", "waiting"]
+    waiting_reason: str | None = None
     store: str = "main"
     checked_at: datetime
     store_url: str
@@ -653,6 +661,8 @@ class Investigation(BaseModel):
     money_at_risk: str
     currency: str
     explanation: AIExplanation | None = None
+    # A demo scenario: made-up orders run through the real rules. Nothing at PayPal was read or changed.
+    sample_data: bool = False
 
 
 RECOVERY_STATUSES = ("recovered", "invoice_sent", "refunded", "failed", "unverified")
@@ -716,6 +726,7 @@ class ScanItem(BaseModel):
     store_status: str | None = None
     total: str | None = None
     verdict: str
+    waiting_reason: str | None = None
     leaks: list[Leak]
     money_at_risk: str
 
@@ -759,7 +770,9 @@ class ScanResult(BaseModel):
     unrecorded: "UnrecordedReport | None" = None
     # The store-wide security check, and the overall result: money leaking, no leak but vulnerable, or all clear.
     security: "StoreSecurity | None" = None
-    verdict: Literal["leaking", "vulnerable", "clear"] | None = None
+    # "waiting": nothing wrong found, but some checks could not finish, so "all clear" would overclaim.
+    verdict: Literal["leaking", "vulnerable", "waiting", "clear"] | None = None
+    waiting_reasons: list[str] = Field(default_factory=list)
 
 
 class RecoveryTotals(BaseModel):
@@ -953,7 +966,7 @@ class StoreStatus(BaseModel):
     """A store's result from its latest scan, for the overview."""
 
     store: str
-    verdict: Literal["leaking", "vulnerable", "clear"] | None = None
+    verdict: Literal["leaking", "vulnerable", "waiting", "clear"] | None = None
     orders_checked: int = 0
     money_at_risk: str = "0.00"
     currency: str = "USD"
@@ -1059,6 +1072,29 @@ class PriceCheckReport(BaseModel):
     items: list[PriceCheckItem] = Field(default_factory=list)
     note: str | None = None
     source: str = "Channel3"
+
+
+class PayPalSetupItem(BaseModel):
+    """One PayPal feature PayRecover uses: whether PayPal allows it for these Sandbox keys, and how to fix it."""
+
+    id: str
+    name: str
+    ok: bool | None = Field(description="True when it works, False when PayPal refuses it, None when unknown or not set.")
+    required: bool = True
+    detail: str
+    fix: str | None = None
+
+
+class PayPalSetup(BaseModel):
+    ready: bool
+    items: list[PayPalSetupItem]
+    checked_at: datetime
+
+
+class DemoScenario(BaseModel):
+    id: str
+    title: str
+    description: str
 
 
 ScanResult.model_rebuild()

@@ -43,7 +43,7 @@ export default function TimelinePanel({ refreshKey }) {
         {Object.entries(TIMELINE_COLORS).map(([tone, [, label]]) => <span key={tone}><i className={`dot ${tone}`} />{label}</span>)}
       </div>
     </div>
-    <p className="hint">Every scan, recovery and PayPal dispute over the last three days and the next ten. A dispute runs from the day it opened to PayPal&apos;s response deadline, and turns red when fewer than three days are left.</p>
+    <p className="hint">Scans, recoveries and dispute deadlines, three days back and ten ahead.</p>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {data?.note && <p className="notice" role="status">{data.note}</p>}
     {data && <div className="timeline-view">

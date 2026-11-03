@@ -10,13 +10,15 @@ from urllib.parse import parse_qs
 from uuid import UUID
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Path as PathParam, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    DemoScenario,
+    PayPalSetup,
     PriceCheckReport,
     Timeline,
     AutoscanSettings,
@@ -76,8 +78,8 @@ from app.ai import (
     create_plan,
     explain_with_fallback,
 )
-from app import (agent, alerts, autoscan, disputes, overview, price_check, store_security, timeline, evidence, investigate, notify, paypal, paypal_toolkit,
-                 recovery, unrecorded, webhooks)
+from app import (agent, alerts, autoscan, demo, disputes, mcp_server, overview, paypal_setup, price_check, store_security,
+                 timeline, evidence, investigate, notify, paypal, paypal_toolkit, recovery, unrecorded, webhooks)
 from app.compare import compare_reports
 from app.openapi_import import OpenApiError, import_openapi
 from app.report_html import render_report_html
@@ -202,7 +204,7 @@ def dashboard(http: Request) -> dict[str, int]:
 
 
 @app.get("/api/ai/status", tags=["AI"])
-def ai_status() -> dict[str, str | bool]:
+def ai_status() -> dict[str, str | bool | int]:
     """Return non-secret AI configuration state: model, family name and provider."""
     return configuration_status()
 
@@ -620,6 +622,68 @@ async def dashboard_overview(http: Request) -> Overview:
     return result
 
 
+@app.get("/api/paypal/setup", response_model=PayPalSetup, tags=["PayRecover"])
+async def paypal_setup_check(refresh: bool = False) -> PayPalSetup:
+    """Which PayPal Sandbox app features work for these keys (Transaction search, Disputes, Invoicing), and how to
+    switch on the rest. Asked of PayPal itself, cached two minutes."""
+    return await paypal_setup.check(refresh)
+
+
+@app.get("/api/demo/scenarios", response_model=list[DemoScenario], tags=["PayRecover"])
+def demo_scenarios() -> list[DemoScenario]:
+    """Made-up orders that show each result. They run through the real rules; no store or PayPal is involved."""
+    return demo.scenarios()
+
+
+@app.get("/api/demo/scenarios/{scenario}", response_model=Investigation, tags=["PayRecover"])
+def demo_scenario(scenario: str = PathParam(pattern=r"^[a-z_]{1,40}$")) -> Investigation:
+    """One demo scenario's investigation, marked sample_data. Nothing at PayPal is read or changed."""
+    try:
+        return demo.investigation(scenario)
+    except demo.UnknownScenario as exc:
+        raise HTTPException(status_code=404, detail=f"There is no demo scenario named {scenario}.") from exc
+
+
+@app.get("/api/demo/dispute", response_model=DisputeCase, tags=["PayRecover"])
+def demo_dispute() -> DisputeCase:
+    """A sample PayPal dispute about a duplicate charge, with PayRecover's rule-based recommendation."""
+    return demo.dispute()
+
+
+@app.post("/api/mcp", tags=["PayRecover"], response_model=None)
+async def mcp_endpoint(http: Request) -> Response:
+    """PayRecover's MCP server (Streamable HTTP, JSON replies): AI assistants call PayRecover's checks as tools.
+    It can never move money; propose_recovery only says where the merchant approves."""
+    origin = http.headers.get("origin")
+    if origin and origin.rstrip("/") not in _allowed_origins(http):
+        # Browsers send Origin; refusing other sites stops a web page from driving a local server (DNS rebinding).
+        return JSONResponse({"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Origin not allowed."}},
+                            status_code=403)
+    try:
+        message = await http.json()
+    except ValueError:
+        return JSONResponse({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error."}},
+                            status_code=400)
+    owner = request_owner(http)
+    if isinstance(message, list):
+        replies = [reply for reply in [await mcp_server.handle(item, owner) for item in message] if reply is not None]
+        return JSONResponse(replies) if replies else Response(status_code=202)
+    reply = await mcp_server.handle(message, owner)
+    return JSONResponse(reply) if reply is not None else Response(status_code=202)
+
+
+@app.get("/api/mcp", tags=["PayRecover"], response_model=None, include_in_schema=False)
+def mcp_stream() -> Response:
+    """PayRecover's MCP server answers every request directly, so it offers no event stream."""
+    return Response(status_code=405, headers={"Allow": "POST"})
+
+
+def _allowed_origins(http: Request) -> set[str]:
+    own = f"{http.url.scheme}://{http.headers.get('host', '')}"
+    public = os.environ.get("TESTPILOT_PUBLIC_URL", "").strip().rstrip("/")
+    return {own, public} - {""}
+
+
 @app.get("/api/stores/{store}/prices", response_model=PriceCheckReport, tags=["PayRecover"])
 async def market_prices(store: Literal[STORE_KEYS]) -> PriceCheckReport:
     """Compare each product's price with what comparable products sell for across retailers (Channel3)."""
@@ -687,6 +751,8 @@ LEAK_WORDS = {
     "fake_paid": "invoice an order the store marked paid without payment",
     "wrong_amount": "invoice the buyer for the amount they underpaid",
     "duplicate_charge": "refund a duplicate charge",
+    "hold_expiring": "capture a payment PayPal is holding before the hold expires",
+    "hold_expired": "invoice the buyer for a payment whose hold expired",
 }
 
 

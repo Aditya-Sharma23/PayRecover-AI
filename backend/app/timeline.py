@@ -21,7 +21,8 @@ RECOVERY_BLOCK = timedelta(minutes=20)
 DISPUTES_CACHE_SECONDS = 60
 MAX_DISPUTES = 10
 STORE_NAMES = {"main": "Main store", "vulnerable": "Vulnerable store", "risky": "Risky store"}
-VERDICT_LOOK = {"leaking": ("Money leaking", "red"), "vulnerable": ("Vulnerable", "orange"), "clear": ("All clear", "green")}
+VERDICT_LOOK = {"leaking": ("Money leaking", "red"), "vulnerable": ("Vulnerable", "orange"),
+                "waiting": ("Waiting for PayPal", "grey"), "clear": ("All clear", "green")}
 # "at" is None until the first fetch: monotonic time starts near boot, so 0 can look like "just fetched".
 _disputes_cache: dict[str, Any] = {"at": None, "items": None}
 
@@ -43,6 +44,8 @@ def _scan_detail(entry: dict[str, Any]) -> str:
         return f"{entry.get('money_at_risk')} {entry.get('currency')} at risk"
     if entry.get("verdict") == "vulnerable":
         return f"{entry.get('security_issues')} security issue(s)"
+    if entry.get("verdict") == "waiting":
+        return "Nothing wrong found, but some checks could not finish"
     return f"{entry.get('orders_checked')} paid order(s) checked"
 
 

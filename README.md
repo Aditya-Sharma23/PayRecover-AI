@@ -18,6 +18,9 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
   PayPal Sandbox; no real money moves.
 - **Run it yourself:** follow [Quick start (local)](#quick-start-local). It needs Python 3.12+, Node.js 22+ and a free
   PayPal Developer account.
+- **No Sandbox to hand?** Under **Check payments → One order**, the sample buttons run made-up orders through the
+  same checks (never captured, fake paid, wrong amount, duplicate charge, an expiring held payment, waiting for PayPal,
+  healthy), and **Disputes → Show a sample dispute** shows the defender. Samples are labelled and cannot be approved.
 - **A three-minute tour:**
   1. **Overview:** the three demo stores side by side, 🟢 Main (all clear), 🟠 Risky (vulnerable, no money lost),
      🔴 Vulnerable (money leaking), with money at risk and money recovered.
@@ -65,6 +68,7 @@ Tick the bugs to simulate on its page, pay, and investigate the order in PayReco
 | Let the same cart be paid multiple times | **Duplicate charge** leak, naming the other order to refund |
 | List the mug at 1.25 instead of 12.50 (a price typo) | **Likely typo** in the market price check (Channel3); payments still match PayPal, so only the market comparison sees it |
 | Charge the buyer, then lose the payment (store never records it) | **Payment the store never recorded**, from PayPal's side of the scan and from the payment webhook |
+| Only hold the payment at PayPal and never collect it (authorize without capture) | **Held, never collected** leak, with a countdown to when PayPal gives the money back; Approve captures the hold |
 | Always on: search box echoes `?q=` unescaped, no security headers | **XSS found**, and the security-headers check fails |
 
 ### The Risky store
@@ -128,6 +132,21 @@ Gemini plans the steps and calls the tools itself, and every call is listed unde
 - **Proposals, never actions**: to collect, refund, invoice or answer a dispute, the model can only call
   `propose_recovery` or `propose_dispute_answer`. Each proposal appears as an **Approve** button that runs the
   same approved, verified path as the dashboard. A proposal for a leak that does not exist is refused.
+
+### Use PayRecover from any AI assistant (MCP)
+
+PayRecover is also an [MCP](https://modelcontextprotocol.io) server, so Claude, ChatGPT or any agent framework can use
+the same tools as the dashboard's assistant: `scan_store`, `investigate_order`, `find_unrecorded_payments`,
+`list_dispute_cases`, `list_recoveries`, `check_market_prices`, `propose_recovery`, `check_paypal_setup` and
+`run_demo_scenario`. It is served at `POST /api/mcp` (Streamable HTTP, one JSON reply per request) behind the same API
+token and rate limit. An outside assistant can never move money: `propose_recovery` returns what would happen and
+where the merchant approves (a signed approval link when `TESTPILOT_APPROVAL_SECRET` is set).
+
+```bash
+claude mcp add --transport http payrecover http://127.0.0.1:8000/api/mcp
+```
+
+For a hosted deployment, add `--header "Authorization: Bearer <your API token>"` and use its `https://` address.
 
 ### Dispute defender (PayPal Disputes)
 
@@ -269,6 +288,14 @@ For every order, PayRecover compares the store's claim with PayPal's record and 
 | Fake paid | The store says `PAID`; PayPal never received a payment |
 | Wrong amount | PayPal charged less than the catalog total (the server trusted a browser price) |
 | Duplicate charge | Another order for the same cart was also captured (or one order captured twice) |
+| Held, never collected | The store says `PAID`; PayPal only holds the money (intent `AUTHORIZE`) and nobody captured it. "Act now" within three days of the hold's expiry |
+| Hold expired | The hold ran out before it was captured, so PayPal gave the money back; PayRecover invoices the buyer instead |
+
+When nothing is wrong but a check could not finish (PayPal still holds a disputed payment, or its transaction list
+could not be read), a scan says **waiting for PayPal** instead of all clear, and lists what is missing.
+
+The **PayPal setup** line on the dashboard asks PayPal which features your Sandbox app allows (Transaction search,
+Disputes, Invoicing, webhooks) and names exactly where to switch on any that are off.
 
 ---
 
@@ -365,7 +392,7 @@ Copy `backend/.env.example` to `backend/.env`, and `main-store/.env.example` to 
 
 Environment variables keep the `TESTPILOT_` prefix from the project's earlier name; it is only a prefix and is not shown to users.
 
-Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. Everything else works without it.
+Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. `TESTPILOT_AI_DAILY_LIMIT` (default 300, 0 for none) caps AI requests per UTC day; past it, every feature uses its built-in, rule-based answer. Everything else works without it.
 
 The Vulnerable store reuses `main-store/.env`, so it needs no keys of its own.
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, autoscanText, escapeHtml, timelineEvents, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, groupAlerts, autoscanText, escapeHtml, timelineEvents, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -52,8 +52,9 @@ test("alert times read as minutes, hours or days ago", () => {
 });
 
 test("each scan verdict has a title, a colour and an explanation", () => {
-  assert.deepEqual(Object.keys(SCAN_VERDICTS), ["leaking", "vulnerable", "clear"]);
+  assert.deepEqual(Object.keys(SCAN_VERDICTS), ["leaking", "vulnerable", "waiting", "clear"]);
   assert.equal(SCAN_VERDICTS.vulnerable[1], "verdict-orange");
+  assert.equal(SCAN_VERDICTS.waiting[1], "verdict-blue");
   assert.deepEqual(alertLabel("store_vulnerable"), ["Vulnerable", "warning"]);
   assert.deepEqual(alertLabel("money_leaking"), ["Money leaking", "failed"]);
 });
@@ -65,6 +66,8 @@ test("store results read as a short line", () => {
   assert.equal(storeStatusText({ verdict: "leaking", money_at_risk: "18.00", currency: "USD", scanned_at: at }, now), "18.00 USD at risk · 5 min ago");
   assert.equal(storeStatusText({ verdict: "vulnerable", security_issues: 1, scanned_at: at }, now), "1 security issue · 5 min ago");
   assert.equal(storeStatusText({ verdict: "clear", orders_checked: 4, scanned_at: at }, now), "4 paid orders match PayPal · 5 min ago");
+  assert.equal(storeStatusText({ verdict: "waiting", orders_checked: 4, scanned_at: at }, now), "Some checks could not finish · 5 min ago");
+  assert.deepEqual(storeVerdict({ verdict: "waiting", orders_checked: 4 }), ["Waiting for PayPal", "status-blue"]);
 });
 
 test("a clean scan with no paid orders is not called all clear", () => {
@@ -90,4 +93,16 @@ test("timeline events become Bryntum events with a colour", () => {
 
 test("tooltip text is escaped", () => {
   assert.equal(escapeHtml(`<img src=x onerror="a">`), "&lt;img src=x onerror=&quot;a&quot;&gt;");
+});
+
+test("repeated alerts become one row with a count", () => {
+  const alert = (id, event, summary, at) => ({ alert_id: id, event, summary, created_at: at });
+  const groups = groupAlerts([
+    alert("4", "money_leaking", "18.00 USD at risk", "2026-11-03T12:00:00Z"),
+    alert("3", "money_leaking", "18.00 USD at risk", "2026-11-03T11:00:00Z"),
+    alert("2", "money_leaking", "18.00 USD at risk", "2026-11-03T10:00:00Z"),
+    alert("1", "recovery_done", "Recovered 54.00 USD", "2026-11-03T09:00:00Z"),
+  ]);
+  assert.deepEqual(groups.map((group) => [group.alert.alert_id, group.count, group.since]),
+    [["4", 3, "2026-11-03T10:00:00Z"], ["1", 1, "2026-11-03T09:00:00Z"]]);
 });

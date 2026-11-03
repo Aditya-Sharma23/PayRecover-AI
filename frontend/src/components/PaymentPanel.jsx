@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { apiJson, openHtmlPage } from "../api/client.js";
 import {
   CHECK_LABELS, RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, VERDICTS, XSS_OUTCOMES, XSS_VERDICTS, approvalQuestion,
-  evidencePath, waitingText,
+  evidencePath, expiresText, waitingText,
   groupChecks, investigationBody, recoveryBody,
   normalizeOrderId, orderIdProblem, sortPayloads,
 } from "../lib/payment.js";
 import { groupChecks as groupWebsiteChecks, label as websiteLabel } from "../lib/report.js";
+import DemoScenarios from "./DemoScenarios.jsx";
 
 const CLAIM_FIELDS = [["status", "Status"], ["total", "Total"], ["currency", "Currency"], ["capture_id", "Capture id"]];
 const PAYPAL_FIELDS = [
   ["status", "Status"], ["amount", "Order amount"], ["capture_status", "Capture status"],
   ["capture_amount", "Captured amount"], ["capture_count", "Captures"], ["capture_id", "Capture id"],
+  ["intent", "Intent"], ["authorization_status", "Hold status"], ["authorization_expires", "Hold expires"],
 ];
 
 function Record({ title, record, fields, empty }) {
@@ -42,6 +44,15 @@ export function WaitingClock({ since }) {
   return <span className="waiting-clock">⏱ {waitingText(since, now)}</span>;
 }
 
+export function ExpiresClock({ until }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span className="waiting-clock expires-clock">⌛ {expiresText(until, now)}</span>;
+}
+
 export function EvidenceButton({ orderId, store }) {
   const [error, setError] = useState(null);
   async function open() {
@@ -54,7 +65,7 @@ export function EvidenceButton({ orderId, store }) {
   </>;
 }
 
-function LeakCard({ leak, orderId, store, onRecovered }) {
+function LeakCard({ leak, orderId, store, onRecovered, sample }) {
   const [busy, setBusy] = useState(false);
   const [record, setRecord] = useState(null);
   const [error, setError] = useState(null);
@@ -78,11 +89,12 @@ function LeakCard({ leak, orderId, store, onRecovered }) {
       <span className="leak-amount">{leak.amount} {leak.currency}</span>
     </div>
     <p className="leak-urgency"><span className={`badge ${URGENCY[leak.urgency]?.[1] || "skipped"}`}>{URGENCY[leak.urgency]?.[0] || leak.urgency}</span>
-      {leak.waiting_since && <WaitingClock since={leak.waiting_since} />}</p>
+      {leak.expires_at ? <ExpiresClock until={leak.expires_at} /> : leak.waiting_since && <WaitingClock since={leak.waiting_since} />}</p>
     <p><b>Why:</b> {leak.root_cause}</p>
     <p><b>Recover:</b> {leak.recovery}</p>
     {!record && !leak.targets?.length && <p className="notice" role="note">No PayPal action is possible for this leak, so there is nothing to approve: hold the shipment.</p>}
-    {!record && leak.targets?.length > 0 && <button className="danger-button approve-button" type="button" disabled={busy} onClick={approve}>
+    {sample && leak.targets?.length > 0 && <p className="notice" role="note">Sample data: on a real order this button would read <b>Approve: {RECOVERY_LABELS[leak.recovery_action]} {leak.amount} {leak.currency}</b>.</p>}
+    {!sample && !record && leak.targets?.length > 0 && <button className="danger-button approve-button" type="button" disabled={busy} onClick={approve}>
       {busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</> : `Approve: ${RECOVERY_LABELS[leak.recovery_action]} ${leak.amount} ${leak.currency}`}
     </button>}
     {record && <RecoveryOutcome record={record} />}
@@ -90,9 +102,9 @@ function LeakCard({ leak, orderId, store, onRecovered }) {
   </div>;
 }
 
-function Leaks({ leaks, orderId, store, onRecovered }) {
+function Leaks({ leaks, orderId, store, onRecovered, sample }) {
   return <div className="leak-list">
-    {leaks.map((leak) => <LeakCard key={leak.kind} leak={leak} orderId={orderId} store={store} onRecovered={onRecovered} />)}
+    {leaks.map((leak) => <LeakCard key={leak.kind} leak={leak} orderId={orderId} store={store} onRecovered={onRecovered} sample={sample} />)}
     <small className="hint">Nothing moves until you approve. PayRecover then acts in PayPal Sandbox once and checks PayPal again to confirm it worked.</small>
   </div>;
 }
@@ -169,17 +181,19 @@ function Investigation({ result, onOpenReport, onRecovered }) {
   return <div className="payment-result">
     <div className={`verdict-banner ${tone}`}>
       <div>
-        <strong>{label}</strong>
+        <strong>{label}{result.sample_data && <span className="badge sample">Sample data</span>}</strong>
         <small>Order <code>{result.order_id}</code> · {line} · {new Date(result.checked_at).toLocaleString()}</small>
       </div>
       <div className="verdict-money">
         <span>Money at risk</span>
         <b>{result.money_at_risk} {result.currency}</b>
-        <EvidenceButton orderId={result.order_id} store={result.store} />
+        {!result.sample_data && <EvidenceButton orderId={result.order_id} store={result.store} />}
       </div>
     </div>
+    {result.sample_data && <p className="notice" role="note">Made-up orders, run through PayRecover&apos;s real checks. Nothing at PayPal was read or changed, so there is nothing to approve.</p>}
+    {result.waiting_reason && <p className="notice" role="status">{result.waiting_reason}</p>}
 
-    {result.leaks.length > 0 && <Leaks leaks={result.leaks} orderId={result.order_id} store={result.store} onRecovered={onRecovered} />}
+    {result.leaks.length > 0 && <Leaks leaks={result.leaks} orderId={result.order_id} store={result.store} onRecovered={onRecovered} sample={result.sample_data} />}
     {result.explanation && <Explanation explanation={result.explanation} />}
 
     <div className="record-grid">
@@ -242,7 +256,7 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovere
       <div>{!embedded && <p className="eyebrow">PayRecover · PayPal Sandbox</p>}<h2 id="payments-heading">{embedded ? "Check one order in depth" : "Investigate an order"}</h2></div>
       <span className={`status-pill ${config?.configured ? "online" : ""}`}><i />{config ? (config.configured ? "Sandbox connected" : "Sandbox keys missing") : "Sandbox status unknown"}</span>
     </div>
-    <p className="hint">Paste an order id. PayRecover reads the store's claim, asks PayPal what really happened, probes the store for the hole behind any leak, scans the store's website, checks it for XSS, and explains it.</p>
+    <p className="hint">Paste an order id to compare the store's claim with PayPal's record, and check the store for the hole behind any leak.</p>
     <form className="investigate-form" onSubmit={run}>
       <label className="field-label">Store
         <select className="text-input" value={store} onChange={(event) => setStore(event.target.value)}>
@@ -258,20 +272,20 @@ export default function PaymentPanel({ onOpenReport, onWebsiteReport, onRecovere
     </form>
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={probe} onChange={(event) => setProbe(event.target.checked)} />
-      Run store security probes (creates one unapproved Sandbox order; no money moves)
+      Price-tampering probe (one unpaid Sandbox order)
     </label>
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={website} onChange={(event) => setWebsite(event.target.checked)} />
-      Run the website checks on the store (browser, security, accessibility, API contract; about a minute)
+      Website checks (about a minute)
     </label>
     <label className="scan-options probe-toggle">
       <input type="checkbox" checked={xss} onChange={(event) => setXss(event.target.checked)} />
-      Run the XSS check on the store (15 inert payloads in 15 parameters and the URL path; nothing is executed)
+      XSS check (inert payloads)
     </label>
+    <DemoScenarios onResult={(sample) => { setError(null); setResult(sample); }} />
     {problem && <ul className="problem-list"><li>{problem}</li></ul>}
     {config?.configured === false && <p className="notice notice-error" role="status">Set TESTPILOT_PAYPAL_CLIENT_ID and TESTPILOT_PAYPAL_CLIENT_SECRET in backend/.env, then restart the backend.</p>}
     {error && <p className="notice notice-error" role="alert">{error}</p>}
     {result && <Investigation result={result} onOpenReport={onOpenReport} onRecovered={onRecovered} />}
-    <p className="hint">Investigating only reads PayPal; money moves only when you approve a recovery. Payer details are never shown or stored. The AI explains; the checks decide.</p>
   </Wrapper>;
 }

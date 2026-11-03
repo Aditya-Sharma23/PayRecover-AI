@@ -900,6 +900,26 @@
         "title": "CheckStatus",
         "type": "string"
       },
+      "DemoScenario": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description"
+        ],
+        "title": "DemoScenario",
+        "type": "object"
+      },
       "DisputeAdvice": {
         "description": "What the AI recommends for one dispute. Advice only: the merchant decides and approves.",
         "properties": {
@@ -1314,6 +1334,10 @@
               }
             ]
           },
+          "sample_data": {
+            "default": false,
+            "type": "boolean"
+          },
           "store": {
             "default": "main",
             "type": "string"
@@ -1336,9 +1360,20 @@
             "enum": [
               "healthy",
               "leaking",
-              "review"
+              "review",
+              "waiting"
             ],
             "type": "string"
+          },
+          "waiting_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "website_report": {
             "anyOf": [
@@ -1604,12 +1639,25 @@
           "currency": {
             "type": "string"
           },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "kind": {
             "enum": [
               "never_captured",
               "fake_paid",
               "wrong_amount",
-              "duplicate_charge"
+              "duplicate_charge",
+              "hold_expiring",
+              "hold_expired"
             ],
             "type": "string"
           },
@@ -1620,7 +1668,8 @@
             "enum": [
               "capture",
               "invoice",
-              "refund"
+              "refund",
+              "capture_hold"
             ],
             "type": "string"
           },
@@ -1922,6 +1971,77 @@
           "stores"
         ],
         "title": "Overview",
+        "type": "object"
+      },
+      "PayPalSetup": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PayPalSetupItem"
+            },
+            "type": "array"
+          },
+          "ready": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ready",
+          "items",
+          "checked_at"
+        ],
+        "title": "PayPalSetup",
+        "type": "object"
+      },
+      "PayPalSetupItem": {
+        "description": "One PayPal feature PayRecover uses: whether PayPal allows it for these Sandbox keys, and how to fix it.",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "fix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "True when it works, False when PayPal refuses it, None when unknown or not set."
+          },
+          "required": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ok",
+          "detail"
+        ],
+        "title": "PayPalSetupItem",
         "type": "object"
       },
       "PaymentCheck": {
@@ -2258,7 +2378,9 @@
               "never_captured",
               "fake_paid",
               "wrong_amount",
-              "duplicate_charge"
+              "duplicate_charge",
+              "hold_expiring",
+              "hold_expired"
             ],
             "type": "string"
           },
@@ -2290,6 +2412,16 @@
         "properties": {
           "amount": {
             "type": "string"
+          },
+          "authorization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "capture_id": {
             "anyOf": [
@@ -2435,6 +2567,16 @@
           },
           "verdict": {
             "type": "string"
+          },
+          "waiting_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2541,6 +2683,7 @@
                 "enum": [
                   "leaking",
                   "vulnerable",
+                  "waiting",
                   "clear"
                 ],
                 "type": "string"
@@ -2549,6 +2692,12 @@
                 "type": "null"
               }
             ]
+          },
+          "waiting_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2671,6 +2820,7 @@
                 "enum": [
                   "leaking",
                   "vulnerable",
+                  "waiting",
                   "clear"
                 ],
                 "type": "string"
@@ -3352,6 +3502,9 @@
                       },
                       {
                         "type": "boolean"
+                      },
+                      {
+                        "type": "integer"
                       }
                     ]
                   },
@@ -3630,6 +3783,96 @@
         "summary": "Dashboard",
         "tags": [
           "run history"
+        ]
+      }
+    },
+    "/api/demo/dispute": {
+      "get": {
+        "description": "A sample PayPal dispute about a duplicate charge, with PayRecover's rule-based recommendation.",
+        "operationId": "demo_dispute",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeCase"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Dispute",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/demo/scenarios": {
+      "get": {
+        "description": "Made-up orders that show each result. They run through the real rules; no store or PayPal is involved.",
+        "operationId": "demo_scenarios",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DemoScenario"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Scenarios",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/demo/scenarios/{scenario}": {
+      "get": {
+        "description": "One demo scenario's investigation, marked sample_data. Nothing at PayPal is read or changed.",
+        "operationId": "demo_scenario",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z_]{1,40}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Investigation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Scenario",
+        "tags": [
+          "PayRecover"
         ]
       }
     },
@@ -3971,6 +4214,26 @@
         ]
       }
     },
+    "/api/mcp": {
+      "post": {
+        "description": "PayRecover's MCP server (Streamable HTTP, JSON replies): AI assistants call PayRecover's checks as tools.\nIt can never move money; propose_recovery only says where the merchant approves.",
+        "operationId": "mcp_endpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Mcp Endpoint",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
     "/api/me": {
       "get": {
         "description": "Return who the caller is and the policies that apply to their data.",
@@ -4177,6 +4440,49 @@
           }
         },
         "summary": "Dashboard Overview",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/paypal/setup": {
+      "get": {
+        "description": "Which PayPal Sandbox app features work for these keys (Transaction search, Disputes, Invoicing), and how to\nswitch on the rest. Asked of PayPal itself, cached two minutes.",
+        "operationId": "paypal_setup_check",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayPalSetup"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paypal Setup Check",
         "tags": [
           "PayRecover"
         ]

@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app import autoscan, investigate, store_security
 from app.main import app
-from app.schemas import AutoscanSettings, ScanResult, StoreSecurity, TriagePlan
+from app.schemas import AutoscanSettings, ScanItem, ScanResult, StoreSecurity, TriagePlan, UnrecordedReport
 
 XSS = store_security.xss_finding("XSS found.")
 
@@ -82,6 +82,22 @@ class AutoscanTests(unittest.TestCase):
                                "risky": (0, "0.00", [])})
         self.assertEqual(sent, ["money_leaking"])
         self.assertIn("main: down", autoscan.status().last_error)
+
+    def test_nothing_wrong_but_an_unfinished_check_is_waiting_not_all_clear(self):
+        scanned = result("main")
+        scanned.items = [ScanItem(order_id="5O190127TN364715T", verdict="waiting", leaks=[], money_at_risk="0.00",
+                                  waiting_reason="PayPal is holding this payment.")]
+        scanned.unrecorded = UnrecordedReport(store="main", checked=False, note="Turn on Transaction search.")
+        scanned.security = StoreSecurity(checked=True, findings=[])
+        reasons = autoscan.waiting_reasons(scanned)
+        self.assertEqual(len(reasons), 2)
+        self.assertIn("Transaction search", reasons[1])
+        self.assertIsNone(autoscan.alert_for(scanned.model_copy(update={"verdict": "waiting"})))
+
+    def test_a_finished_clean_scan_is_still_all_clear(self):
+        scanned = result("main")
+        scanned.security = StoreSecurity(checked=True, findings=[])
+        self.assertEqual(autoscan.waiting_reasons(scanned), [])
 
     def test_the_api_turns_it_on_and_off_and_rejects_odd_intervals(self):
         client = TestClient(app)

@@ -110,7 +110,7 @@ async def scan_store(request: ScanRequest) -> ScanResult:
         return ScanItem(
             order_id=result.order_id, cart_id=order.get("cart_id"), created_at=order.get("created_at"),
             store_status=order.get("status"), total=order.get("total"), verdict=result.verdict,
-            leaks=result.leaks, money_at_risk=result.money_at_risk,
+            waiting_reason=result.waiting_reason, leaks=result.leaks, money_at_risk=result.money_at_risk,
         )
 
     items = list(await asyncio.gather(*(check(order) for order in paid)))

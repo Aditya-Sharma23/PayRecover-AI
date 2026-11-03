@@ -4,14 +4,14 @@ The store scan starts from the store's orders; this starts from PayPal's transac
 with PayPal's Agent Toolkit). Each store tags its payments with a custom_id, so a completed
 payment carrying the store's tag but missing from the store's paid orders means the buyer was
 charged and the store does not know: the order will not ship, and a dispute usually follows.
-Refunded payments are left out.
+Refunded payments, and captures PayRecover made itself after an approval, are left out.
 """
 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-from app import investigate, paypal_toolkit, scan
+from app import investigate, paypal_toolkit, recovery, scan
 from app.schemas import UnrecordedPayment, UnrecordedReport
 
 STORE_TAGS = {"main": "payrecover-main", "vulnerable": "payrecover-vulnerable", "risky": "payrecover-risky"}
@@ -77,6 +77,9 @@ async def find(store: str) -> UnrecordedReport:
     except investigate.StoreUnavailable as exc:
         return UnrecordedReport(store=store, checked=False, note=str(exc))
     recorded = {order.get("capture_id") for order in orders if order.get("status") == "PAID"}
+    # A capture PayRecover made itself (a never-captured payment or a held payment it collected) belongs to an
+    # order the store already calls paid, even though the store never learns the capture's id.
+    recorded |= {(record.get("paypal") or {}).get("capture_id") for record in recovery._load()}
     missing = [
         UnrecordedPayment(transaction_id=p["transaction_id"], amount=p["amount"], currency=p["currency"],
                           paid_at=p["paid_at"], payer_email_masked=_mask(p["payer_email"]), store=store)

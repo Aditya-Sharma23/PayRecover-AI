@@ -75,7 +75,7 @@ export default function AssistantPanel({ onRecovered }) {
         </select>
       </label>
     </div>
-    <p className="hint">Ask in plain words. The AI decides which PayPal and PayRecover tools to call, and shows every call. It can only propose moving money; nothing happens until you press Approve.</p>
+    <p className="hint">Ask in plain words. Every tool call is shown, and nothing moves until you press Approve.</p>
     <div className="chat-log" aria-live="polite">
       {history.length === 0 && <div className="example-questions">{EXAMPLE_QUESTIONS.map((question) =>
         <button key={question} type="button" className="secondary-button" onClick={() => ask(question)}>{question}</button>)}</div>}

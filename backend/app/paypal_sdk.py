@@ -70,6 +70,19 @@ def capture_order(client_id: str, secret: str, order_id: str, request_id: str) -
     }))
 
 
+def capture_authorization(client_id: str, secret: str, authorization_id: str, request_id: str) -> tuple[int, Any]:
+    payments = _client(client_id, secret).payments
+    # No body: PayPal captures the full held amount and makes it the final capture.
+    return _call(lambda: payments.capture_authorized_payment({
+        "authorization_id": authorization_id, "paypal_request_id": request_id, "prefer": "return=representation",
+    }))
+
+
+def get_authorization(client_id: str, secret: str, authorization_id: str) -> tuple[int, Any]:
+    payments = _client(client_id, secret).payments
+    return _call(lambda: payments.get_authorized_payment({"authorization_id": authorization_id}))
+
+
 def refund_capture(
     client_id: str, secret: str, capture_id: str, amount: str, currency: str, note: str, request_id: str,
 ) -> tuple[int, Any]:

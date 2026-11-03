@@ -8,6 +8,8 @@ Payment bugs, switched on and off from the store page (POST /api/bugs) and saved
   confirm_without_capture  show "paid" without ever asking PayPal to capture
   allow_double_payment  let one cart be paid again and again (no cart lock)
   lose_payment_record   capture the money at PayPal, then fail before saving it (buyer charged, store unaware)
+  authorize_and_forget  only ask PayPal to hold the payment (intent AUTHORIZE), mark the order paid, and never
+                        capture it: PayPal gives the money back to the buyer when the hold expires
   mistyped_price        list the mug at 1.25 instead of 12.50 (a typo that loses money on every sale)
 
 Profiles (VULN_STORE_PROFILE): "vulnerable" (default, port 8200) lets every payment bug above be switched
@@ -52,13 +54,14 @@ MAX_QUANTITY = 10
 ORDER_ID_PATTERN = r"^[A-Z0-9]{8,40}$"
 CART_ID_PATTERN = r"^[a-z0-9-]{8,64}$"
 BUG_NAMES = ("trust_client_price", "confirm_without_capture", "allow_double_payment", "lose_payment_record",
-             "mistyped_price")
+             "mistyped_price", "authorize_and_forget")
 BUG_LABELS = {
     "trust_client_price": "Charge the price the browser sends (buyer can edit prices)",
     "confirm_without_capture": "Show “paid” without capturing the money at PayPal",
     "allow_double_payment": "Let the same cart be paid multiple times",
     "lose_payment_record": "Charge the buyer, then lose the payment (store never records it)",
     "mistyped_price": "List the mug at 1.25 instead of 12.50 (a price typo)",
+    "authorize_and_forget": "Only hold the payment at PayPal and never collect it (authorize without capture)",
 }
 
 PROFILES = {
@@ -254,7 +257,8 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail=f"This cart has already been paid (order {paid['order_id']}).")
     lines, total = price_cart(request.items)
     body = {
-        "intent": "CAPTURE",
+        # BUG (authorize_and_forget): PayPal only holds the money; this store never comes back to capture it.
+        "intent": "AUTHORIZE" if "authorize_and_forget" in active_bugs else "CAPTURE",
         "purchase_units": [{
             "description": f"{_profile()['title']} order",
             "custom_id": _profile()["tag"],
@@ -276,6 +280,7 @@ async def create_order(request: CreateOrderRequest) -> dict[str, Any]:
         "order_id": order["id"], "status": "PENDING", "total": _money(total), "currency": CURRENCY,
         "items": [{**line, "unit_price": _money(line["unit_price"])} for line in lines],
         "capture_id": None, "cart_id": request.cart_id, "created_at": datetime.now(timezone.utc).isoformat(),
+        "intent": body["intent"],
     }
     save()
     return {"id": order["id"], "total": _money(total), "currency": CURRENCY}
@@ -292,6 +297,17 @@ async def capture_order(order_id: str = OrderId) -> dict[str, Any]:
         return record
     if "allow_double_payment" not in active_bugs and _paid_order_for_cart(record.get("cart_id"), exclude=order_id):
         raise HTTPException(status_code=409, detail="This cart has already been paid.")
+    if record.get("intent") == "AUTHORIZE":
+        result = await paypal_request("POST", f"/v2/checkout/orders/{order_id}/authorize", {}, f"authorize-{order_id}")
+        try:
+            hold = result["purchase_units"][0]["payments"]["authorizations"][0]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise HTTPException(status_code=502, detail="PayPal returned no authorization for this order.") from exc
+        # BUG: the store says paid, but PayPal only holds the money and nothing ever captures it.
+        record["authorization_id"] = hold["id"]
+        record["status"] = "PAID"
+        save()
+        return record
     result = await paypal_request("POST", f"/v2/checkout/orders/{order_id}/capture", {}, f"capture-{order_id}")
     try:
         capture = result["purchase_units"][0]["payments"]["captures"][0]
