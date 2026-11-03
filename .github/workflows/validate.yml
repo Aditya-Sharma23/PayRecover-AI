@@ -22,7 +22,13 @@ jobs:
       - run: pip install --no-deps -r requirements-toolkit.txt
       - run: ruff check .
       - run: python -m playwright install --with-deps chromium
-      - run: python -m unittest discover -s tests -v
+      # On failure, each failing test and its error become annotations, readable on the run page without a login.
+      - run: |
+          set -o pipefail
+          python -m unittest discover -s tests -v 2>&1 | tee test-output.txt || {
+            grep -E "^(FAIL|ERROR):|Error:|Exception:|assert" test-output.txt | head -30 | sed 's/^/::error::/'
+            exit 1
+          }
 
   main-store:
     runs-on: ubuntu-latest
