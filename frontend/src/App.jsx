@@ -4,6 +4,7 @@ import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
 import CheckPanel from "./components/CheckPanel.jsx";
 import DisputesPanel from "./components/DisputesPanel.jsx";
+import OnVisible from "./components/OnVisible.jsx";
 import OverviewPanel from "./components/OverviewPanel.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PaymentPanel from "./components/PaymentPanel.jsx";
@@ -108,9 +109,11 @@ export default function App() {
 
       <DisputesPanel onAnswered={() => setRecoveryKey((value) => value + 1)} />
 
-      <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
-        <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
-      </Suspense>
+      <OnVisible fallback={<section className="panel" id="timeline"><p className="hint">The timeline loads when you scroll here.</p></section>}>
+        <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
+          <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
+        </Suspense>
+      </OnVisible>
 
       <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
 

@@ -163,7 +163,7 @@ async def list_cases(limit: int = MAX_DISPUTES) -> DisputeList:
         listed = await paypal_toolkit.run("list_disputes", {"page_size": limit})
     except paypal_toolkit.ToolkitError as exc:
         if exc.status in {401, 403}:
-            return DisputeList(disputes=[], note=DISPUTES_HELP)
+            return DisputeList(disputes=[], note=DISPUTES_HELP + paypal_toolkit.said(exc))
         raise
     cases = []
     for item in (listed.get("items") or [])[:limit]:

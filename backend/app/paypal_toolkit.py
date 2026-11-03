@@ -89,6 +89,11 @@ def _error(exc: Exception, method: str) -> ToolkitError:
                         response.status_code, issue or None)
 
 
+def said(exc: ToolkitError) -> str:
+    """PayPal's own answer, for help text that guesses at a cause (HTTP 403 is not always a missing feature)."""
+    return f" (PayPal said: HTTP {exc.status}{', ' + exc.issue if exc.issue else ''}.)"
+
+
 async def run(method: str, params: dict[str, Any]) -> Any:
     """Run one toolkit tool and return PayPal's JSON."""
     client_id, secret = paypal._credentials()

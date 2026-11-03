@@ -46,6 +46,7 @@ class UnrecordedTests(unittest.TestCase):
         report = self.find([], [], paypal_toolkit.ToolkitError("refused", 403, "NOT_AUTHORIZED"))
         self.assertFalse(report.checked)
         self.assertIn("Features > Transaction search", report.note)
+        self.assertIn("PayPal said: HTTP 403, NOT_AUTHORIZED", report.note)
 
 
 class ToolkitTests(unittest.TestCase):

@@ -70,7 +70,8 @@ async def find(store: str) -> UnrecordedReport:
         return UnrecordedReport(store=store, checked=False, note=str(exc))
     except paypal_toolkit.ToolkitError as exc:
         return UnrecordedReport(store=store, checked=False,
-                                note=TRANSACTION_SEARCH_HELP if exc.status in {401, 403} else str(exc))
+                                note=TRANSACTION_SEARCH_HELP + paypal_toolkit.said(exc) if exc.status in {401, 403}
+                                else str(exc))
     try:
         orders = await scan.recent_orders(STORE_ORDERS_READ)
     except investigate.StoreUnavailable as exc:
