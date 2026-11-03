@@ -28,8 +28,8 @@ class TimelineTests(unittest.TestCase):
                                       "TESTPILOT_RECOVERY_LOG_PATH": os.path.join(folder.name, "recoveries.json")})
         env.start()
         self.addCleanup(env.stop)
-        timeline._disputes_cache.update(at=0.0, items=None)
-        self.addCleanup(timeline._disputes_cache.update, at=0.0, items=None)
+        timeline._disputes_cache.update(at=None, items=None)
+        self.addCleanup(timeline._disputes_cache.update, at=None, items=None)
 
     def build(self, disputes=(), error=None):
         async def fake_toolkit(method, params):

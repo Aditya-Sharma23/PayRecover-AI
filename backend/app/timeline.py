@@ -22,7 +22,8 @@ DISPUTES_CACHE_SECONDS = 60
 MAX_DISPUTES = 10
 STORE_NAMES = {"main": "Main store", "vulnerable": "Vulnerable store", "risky": "Risky store"}
 VERDICT_LOOK = {"leaking": ("Money leaking", "red"), "vulnerable": ("Vulnerable", "orange"), "clear": ("All clear", "green")}
-_disputes_cache: dict[str, Any] = {"at": 0.0, "items": None}
+# "at" is None until the first fetch: monotonic time starts near boot, so 0 can look like "just fetched".
+_disputes_cache: dict[str, Any] = {"at": None, "items": None}
 
 
 def record_scan(result: ScanResult) -> None:
@@ -55,7 +56,7 @@ def _when(value: Any) -> datetime | None:
 
 async def _disputes() -> list[dict[str, Any]] | None:
     """Open disputes with their deadlines, or None when PayPal could not be asked."""
-    if time.monotonic() - _disputes_cache["at"] < DISPUTES_CACHE_SECONDS:
+    if _disputes_cache["at"] is not None and time.monotonic() - _disputes_cache["at"] < DISPUTES_CACHE_SECONDS:
         return _disputes_cache["items"]
     try:
         listed = await paypal_toolkit.run("list_disputes", {"page_size": MAX_DISPUTES})

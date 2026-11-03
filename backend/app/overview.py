@@ -13,7 +13,8 @@ from app.schemas import STORE_KEYS, Overview, ScanRequest, ScanResult, StoreStat
 
 DISPUTES_CACHE_SECONDS = 60
 OPEN_DISPUTE_STATES = ("REQUIRED_ACTION", "REQUIRED_OTHER_PARTY_ACTION", "UNDER_PAYPAL_REVIEW")
-_disputes_cache: dict[str, float | int | None] = {"at": 0.0, "count": None}
+# "at" is None until the first fetch: monotonic time starts near boot, so 0 can look like "just fetched".
+_disputes_cache: dict[str, float | int | None] = {"at": None, "count": None}
 
 
 def remember_scan(result: ScanResult) -> None:
@@ -28,7 +29,8 @@ def remember_scan(result: ScanResult) -> None:
 
 
 async def _open_disputes() -> int | None:
-    if time.monotonic() - float(_disputes_cache["at"] or 0) < DISPUTES_CACHE_SECONDS:
+    fetched = _disputes_cache["at"]
+    if fetched is not None and time.monotonic() - float(fetched) < DISPUTES_CACHE_SECONDS:
         return _disputes_cache["count"]  # type: ignore[return-value]
     count = 0
     try:

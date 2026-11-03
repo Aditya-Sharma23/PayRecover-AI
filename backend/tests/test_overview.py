@@ -29,8 +29,8 @@ class OverviewTests(unittest.TestCase):
                                       "TESTPILOT_RECOVERY_LOG_PATH": os.path.join(folder.name, "recoveries.json")})
         env.start()
         self.addCleanup(env.stop)
-        overview._disputes_cache.update(at=0.0, count=None)
-        self.addCleanup(overview._disputes_cache.update, at=0.0, count=None)
+        overview._disputes_cache.update(at=None, count=None)
+        self.addCleanup(overview._disputes_cache.update, at=None, count=None)
 
     def build(self, disputes=None, error=None):
         async def fake_toolkit(method, params):
