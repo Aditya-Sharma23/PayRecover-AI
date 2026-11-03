@@ -10,6 +10,24 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 
 ---
 
+## For judges
+
+- **Hosted demo:** the link and a judges' API token are on the Devpost submission page. Everything runs on the free
+  PayPal Sandbox; no real money moves.
+- **Run it yourself:** follow [Quick start (local)](#quick-start-local). It needs Python 3.12+, Node.js 22+ and a free
+  PayPal Developer account.
+- **A three-minute tour:**
+  1. **Overview:** the three demo stores side by side, 🟢 Main (all clear), 🟠 Risky (vulnerable, no money lost),
+     🔴 Vulnerable (money leaking), with money at risk and money recovered.
+  2. **Check payments → Scan store** on the Vulnerable store: leaks ranked by urgency, each with PayPal's record.
+     Press **Approve** on one; PayRecover captures, refunds or invoices at PayPal and confirms it with a fresh read.
+  3. **Ask PayRecover:** *"How much am I losing and what should I fix first?"* Gemini answers by calling PayPal's
+     Agent Toolkit and PayRecover's checks; every tool call is listed under the answer.
+  4. **Disputes:** each PayPal dispute linked to its store order, with a recommended answer and a draft to approve.
+  5. **Market price check** (Channel3) and the **Timeline** (Bryntum) under the scan results.
+
+---
+
 ## What it does
 
 1. **Finds the leak.** Scans every recent order a store calls paid and compares it with PayPal: never captured, fake paid, wrong amount, duplicate charge, and payments PayPal took that the store never recorded.
@@ -252,6 +270,45 @@ For every order, PayRecover compares the store's claim with PayPal's record and 
 
 ---
 
+## Built during the hackathon
+
+PayRecover started from an earlier open-source project of mine, a website and API testing tool. Before the
+Submission Period (which opened on 1 October 2026) it had the SSRF-safe browser and HTTP runners, the accessibility
+and security-header checks, JSON Schema and OpenAPI contract tests, saved run history, run comparison and HTML reports.
+
+Everything PayPal- and money-related was built during the hackathon, from late October 2026 (see the commit history):
+
+- **PayPal checks:** the Main, Vulnerable and Risky Sandbox stores, order investigation against PayPal's Orders API
+  through PayPal's official Server SDK, duplicate-charge detection, and the price-tampering and reflected-XSS probes.
+- **Whole-store scan:** every recent paid order checked, leaks ranked by urgency, the three-colour result
+  (money leaking, vulnerable, all clear) and the dispute-ready evidence pack.
+- **Recovery:** capture, refund or invoice after the merchant approves, confirmed by a fresh read of PayPal, logged in
+  the AG Grid **Money recovered** panel.
+- **AI with PayPal's Agent Toolkit:** the Ask PayRecover chat, the dispute defender, payments PayPal took that the store
+  never recorded (Transaction Search), and AI-written recovery plans and buyer notes.
+- **Real time:** verified PayPal webhooks, alerts by dashboard, email (Brevo) and Zapier, signed approval links,
+  and auto-scan.
+- **Sponsor integrations:** Channel3 market price check, Bryntum timeline, APIMatic-ready OpenAPI and SDKs, and the
+  Render blueprint.
+
+## PayPal, AI and tools used
+
+| Tool | How PayRecover uses it |
+|---|---|
+| **PayPal Server SDK** (`paypal-server-sdk`, APIMatic-generated) | Reads orders, captures approved payments and refunds duplicate charges in the Sandbox |
+| **PayPal Agent Toolkit** | Read-only tools for the Gemini chat; lists disputes and transactions; accepts dispute claims |
+| **PayPal REST APIs** | Invoicing (short payments), Disputes (`provide-evidence`), Transaction Search, webhook signature verification |
+| **PayPal JS SDK** | The checkout buttons in the three demo stores |
+| **Google Gemini** | Plans the chat's tool calls, explains results, words recovery plans, dispute drafts and buyer notes. Advisory only: it never decides a result or moves money |
+| **Channel3** | Market prices for each product, to catch price typos PayPal's records cannot reveal |
+| **Bryntum Scheduler** | The timeline of scans, recoveries and dispute deadlines per store |
+| **AG Grid** | The Money recovered log and the scan results grid |
+| **APIMatic** | Generates PayPal's Server SDK, and PayRecover's own SDKs and API portal from `docs/openapi.json` |
+| **Zapier, Brevo** | Alert delivery to any app, and by email |
+| **Render** | Hosting, from the included `render.yaml` blueprint |
+
+---
+
 ## How it works
 
 ```mermaid
@@ -392,12 +449,14 @@ The PayRecover backend and dashboard ship as a single Docker image (`docker comp
 - [x] PayPal Sandbox checkout in the Main store
 - [x] Independent payment verification against the PayPal Orders API
 - [x] Dashboard panel for payment verification
-- [ ] Playwright checkout scenarios (success and cancellation) driven from the dashboard
 - [x] One order id runs every check: store claim, PayPal record, price probe, website scan
 - [x] Gemini explanations with retries and fallback models
 - [x] Verified PayPal webhooks (signature checked before any event is read)
 - [x] Dispute defender, scan, recovery and evidence pack
-- [ ] Hosted demo (Render) and remote browser sessions (Kernel)
+- [x] Market price check (Channel3), timeline (Bryntum) and auto-scan
+- [ ] Hosted demo on Render (blueprint ready in `render.yaml`)
+- [ ] Next: automated checkout scenarios (success and cancellation). These need a write-enabled browser mode, kept
+      apart from today's read-only runners on purpose.
 
 ## Documentation
 
