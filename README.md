@@ -24,7 +24,7 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
   same checks (never captured, fake paid, wrong amount, duplicate charge, an expiring held payment, waiting for PayPal,
   healthy), and **Disputes → Show a sample dispute** shows the defender. Samples are labelled and cannot be approved.
 - **A three-minute tour:**
-  1. **Overview:** the three demo stores side by side, 🟢 Main (all clear), 🟠 Risky (vulnerable, no money lost),
+  1. **Overview:** the three demo stores side by side, 🟢 Main (all clear once it has a paid order), 🟠 Risky (vulnerable, no money lost),
      🔴 Vulnerable (money leaking), with money at risk and money recovered.
   2. **Check payments → Scan store** on the Vulnerable store: leaks ranked by urgency, each with PayPal's record.
      Press **Approve** on one; PayRecover captures, refunds or invoices at PayPal and confirms it with a fresh read.
@@ -96,7 +96,8 @@ A mistyped price is paid in full, so PayPal's records match and no payment check
 every sale. **Check prices against the market** (under Check payments → Whole store, or *"Are any of my prices
 wrong?"* in the chat) searches [Channel3](https://trychannel3.com) (100M+ products from 25,000+ retailers) for
 comparable new, in-stock products, takes each product's cheapest US offer, and compares the store's price with the
-market median: under a third of it is a **likely typo**, over three times is **overpriced**. Each result shows the
+edges of the market: under half of what even the cheapest tenth of comparable products cost is a **likely typo**,
+over one and a half times the dearest tenth is **overpriced**, so a cheap but normal price is not flagged. Each result shows the
 market range and example retailers. Each store product carries a plain `market` description ("ceramic coffee mug
 11 oz") so the search finds comparable products. Searches are cached for six hours. Set `TESTPILOT_CHANNEL3_API_KEY`
 (free for hackathon participants at trychannel3.com/developers).
@@ -182,7 +183,7 @@ Features; PayPal's list can lag new payments by up to three hours.
 `POST /api/paypal/webhook` receives PayPal events once `TESTPILOT_PAYPAL_WEBHOOK_ID` is set (create the webhook
 in your app on developer.paypal.com, pointing at your public URL). Every event is verified with PayPal's
 `verify-webhook-signature` before it is read. `PAYMENT.CAPTURE.COMPLETED` re-checks that order in its store and
-alerts through Zapier on a leak or an unrecorded payment; `CUSTOMER.DISPUTE.CREATED` sends the dispute with the
+alerts (dashboard, email and Zapier) on a leak or an unrecorded payment; `CUSTOMER.DISPUTE.CREATED` sends the dispute with the
 AI's recommended answer. Webhooks only start checks and alerts; money still moves only after approval.
 Webhooks need a public address, so they work once deployed (for example on Render), not on localhost.
 
@@ -253,6 +254,8 @@ Every leak comes with a recovery the merchant can approve, on the dashboard or f
 | Never captured | Capture the approved order | PayPal shows a COMPLETED capture for the full amount |
 | Wrong amount, fake paid | Send the buyer a PayPal invoice for the missing amount | PayPal shows the invoice SENT for that amount |
 | Duplicate charge | Refund the extra capture | PayPal shows the refund COMPLETED or PENDING |
+| Held, never collected | Capture the authorization before it expires | PayPal shows the hold captured for the full amount |
+| Hold expired | Send the buyer a PayPal invoice instead | PayPal shows the invoice SENT for that amount |
 
 The **Money recovered** panel (AG Grid) lists every recovery with totals collected, invoiced and refunded.
 Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps & Credentials > your app > Features).
@@ -267,6 +270,7 @@ reflected XSS, security headers), so a store can be judged even when no money ha
 | 🔴 **Money leaking** | At least one payment does not match PayPal | Sent at once, with the amounts, approve links, and the holes that let it happen |
 | 🟠 **No leak, but vulnerable** | Every payment matches PayPal, but the store has a hole that could let money leak | Sent at once, with what to fix |
 | 🟢 **All clear** | Payments match PayPal and the store passes the security checks | Shown on the dashboard only; nothing is sent |
+| 🔵 **Waiting for PayPal** | Nothing wrong found, but a check could not finish (see below) | Shown on the dashboard only; nothing is sent |
 
 An order investigation follows the same rule: red for a leak, orange when its probes find a hole.
 
@@ -341,7 +345,7 @@ Everything PayPal- and money-related was built during the hackathon, from late O
 | **AG Grid** | The Money recovered log and the scan results grid |
 | **APIMatic** | Generates PayPal's Server SDK, and PayRecover's own SDKs and API portal from `docs/openapi.json` |
 | **Zapier, Brevo** | Alert delivery to any app, and by email |
-| **Render** | Hosting, from the included `render.yaml` blueprint |
+| **Render** | Hosting: the live demo (four web services), plus an included `render.yaml` blueprint |
 
 ---
 
@@ -349,7 +353,7 @@ Everything PayPal- and money-related was built during the hackathon, from late O
 
 ```mermaid
 flowchart LR
-    U[Tester] --> D[PayRecover dashboard<br/>React]
+    U[Merchant] --> D[PayRecover dashboard<br/>React]
     D --> B[PayRecover backend<br/>FastAPI]
     B --> R[Browser and HTTP runners<br/>Playwright, aiohttp]
     B --> P[PayPal Server SDK<br/>APIMatic-generated]
@@ -361,7 +365,7 @@ flowchart LR
 
 1. A buyer pays in the **Main store** with a PayPal Sandbox account. The store prices the cart on its server, creates the PayPal order, and captures it after approval.
 2. The store records what it **believes** happened (`GET /api/orders/{id}`).
-3. PayRecover asks **PayPal** what actually happened (`POST /api/paypal/verify`) and compares the two, check by check, with evidence.
+3. PayRecover asks **PayPal** what actually happened, through PayPal's Server SDK, and compares the two, check by check, with evidence (a scan does this for every recent paid order).
 
 ### Design principles
 
