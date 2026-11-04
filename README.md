@@ -14,6 +14,9 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 
 ## For judges
 
+- **Live demo:** https://payrecover-ai-xm1k.onrender.com (PayPal Sandbox only). It runs on Render's free tier, so
+  the first visit after a quiet spell can take about a minute while the dashboard starts; it then starts the three
+  demo stores by itself, and their cards say *The store is starting* until each one answers.
 - **Run it yourself:** `python scripts/payrecover.py` sets everything up on the first run and starts the dashboard
   at http://127.0.0.1:8000 (needs Python 3.12+ and Node.js 22+; no keys needed for the samples). See
   [Quick start (local)](#quick-start-local).
@@ -113,6 +116,11 @@ The dashboard opens with four headline numbers (orders scanned, money at risk, o
 recovered) and a strip with each demo store's latest result: 🟢 all clear, 🟠 vulnerable, 🔴 money leaking, or not
 scanned yet. Click a store to scan it now. After a recovery, the store's payments are re-checked in the background
 so money at risk drops right away.
+
+Opening the dashboard also **starts every demo store** (`POST /api/stores/start`): a free host puts idle stores to
+sleep, so the dashboard asks all three at once and each card says *The store is starting* until its store answers
+(or *Not responding*). While the dashboard stays open it repeats every ten minutes, so stores only use free hosting
+hours while someone is looking, and a scan never meets a sleeping store.
 
 **Auto-scan**, switched on and off in the top bar, scans every store every 5, 10, 30 or 60 minutes while the server
 runs, even with the dashboard closed, and keeps the setting across restarts. It skips the AI plan (no AI calls),
@@ -461,6 +469,22 @@ GitHub Actions runs the backend, main-store, vuln-store and frontend tests and a
 
 The PayRecover backend and dashboard ship as a single Docker image (`docker compose up --build`). A Render blueprint (`render.yaml`) is included. Public deployments refuse to start unless authentication, rate limiting, audit logging and HTTPS are configured. See [docs/deployment.md](docs/deployment.md).
 
+**The live demo** runs as four Render web services, created by hand on the free tier:
+
+| Service | Runtime | Root directory | Start command |
+|---|---|---|---|
+| PayRecover (backend and dashboard) | Docker | *(repository root)* | from the `Dockerfile` |
+| Main store | Python 3 | `main-store` | `uvicorn store_app:app --host 0.0.0.0 --port $PORT` |
+| Vulnerable store | Python 3 | `vuln-store` | same |
+| Risky store | Python 3 | `vuln-store`, with `VULN_STORE_PROFILE=risky` | same |
+
+Each store needs `PYTHON_VERSION=3.12.7` and the Sandbox `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`. The dashboard
+takes the keys from `backend/.env` plus `TESTPILOT_STORE_URL`, `TESTPILOT_VULN_STORE_URL` and
+`TESTPILOT_RISKY_STORE_URL` (each store's `https://…onrender.com` address), and `TESTPILOT_PAYPAL_WEBHOOK_ID` for the
+PayPal webhook at `<dashboard address>/api/paypal/webhook`. On the free tier there is no persistent disk, so the
+recovery log and alert settings reset when the dashboard is redeployed; auto-scan every 60 minutes keeps the free
+stores within their monthly hours.
+
 ## Roadmap
 
 - [x] PayPal Sandbox checkout in the Main store
@@ -471,7 +495,8 @@ The PayRecover backend and dashboard ship as a single Docker image (`docker comp
 - [x] Verified PayPal webhooks (signature checked before any event is read)
 - [x] Dispute defender, scan, recovery and evidence pack
 - [x] Market price check (Channel3), timeline (Bryntum) and auto-scan
-- [ ] Hosted demo on Render (blueprint ready in `render.yaml`)
+- [x] Hosted demo on Render: https://payrecover-ai-xm1k.onrender.com
+- [x] Demo stores start automatically when the dashboard opens
 - [ ] Next: automated checkout scenarios (success and cancellation). These need a write-enabled browser mode, kept
       apart from today's read-only runners on purpose.
 
