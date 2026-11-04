@@ -17,6 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.schemas import (
     AgentReply,
+    StorePing,
     DemoScenario,
     PayPalSetup,
     PriceCheckReport,
@@ -612,6 +613,12 @@ async def paypal_webhook(http: Request, background: BackgroundTasks) -> dict[str
 def paypal_features() -> dict:
     """Which PayPal features PayRecover can use here: the Agent Toolkit and verified webhooks."""
     return {"agent_toolkit": paypal_toolkit.available(), "webhooks": webhooks.status()}
+
+
+@app.post("/api/stores/start", response_model=list[StorePing], tags=["PayRecover"])
+async def start_stores() -> list[StorePing]:
+    """Start every demo store. A free host sleeps idle stores; this wakes them all at once before a scan."""
+    return await overview.start_stores()
 
 
 @app.get("/api/overview", response_model=Overview, tags=["PayRecover"])

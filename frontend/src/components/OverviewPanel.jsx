@@ -5,6 +5,7 @@ import { STORES } from "../lib/payment.js";
 import PayPalSetup from "./PayPalSetup.jsx";
 
 const REFRESH_MS = 30000;
+const KEEP_AWAKE_MS = 10 * 60 * 1000;
 const STORE_NAMES = Object.fromEntries(STORES.map(([key, label]) => [key, label.replace(/ \(.*\)$/, "")]));
 
 // Headline numbers, each store's latest result, and a live indicator, refreshed every 30 seconds.
@@ -13,6 +14,19 @@ export default function OverviewPanel({ refreshKey }) {
   const [scanning, setScanning] = useState({});
   const [error, setError] = useState(null);
   const [now, setNow] = useState(() => Date.now());
+  // Each demo store's start-up state: "starting" until it answers, then "up" or "down".
+  const [startup, setStartup] = useState(() => Object.fromEntries(STORES.map(([store]) => [store, "starting"])));
+
+  // Opening the dashboard starts every demo store (a free host puts idle ones to sleep), and keeps them
+  // awake every few minutes while the dashboard is open, so a scan never meets a sleeping store.
+  useEffect(() => {
+    const start = () => apiJson("/api/stores/start", { method: "POST" })
+      .then((pings) => setStartup(Object.fromEntries(pings.map((ping) => [ping.store, ping.up ? "up" : "down"]))))
+      .catch(() => setStartup(Object.fromEntries(STORES.map(([store]) => [store, "up"]))));
+    start();
+    const timer = setInterval(() => { if (!document.hidden) start(); }, KEEP_AWAKE_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     apiJson("/api/overview").then(setData).catch(() => setData(null));
@@ -95,11 +109,17 @@ export default function OverviewPanel({ refreshKey }) {
       {(data?.stores || STORES.map(([store]) => ({ store }))).map((status) => {
         const [label, tone] = storeVerdict(status);
         const busy = scanning[status.store];
-        return <button type="button" className={`store-status ${busy ? "status-scanning" : tone}`} key={status.store}
-          disabled={busy} onClick={() => scanStore(status.store)} title="Scan this store now">
+        const starting = startup[status.store] === "starting";
+        const down = startup[status.store] === "down";
+        const [title, detail] = busy ? ["Scanning…", "Checking payments and security"]
+          : starting ? ["The store is starting", "Free hosting can take up to a minute"]
+            : down ? ["Not responding", "Click to try again"]
+              : data ? [label, storeStatusText(status, now)] : ["Loading…", "Reading the latest result"];
+        return <button type="button" className={`store-status ${busy || starting ? "status-scanning" : down ? "status-none" : tone}`}
+          key={status.store} disabled={busy || starting} onClick={() => scanStore(status.store)} title="Scan this store now">
           <i aria-hidden="true" />
-          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {busy ? "Scanning…" : data ? label : "Loading…"}</span>
-          <small>{busy ? "Checking payments and security" : data ? storeStatusText(status, now) : "Reading the latest result"}</small>
+          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {title}</span>
+          <small>{detail}</small>
         </button>;
       })}
     </div>

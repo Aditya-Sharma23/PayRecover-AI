@@ -2752,6 +2752,27 @@
         "title": "SecurityFinding",
         "type": "object"
       },
+      "StorePing": {
+        "description": "Whether a demo store answered when PayRecover started it.",
+        "properties": {
+          "seconds": {
+            "type": "number"
+          },
+          "store": {
+            "type": "string"
+          },
+          "up": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "store",
+          "up",
+          "seconds"
+        ],
+        "title": "StorePing",
+        "type": "object"
+      },
       "StoreSecurity": {
         "description": "The store-wide security check that runs with a scan: price tampering, reflected XSS, security headers.",
         "properties": {
@@ -4950,6 +4971,31 @@
           }
         },
         "summary": "Scan Store",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/stores/start": {
+      "post": {
+        "description": "Start every demo store. A free host sleeps idle stores; this wakes them all at once before a scan.",
+        "operationId": "start_stores",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StorePing"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Start Stores",
         "tags": [
           "PayRecover"
         ]

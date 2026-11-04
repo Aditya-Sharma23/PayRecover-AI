@@ -74,5 +74,44 @@ class OverviewTests(unittest.TestCase):
         self.assertEqual((status.verdict, status.money_at_risk, status.security_issues), ("vulnerable", "0.00", 1))
 
 
+
+class StartStoresTests(unittest.TestCase):
+    def test_every_store_is_asked_at_once_and_a_store_that_does_not_answer_is_down(self):
+        asked = []
+
+        class FakeResponse:
+            def __init__(self, url):
+                self.status = 200
+                asked.append(url)
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+        class FakeSession:
+            def __init__(self, **_):
+                pass
+
+            def get(self, url):
+                if "8300" in url:
+                    raise overview.aiohttp.ClientConnectionError("asleep")
+                return FakeResponse(url)
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+        env = {"TESTPILOT_STORE_URL": "http://127.0.0.1:8100", "TESTPILOT_VULN_STORE_URL": "http://127.0.0.1:8200",
+               "TESTPILOT_RISKY_STORE_URL": "http://127.0.0.1:8300"}
+        with patch.dict(os.environ, env), patch("app.overview.aiohttp.ClientSession", FakeSession):
+            pings = asyncio.run(overview.start_stores())
+        self.assertEqual([(p.store, p.up) for p in pings], [("main", True), ("vulnerable", True), ("risky", False)])
+        self.assertEqual(sorted(asked), ["http://127.0.0.1:8100/api/products", "http://127.0.0.1:8200/api/products"])
+
+
 if __name__ == "__main__":
     unittest.main()

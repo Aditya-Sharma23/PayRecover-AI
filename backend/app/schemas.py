@@ -1097,5 +1097,14 @@ class DemoScenario(BaseModel):
     description: str
 
 
+class StorePing(BaseModel):
+    """Whether a demo store answered when PayRecover started it."""
+
+    store: str
+    up: bool
+    seconds: float
+
+
+
 ScanResult.model_rebuild()
 Overview.model_rebuild()
