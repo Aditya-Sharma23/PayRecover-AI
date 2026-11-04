@@ -2,6 +2,7 @@
 
 import asyncio
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from app import paypal_toolkit, unrecorded
@@ -50,6 +51,12 @@ class UnrecordedTests(unittest.TestCase):
 
 
 class ToolkitTests(unittest.TestCase):
+    def test_the_toolkits_own_dependencies_are_in_the_runtime_requirements(self):
+        # The toolkit is installed with --no-deps (Docker, Render), so whatever its core imports must be listed here.
+        listed = (Path(__file__).resolve().parents[1] / "requirements.txt").read_text(encoding="utf-8").lower()
+        for package in ("requests", "httpx", "pydantic", "python-dotenv"):
+            self.assertRegex(listed, rf"(?m)^{package}[=<>\[]", package)
+
     def test_declarations_use_the_toolkit_descriptions_and_schemas(self):
         declared = {d["name"]: d for d in paypal_toolkit.declarations()}
         self.assertEqual(set(declared), set(paypal_toolkit.READ_ONLY_TOOLS))

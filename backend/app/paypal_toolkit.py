@@ -46,6 +46,12 @@ def _toolkit():
         from paypal_agent_toolkit.shared.configuration import Context
         from paypal_agent_toolkit.shared.tools import tools
     except ImportError as exc:
+        # Installed with --no-deps, so a missing dependency of the toolkit shows up here too; name it.
+        if exc.name and not exc.name.startswith("paypal_agent_toolkit"):
+            raise ToolkitUnavailable(
+                f"PayPal's Agent Toolkit is installed but needs the Python package '{exc.name}'. "
+                "Add it to backend/requirements.txt and reinstall."
+            ) from exc
         raise ToolkitUnavailable(
             "PayPal's Agent Toolkit is not installed. Run: pip install --no-deps -r requirements-toolkit.txt"
         ) from exc
