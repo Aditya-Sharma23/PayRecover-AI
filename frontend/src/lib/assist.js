@@ -119,6 +119,13 @@ export function storeStatusText(status, now = Date.now()) {
   return status.scanned_at ? `${detail} · ${timeAgo(status.scanned_at, now)}` : detail;
 }
 
+// Without PayPal keys a scan cannot run; point the visitor at the samples, which need none.
+export function withSampleHint(message) {
+  return /not configured/i.test(message || "")
+    ? `${message} Until then, the sample buttons under Check payments → One order show every result.`
+    : message;
+}
+
 export const AUTOSCAN_INTERVALS = [5, 10, 30, 60];
 
 // "in 7 min" for a time ahead; "now" once it has passed.

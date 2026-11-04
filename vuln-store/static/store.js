@@ -286,7 +286,10 @@ async function start() {
     await loadSdk(config.paypal_client_id, config.currency);
     renderButtons();
   } catch (error) {
-    setStatus("error", `The store could not start: ${error.message}`);
+    // Without Sandbox keys the shop still shows its products; only paying needs PayPal.
+    setStatus("error", /PAYPAL_CLIENT_ID/.test(error.message)
+      ? "PayPal is not set up for this store yet, so you can look around but not pay. Add your Sandbox keys to main-store/.env (see the README), then restart."
+      : `The store could not start: ${error.message}`);
   }
 }
 

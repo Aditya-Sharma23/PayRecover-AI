@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "../api/client.js";
-import { AUTOSCAN_INTERVALS, autoscanText, storeStatusText, storeVerdict, timeAgo } from "../lib/assist.js";
+import { AUTOSCAN_INTERVALS, autoscanText, storeStatusText, storeVerdict, timeAgo, withSampleHint } from "../lib/assist.js";
 import { STORES } from "../lib/payment.js";
 import PayPalSetup from "./PayPalSetup.jsx";
 
@@ -36,7 +36,7 @@ export default function OverviewPanel({ refreshKey }) {
       await apiJson("/api/stores/scan", { method: "POST", body: { store, explain: false } }, "The scan could not be completed.");
       setData(await apiJson("/api/overview"));
     } catch (reason) {
-      setError(reason.message);
+      setError(withSampleHint(reason.message));
     } finally {
       setScanning((current) => ({ ...current, [store]: false }));
     }

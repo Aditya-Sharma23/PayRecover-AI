@@ -23,11 +23,14 @@ export default function PayPalSetup() {
   const required = setup.items.filter((item) => item.required);
   const off = required.filter((item) => item.ok === false);
   const working = required.filter((item) => item.ok).length;
+  const noKeys = setup.items[0]?.id === "credentials" && setup.items[0].ok === false;
   return <details className={`paypal-setup ${setup.ready ? "ready" : "not-ready"}`} open={off.length > 0}>
     <summary>
       <i aria-hidden="true" />
-      <span><strong>PayPal setup</strong> · {setup.ready ? "everything PayRecover needs is on" : `${working} of ${required.length} ready`}
-        {off.length > 0 && <> · <b>{off.map((item) => item.name).join(", ")} {off.length === 1 ? "is" : "are"} off</b></>}</span>
+      {noKeys
+        ? <span><strong>PayPal setup</strong> · <b>no PayPal keys yet</b>, so live checks are off. The sample buttons under Check payments still show every result.</span>
+        : <span><strong>PayPal setup</strong> · {setup.ready ? "everything PayRecover needs is on" : `${working} of ${required.length} ready`}
+          {off.length > 0 && <> · <b>{off.map((item) => item.name).join(", ")} {off.length === 1 ? "is" : "are"} off</b></>}</span>}
     </summary>
     <ul>{setup.items.map((item) => <li key={item.id}>
       <span className={`badge ${item.ok ? "passed" : item.ok === false ? "failed" : "skipped"}`}>

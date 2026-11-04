@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_HISTORY, agentBody, groupAlerts, autoscanText, escapeHtml, timelineEvents, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
+import { MAX_HISTORY, agentBody, groupAlerts, withSampleHint, autoscanText, escapeHtml, timelineEvents, alertLabel, alertSettingsBody, disputeBody, disputeQuestion, disputeReason, proposalRequest, SCAN_VERDICTS, storeStatusText, storeVerdict, timeAgo, timeUntil } from "../src/lib/assist.js";
 
 test("a dispute answer is always sent as approved, with the note trimmed", () => {
   assert.deepEqual(disputeBody("accept_claim", "  We agree.  "), { action: "accept_claim", note: "We agree.", approved: true });
@@ -105,4 +105,9 @@ test("repeated alerts become one row with a count", () => {
   ]);
   assert.deepEqual(groups.map((group) => [group.alert.alert_id, group.count, group.since]),
     [["4", 3, "2026-11-03T10:00:00Z"], ["1", 1, "2026-11-03T09:00:00Z"]]);
+});
+
+test("without PayPal keys a failed scan points at the samples", () => {
+  assert.match(withSampleHint("PayPal Sandbox is not configured. Set the keys."), /sample buttons/);
+  assert.equal(withSampleHint("The store could not be reached."), "The store could not be reached.");
 });

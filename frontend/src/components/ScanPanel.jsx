@@ -5,7 +5,7 @@ import { gridTheme } from "../lib/grid.js";
 import {
   RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, remainingAtRisk, scanBody, scanRows,
 } from "../lib/payment.js";
-import { SCAN_VERDICTS } from "../lib/assist.js";
+import { SCAN_VERDICTS, withSampleHint } from "../lib/assist.js";
 import MarketPrices from "./MarketPrices.jsx";
 import { EvidenceButton, ExpiresClock, WaitingClock } from "./PaymentPanel.jsx";
 
@@ -116,7 +116,7 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
       setResult(await apiJson("/api/stores/scan", { method: "POST", body: scanBody(store, limit) }, "The scan could not be completed."));
       onScanned?.();
     } catch (reason) {
-      setError(reason.message);
+      setError(withSampleHint(reason.message));
     } finally { setBusy(false); }
   }
 

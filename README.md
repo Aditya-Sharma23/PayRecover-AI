@@ -14,10 +14,9 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 
 ## For judges
 
-- **Hosted demo:** the link and a judges' API token are on the Devpost submission page. Everything runs on the free
-  PayPal Sandbox; no real money moves.
-- **Run it yourself:** follow [Quick start (local)](#quick-start-local). It needs Python 3.12+, Node.js 22+ and a free
-  PayPal Developer account.
+- **Run it yourself:** `python scripts/payrecover.py` sets everything up on the first run and starts the dashboard
+  at http://127.0.0.1:8000 (needs Python 3.12+ and Node.js 22+; no keys needed for the samples). See
+  [Quick start (local)](#quick-start-local).
 - **No Sandbox to hand?** Under **Check payments → One order**, the sample buttons run made-up orders through the
   same checks (never captured, fake paid, wrong amount, duplicate charge, an expiring held payment, waiting for PayPal,
   healthy), and **Disputes → Show a sample dispute** shows the defender. Samples are labelled and cannot be approved.
@@ -368,72 +367,61 @@ flowchart LR
 
 ## Quick start (local)
 
-**Requirements:** Python 3.12+, Node.js 22+, and a free [PayPal Developer](https://developer.paypal.com) account.
+**You need:** Python 3.12+ and Node.js 22+. PayPal and Gemini keys are optional.
 
-### 1. Install
-
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\pip install -r requirements-dev.txt
-.venv\Scripts\pip install --no-deps -r requirements-toolkit.txt
-.venv\Scripts\python -m playwright install chromium
-.venv\Scripts\pip install -r ..\main-store\requirements.txt
-.venv\Scripts\pip install -r ..\vuln-store\requirements.txt
-cd ..\frontend
-npm ci
-```
-
-On macOS or Linux, use `.venv/bin/` instead of `.venv\Scripts\`.
-
-### 2. Add PayPal Sandbox keys
-
-Copy `backend/.env.example` to `backend/.env`, and `main-store/.env.example` to `main-store/.env`, then fill in your Sandbox **Client ID** and **Secret**. Full steps, including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
-
-Environment variables keep the `TESTPILOT_` prefix from the project's earlier name; it is only a prefix and is not shown to users.
-
-Optionally, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) and `TESTPILOT_AI_MODEL` (default `gemini-3.8-flash`) in `backend/.env` to turn on Gemini. `TESTPILOT_AI_FALLBACK_MODELS` lists backup models (lighter Flash-Lite models work well) tried when the main one is busy. `TESTPILOT_AI_DAILY_LIMIT` (default 300, 0 for none) caps AI requests per UTC day; past it, every feature uses its built-in, rule-based answer. Everything else works without it.
-
-The Vulnerable store reuses `main-store/.env`, so it needs no keys of its own.
-
-### 3. Run (four terminals; the Vulnerable store is optional)
+### 1. Run one command
 
 ```bash
-cd backend; .\.venv\Scripts\python -m uvicorn app.main:app --port 8000
+python scripts/payrecover.py
 ```
 
-```bash
-cd main-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8100
-```
-
-```bash
-cd vuln-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8200
-```
-
-Optional, the Risky store (correct payments, insecure website):
-
-```bash
-cd vuln-store; ..\backend\.venv\Scripts\python -m uvicorn store_app:app --port 8300 --env-file risky.env
-```
-
-```bash
-cd frontend; npm run dev
-```
+The first run sets everything up (a few minutes, once): a Python environment in `backend/.venv` with every
+package, the Chromium browser the website checks use, and the built dashboard. Then it starts all four parts
+and prints the addresses. Later runs start straight away. Press **Ctrl+C** to stop everything.
 
 | Open | What |
 |---|---|
-| http://127.0.0.1:5173 | PayRecover dashboard |
+| http://127.0.0.1:8000 | **PayRecover dashboard** |
 | http://127.0.0.1:8100 | Main store |
 | http://127.0.0.1:8200 | Vulnerable store (demo bugs) |
-| http://127.0.0.1:8000/docs | Backend API docs |
+| http://127.0.0.1:8300 | Risky store (correct payments, insecure website) |
+| http://127.0.0.1:8000/docs | API docs |
 
-### 4. Try it
+On macOS or Linux use `python3` if `python` is an older version. If those ports are busy, add `--port 9000`
+(the stores then use 9100, 9200 and 9300).
+
+### 2. See it work without any keys (two minutes)
+
+- **Check payments → One order (deep check)**: press any sample button (*Never captured*, *Duplicate charge*,
+  *Held payment expiring*, ...). Each runs made-up orders through the same checks as real ones.
+- **Disputes → Show a sample dispute**: the dispute defender's evidence and recommended answer.
+- The dashboard's **PayPal setup** line says which keys are missing and where to get them.
+
+### 3. Add keys for live PayPal Sandbox checks (optional)
+
+The first run created `backend/.env` and `main-store/.env` from their examples. Fill in your Sandbox **Client ID**
+and **Secret** in both (the Vulnerable and Risky stores reuse `main-store/.env`), then restart. Full steps,
+including a fix for developer accounts registered in India, are in [docs/paypal-sandbox.md](docs/paypal-sandbox.md).
+
+For Gemini, set `TESTPILOT_GOOGLE_API_KEY` (from [Google AI Studio](https://aistudio.google.com)) in `backend/.env`.
+`TESTPILOT_AI_MODEL` picks the model (default `gemini-3.8-flash`), `TESTPILOT_AI_FALLBACK_MODELS` lists backups
+tried when it is busy, and `TESTPILOT_AI_DAILY_LIMIT` (default 300, 0 for none) caps AI requests per UTC day.
+Without a key, every feature uses its built-in, rule-based answer. Environment variables keep the `TESTPILOT_`
+prefix from the project's earlier name.
+
+Then try a real payment:
 
 1. In the **Main store**, click **PayPal** and pay with your Sandbox *Personal* (buyer) account.
-2. Copy the **Order** id the store shows.
-3. In the **dashboard**, open **Investigate order**, keep **Store: Main**, paste the id and click **Run all checks**.
-4. Every check should pass: **Healthy, 0.00 USD at risk**, no XSS, and the store's website checks green.
-5. For a failing case, tick a bug in the **Vulnerable store**, pay there, and investigate with **Store: Vulnerable**.
+2. In the dashboard, **Check payments → Whole store → Scan store**: every paid order should match PayPal.
+3. For a failing case, tick a bug in the **Vulnerable store**, pay there, and scan the Vulnerable store.
+   Press **Approve** on a leak to recover it.
+
+### Working on the code
+
+`python scripts/payrecover.py setup` updates the environment after a `git pull`. For live-reloading development,
+run the backend with `uvicorn app.main:app --reload` from `backend/` and the dashboard with `npm run dev` from
+`frontend/` (http://127.0.0.1:5173, which forwards `/api` to the backend); tests and linters need
+`pip install -r backend/requirements-dev.txt`.
 
 ---
 
