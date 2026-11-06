@@ -35,6 +35,10 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 
 ---
 
+> **Scope.** PayPal payment recovery is the product. The website and API testing tools (the `qa` router, `website_runner`,
+> `api_runner`) are the earlier open-source project this one extends; they back the store security scan and still work on their own.
+> Channel3, Bryntum, Zapier and Brevo are optional integrations: without their keys the matching panel says so and nothing else changes.
+
 ## What it does
 
 1. **Finds the leak.** Scans every recent order a store calls paid and compares it with PayPal: never captured, fake paid, wrong amount, duplicate charge, and payments PayPal took that the store never recorded.
@@ -441,6 +445,8 @@ run the backend with `uvicorn app.main:app --reload` from `backend/` and the das
 
 ```
 backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
+  app/routers/payrecover.py   PayRecover endpoints: scans, recoveries, disputes, assistant, alerts, MCP, approvals
+  app/routers/qa.py           The inherited website/API test runner: jobs, run history, AI planner
 frontend/     React dashboard (Vite)
 main-store/   The PayPal Sandbox checkout PayRecover checks, built to pass every check
 vuln-store/   A deliberately vulnerable copy with switchable payment bugs, for demos only

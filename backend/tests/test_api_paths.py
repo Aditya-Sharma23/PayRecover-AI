@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from isolation import restore_database, use_temporary_database
 
-from app.main import (
+from app.routers.qa import (
     _overall_status,
     _redact_target_url,
     _summary,
@@ -85,7 +85,7 @@ class ApiPathTests(unittest.TestCase):
 
             raise UnsafeTarget("fixture policy rejection")
 
-        with patch("app.main.validate_target_url", reject):
+        with patch("app.routers.qa.validate_target_url", reject):
             with self.assertRaises(HTTPException) as raised:
                 asyncio.run(target_preflight(request))
         self.assertEqual(raised.exception.status_code, 422)
@@ -133,7 +133,7 @@ class ApiPathTests(unittest.TestCase):
             raise UnsafeTarget("fixture API policy rejection")
 
         with patch("app.execution.run_api_checks", reject):
-            from app.main import run_api
+            from app.routers.qa import run_api
 
             report = asyncio.run(run_api(request, LOCAL))
 

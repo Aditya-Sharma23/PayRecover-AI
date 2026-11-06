@@ -164,7 +164,7 @@ class JobManager:
                 job_id,
                 status=JobStatus.COMPLETED,
                 finished_at=datetime.now(timezone.utc),
-                report_id=result["report"]["run_id"],
+                report_id=UUID(str(result["report"]["run_id"])),
             )
         except asyncio.CancelledError:
             process = self._processes.pop(job_id, None)

@@ -115,3 +115,16 @@ Run **one instance**. Rate limiting, the job queue and SQLite are per process. S
 ## A local model instead of Google's API
 
 Set `TESTPILOT_AI_PROVIDER=ollama`, `TESTPILOT_OLLAMA_URL` (default `http://127.0.0.1:11434`) and `TESTPILOT_AI_MODEL` (for example `llama3.2`) to use a local Ollama server instead.
+
+## Going to production (what is Sandbox-only today)
+
+PayRecover is built and tested against the PayPal Sandbox. Moving it to live money needs these changes first:
+
+- **PayPal environment:** `app/paypal_sdk.py` and `app/paypal.py` are locked to the Sandbox base URL on purpose. Add an explicit
+  live switch (an environment variable that is off by default) and use live credentials only through it.
+- **Webhook:** create a live webhook on your live app and set its ID in `TESTPILOT_PAYPAL_WEBHOOK_ID`; every event is still verified by signature.
+- **Storage:** the free Render tier loses its disk on redeploy. Use a persistent disk or move SQLite to PostgreSQL (see Scaling limits).
+- **Secrets:** keep PayPal, Gemini and approval-link secrets in the platform's secret store, never in the repository, and rotate them on a schedule.
+- **Network egress:** `app/url_policy.py` checks a URL before it is fetched but does not pin the connection to the address it checked,
+  so run the API behind egress controls (or add address pinning) before letting untrusted users scan arbitrary URLs.
+- **Free-tier cold start:** a free instance sleeps; use a paid instance or a periodic `/api/health` ping.
