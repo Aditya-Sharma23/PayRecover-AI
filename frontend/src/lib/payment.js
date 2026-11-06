@@ -83,9 +83,10 @@ export const STORES = [
   ["main", "Main store (demo)"],
   ["vulnerable", "Vulnerable store (demo bugs)"],
   ["risky", "Risky store (safe payments, weak security)"],
+  ["connected", "Your connected store"],
 ];
 
-const STORE_SHORT_NAMES = { main: "Main", vulnerable: "Vulnerable", risky: "Risky" };
+const STORE_SHORT_NAMES = { main: "Main", vulnerable: "Vulnerable", risky: "Risky", connected: "Yours" };
 
 export const investigationBody = (value, { store = "main", probe = true, website = true, xss = true, explain = true } = {}) => ({
   order_id: normalizeOrderId(value),

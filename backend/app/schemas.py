@@ -12,7 +12,9 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, mod
 
 
 # The stores PayRecover can check, chosen by name only (their addresses are set by the operator).
-STORE_KEYS = ("main", "vulnerable", "risky")
+DEMO_STORE_KEYS = ("main", "vulnerable", "risky")
+# "connected" is the merchant's own store, read through the mapping the AI proposed and PayRecover checked.
+STORE_KEYS = (*DEMO_STORE_KEYS, "connected")
 
 class CheckName(StrEnum):
     HTTP_STATUS = "http_status"
@@ -1103,6 +1105,121 @@ class StorePing(BaseModel):
     store: str
     up: bool
     seconds: float
+
+
+
+FIELD_PATH = r"^[A-Za-z0-9_$@-]+(\.[A-Za-z0-9_$@-]+)*$"
+
+
+class OrderFields(BaseModel):
+    """Where each fact sits in one store order, as dotted paths ("amount.total", "lines")."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str = Field(pattern=FIELD_PATH, description="The PayPal order id.")
+    status: str = Field(pattern=FIELD_PATH)
+    total: str = Field(pattern=FIELD_PATH)
+    currency: str | None = Field(default=None, pattern=FIELD_PATH)
+    items: str | None = Field(default=None, pattern=FIELD_PATH)
+    item_product_id: str | None = Field(default=None, pattern=FIELD_PATH)
+    item_quantity: str | None = Field(default=None, pattern=FIELD_PATH)
+    item_unit_price: str | None = Field(default=None, pattern=FIELD_PATH)
+    cart_id: str | None = Field(default=None, pattern=FIELD_PATH)
+    created_at: str | None = Field(default=None, pattern=FIELD_PATH)
+    capture_id: str | None = Field(default=None, pattern=FIELD_PATH)
+
+
+class ProductFields(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=FIELD_PATH)
+    price: str = Field(pattern=FIELD_PATH)
+    name: str | None = Field(default=None, pattern=FIELD_PATH)
+
+
+STORE_PATH = r"^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$"
+
+
+class StoreMapping(BaseModel):
+    """How to read one merchant's store: proposed by the AI, checked by PayRecover, saved only when it passes."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="Your store", min_length=1, max_length=60)
+    base_url: str = Field(max_length=300)
+    orders_path: str = Field(pattern=STORE_PATH)
+    order_path: str | None = Field(default=None, pattern=STORE_PATH)
+    products_path: str | None = Field(default=None, pattern=STORE_PATH)
+    orders_list: str | None = Field(default=None, pattern=FIELD_PATH)
+    order_object: str | None = Field(default=None, pattern=FIELD_PATH)
+    products_list: str | None = Field(default=None, pattern=FIELD_PATH)
+    money: Literal["decimal", "cents"] = "decimal"
+    currency: str = Field(default="USD", pattern=r"^[A-Z]{3}$")
+    paid_statuses: list[str] = Field(min_length=1, max_length=10)
+    paypal_custom_id: str | None = Field(default=None, max_length=127)
+    order_fields: OrderFields
+    product_fields: ProductFields | None = None
+
+
+class ConnectorRequest(BaseModel):
+    """Connect a store: where its orders (and products) are. Send a mapping to check your own edit instead."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="Your store", min_length=1, max_length=60)
+    base_url: str = Field(max_length=300)
+    orders_path: str = Field(pattern=STORE_PATH)
+    products_path: str | None = Field(default=None, pattern=STORE_PATH)
+    mapping: StoreMapping | None = None
+
+
+class ConnectorProposal(BaseModel):
+    mapping: StoreMapping
+    checks: list[PaymentCheck]
+    preview: list[dict[str, Any]] = Field(default_factory=list, description="The first orders, read through the mapping.")
+    ready: bool
+    source: str
+
+
+class ConnectorStatus(BaseModel):
+    connected: bool
+    mapping: StoreMapping | None = None
+    # A store to try the connector on: the Vulnerable store's export in another platform's format.
+    example: ConnectorRequest | None = None
+
+
+FIX_ISSUES = ("xss", "security_headers", "price_tampering", "never_captured", "fake_paid", "wrong_amount",
+              "duplicate_charge", "hold_expiring", "hold_expired")
+
+
+class FixRequest(BaseModel):
+    """Write the code fix for one finding. Demo stores use their own source; any other store sends its code."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    issue: Literal[FIX_ISSUES]
+    store: Literal[STORE_KEYS] = "vulnerable"
+    detail: str | None = Field(default=None, max_length=1000, description="What PayRecover found, shown to the AI.")
+    code: str | None = Field(default=None, max_length=40000, description="Your store's code, for a store that is not a demo store.")
+    filename: str | None = Field(default=None, max_length=120)
+
+
+class FixEdit(BaseModel):
+    find: str
+    replace: str
+
+
+class FixProposal(BaseModel):
+    """The AI's fix, as edits and a diff, with PayRecover's own checks of it. Nothing is changed in any store."""
+
+    issue: str
+    filename: str
+    summary: str
+    edits: list[FixEdit]
+    diff: str
+    checks: list[PaymentCheck]
+    verified: bool = Field(description="True only when the fixed code was run and the hole was shown to be closed.")
+    source: str
 
 
 

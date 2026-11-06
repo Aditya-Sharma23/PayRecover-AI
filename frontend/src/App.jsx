@@ -3,6 +3,7 @@ import { apiJson, getToken, setToken } from "./api/client.js";
 import AlertsPanel from "./components/AlertsPanel.jsx";
 import AssistantPanel from "./components/AssistantPanel.jsx";
 import CheckPanel from "./components/CheckPanel.jsx";
+import ConnectorPanel from "./components/ConnectorPanel.jsx";
 import DisputesPanel from "./components/DisputesPanel.jsx";
 import OnVisible from "./components/OnVisible.jsx";
 import OverviewPanel from "./components/OverviewPanel.jsx";
@@ -121,6 +122,7 @@ export default function App() {
         <CheckPanel
           store={<ScanPanel embedded onRecovered={recovered} onScanned={() => setOverviewKey((value) => value + 1)} />}
           order={<PaymentPanel embedded onWebsiteReport={(report) => { setResult(report); setHistoryKey((value) => value + 1); }} onOpenReport={openReport} onRecovered={recovered} />}
+          connect={<ConnectorPanel onConnected={() => setOverviewKey((value) => value + 1)} />}
         />
       </div>
 

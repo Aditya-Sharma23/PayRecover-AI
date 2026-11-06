@@ -118,6 +118,10 @@ async def security_middleware(request: Request, call_next):
             return response
         owner = authenticated
     request.state.owner = owner
+    # The connected store is per user; this lets every check in the request read the caller's own connection.
+    from app import connector
+
+    connector.current_owner.set(owner)
 
     if _enabled("TESTPILOT_RATE_LIMITING") and path.startswith("/api/") and path != "/api/health":
         client = request.client.host if request.client else "unknown"

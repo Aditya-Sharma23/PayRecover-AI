@@ -15,8 +15,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app import alerts, investigate, notify, overview, paypal, scan, store_security, timeline, unrecorded
-from app.schemas import STORE_KEYS, AutoscanSettings, AutoscanStatus, ScanRequest, ScanResult
+from app import alerts, connector, investigate, notify, overview, paypal, scan, store_security, timeline, unrecorded
+from app.schemas import DEMO_STORE_KEYS, AutoscanSettings, AutoscanStatus, ScanRequest, ScanResult
 from app.security import LOCAL_OWNER
 
 SETTINGS_FILE = "autoscan.json"
@@ -27,9 +27,11 @@ _lock = asyncio.Lock()
 async def full_scan(request: ScanRequest) -> tuple[ScanResult, dict[str, Any] | None]:
     """Scan one store end to end and remember the result. Returns it with the store's previous result."""
     result = await scan.scan_store(request)
-    if request.check_paypal_side:
+    # A connected store is only read: no probes, and PayPal's side only when its PayPal custom_id is known.
+    own = request.store == "connected"
+    if request.check_paypal_side and (not own or unrecorded.store_tag("connected")):
         result.unrecorded = await unrecorded.find(request.store)
-    if request.check_security:
+    if request.check_security and not own:
         result.security = await store_security.check(request.store)
     result.verdict = store_security.verdict(bool(result.leaking_orders), result.security)
     if result.verdict == "clear":
@@ -114,7 +116,7 @@ async def run_once() -> list[str]:
     sent: list[str] = []
     problems: list[str] = []
     async with _lock:
-        for store in STORE_KEYS:
+        for store in [*DEMO_STORE_KEYS, *(["connected"] if connector.connected() else [])]:
             request = ScanRequest(store=store, explain=False, check_paypal_side=False)
             try:
                 result, previous = await full_scan(request)

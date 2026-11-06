@@ -32,6 +32,10 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
      Agent Toolkit and PayRecover's checks; every tool call is listed under the answer.
   4. **Disputes:** each PayPal dispute linked to its store order, with a recommended answer and a draft to approve.
   5. **Market price check** (Channel3) and the **Timeline** (Bryntum) under the scan results.
+  6. **Write the fix:** on a Vulnerable-store scan, open **Store security** and press **Write the fix** on the XSS
+     finding. Gemini writes the change; PayRecover runs the fixed store and shows *before: unescaped, after: escaped*.
+  7. **Connect your store:** **Check payments → Connect your store → Try the demo**, then **Let the AI read my store**.
+     Gemini works out a format it has never seen (nested fields, money in cents), and PayPal confirms the amounts.
 
 ---
 
@@ -46,6 +50,10 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
 3. **Recovers the money.** After the merchant approves, PayRecover captures the missed payment, refunds the duplicate or invoices the shortfall, then confirms the result with a fresh read of PayPal.
 4. **Defends disputes.** Reads PayPal disputes, re-checks the disputed order, and drafts an answer (send evidence or accept the claim) for the merchant to approve.
 5. **Checks the store itself.** A security and website scan catches holes that could let money leak later.
+6. **Writes the fix, and proves it.** For each hole, Gemini writes the code change; PayRecover runs the fixed store and
+   shows the hole is closed (and feeds the AI the error if it is not).
+7. **Connects any store.** Gemini reads a shop's own order data, in whatever format it uses, and works out how to
+   check it; PayRecover cross-checks that with PayPal before trusting it.
 
 | Area | What PayRecover checks |
 |---|---|
@@ -131,6 +139,41 @@ hours while someone is looking, and a scan never meets a sleeping store.
 runs, even with the dashboard closed, and keeps the setting across restarts. It skips the AI plan (no AI calls),
 and alerts only when a store's result changes, so the same alert is not sent every few minutes. A manual scan
 always alerts.
+
+### AI writes the fix, and PayRecover proves it
+
+Every hole PayRecover finds has a **Write the fix** button: XSS, missing security headers, a store that trusts browser
+prices, marks orders paid without capturing, lets a cart be paid twice, or only holds a payment. Gemini reads the
+store's code and returns small find-and-replace edits. The AI only writes; PayRecover decides:
+
+1. every edit must match the code exactly once, and the result must still be valid Python;
+2. the change may not add anything that runs programs, opens files or sockets, or evaluates code;
+3. for a demo store, the fixed copy is **run with the bug's switch on**, and the same check that found the hole runs
+   again. The original runs too, so the result reads *before: the bug happens, after: it does not*.
+
+A fix that fails goes back to Gemini once with the exact reason, such as a missing import or the check that still
+fails, so it can correct itself the way a developer would after a failing test. The dialog shows every attempt, the
+checks and the diff, which you can download. PayRecover never changes a store's files. The fixed copy runs in a
+separate process with no keys, no network and a time limit (`backend/app/fix_verifier.py`). For your own store, paste
+the relevant code: that fix is checked by 1 and 2 only and is marked as not run.
+
+### AI connects your store
+
+A real shop does not speak PayRecover's format. Under **Check payments → Connect your store**, give the store's
+address and its orders path. PayRecover fetches a sample (GET only, with the same address checks as website tests,
+emails and phone numbers masked), and Gemini proposes how to read it: where the list of orders is, which field is the
+PayPal order id, which statuses mean paid, where the total is and whether it counts in cents, and where the line items
+and cart are. Gemini also sees every distinct status value across all the orders, not only the sample.
+
+The AI only proposes. PayRecover then reads every order through the mapping and asks PayPal about a few paid ones:
+does the order exist, and does PayPal's amount match? You see the mapping in plain words, the checks, and your first
+orders read that way, and you can edit the mapping yourself. Only a mapping whose checks pass is saved. From then on
+**Your connected store** works in scans, investigations, recoveries and the assistant like a demo store; PayRecover
+only reads it (no price probes or XSS payloads are sent to it). Each user has their own connection.
+
+To try it, **Try the demo** fills in the Vulnerable store's `ShopLegacy v2` export: the same orders with other field
+names (`state`, `payment.orderRef`, `amount.totalCents`) and money in cents. Connected, it finds exactly the same leaks
+as the store's own API.
 
 ### Ask PayRecover (Gemini + PayPal's Agent Toolkit)
 
@@ -330,6 +373,9 @@ Everything PayPal- and money-related was built during the hackathon, from late O
   the AG Grid **Money recovered** panel.
 - **AI with PayPal's Agent Toolkit:** the Ask PayRecover chat, the dispute defender, payments PayPal took that the store
   never recorded (Transaction Search), and AI-written recovery plans and buyer notes.
+- **AI that does the work, checked by PayRecover:** the fix writer (code changes run and verified on a copy of the
+  store, with a retry that feeds the AI its own error) and the store connector (any store's order format, mapped by
+  Gemini and cross-checked against PayPal).
 - **Real time:** verified PayPal webhooks, alerts by dashboard, email (Brevo) and Zapier, signed approval links,
   and auto-scan.
 - **Sponsor integrations:** Channel3 market price check, Bryntum timeline, APIMatic-ready OpenAPI and SDKs, and the
@@ -343,7 +389,7 @@ Everything PayPal- and money-related was built during the hackathon, from late O
 | **PayPal Agent Toolkit** | Read-only tools for the Gemini chat; lists disputes and transactions; accepts dispute claims |
 | **PayPal REST APIs** | Invoicing (short payments), Disputes (`provide-evidence`), Transaction Search, webhook signature verification |
 | **PayPal JS SDK** | The checkout buttons in the three demo stores |
-| **Google Gemini** | Plans the chat's tool calls, explains results, words recovery plans, dispute drafts and buyer notes. Advisory only: it never decides a result or moves money |
+| **Google Gemini** | Writes code fixes that PayRecover runs and verifies, works out how to read any store's order data (checked against PayPal), plans the chat's tool calls, and words explanations, recovery plans, dispute drafts and buyer notes. It never decides a result or moves money |
 | **Channel3** | Market prices for each product, to catch price typos PayPal's records cannot reveal |
 | **Bryntum Scheduler** | The timeline of scans, recoveries and dispute deadlines per store |
 | **AG Grid** | The Money recovered log and the scan results grid |
@@ -373,7 +419,7 @@ flowchart LR
 
 ### Design principles
 
-- **Evidence decides, AI advises.** Runners and PayPal's API produce every status; Gemini's output is labelled advisory, with the model that wrote it.
+- **Evidence decides, AI does the work.** Runners and PayPal's API produce every status. Gemini writes fixes and store mappings, and PayRecover only accepts them once its own checks (and PayPal) pass; every AI output is labelled with the model that wrote it.
 - **Sandbox only.** The PayPal API address is hard-coded to `api-m.sandbox.paypal.com`. No setting can point PayRecover at live payments.
 - **Nothing moves without approval.** Investigating only reads PayPal. A capture, refund or invoice runs only when the merchant approves it, is recalculated from PayPal at that moment, runs once (PayPal-Request-Id), and counts only when a fresh read of PayPal confirms it. Browser runs allow GET/HEAD requests only.
 - **No personal data in evidence.** Payer and payee details are never copied into results.
@@ -507,6 +553,7 @@ stores within their monthly hours.
 - [x] Market price check (Channel3), timeline (Bryntum) and auto-scan
 - [x] Hosted demo on Render: https://payrecover-ai-xm1k.onrender.com
 - [x] Demo stores start automatically when the dashboard opens
+- [x] AI fix writer (verified by running the fixed store) and AI store connector (checked against PayPal)
 - [ ] Next: automated checkout scenarios (success and cancellation). These need a write-enabled browser mode, kept
       apart from today's read-only runners on purpose.
 

@@ -3,11 +3,12 @@ import { useState } from "react";
 const TABS = [
   ["store", "Whole store"],
   ["order", "One order (deep check)"],
+  ["connect", "Connect your store"],
 ];
 
-// Check payments: the store scan and the one-order investigation, as two tabs of one panel.
-// Both stay mounted, so switching tabs keeps each one's results.
-export default function CheckPanel({ store, order }) {
+// Check payments: the store scan, the one-order investigation and connecting your own store, as tabs of one panel.
+// All stay mounted, so switching tabs keeps each one's results.
+export default function CheckPanel({ store, order, connect }) {
   const [tab, setTab] = useState("store");
   return <section className="panel" id="check" aria-labelledby="check-heading">
     <div className="section-heading">
@@ -19,5 +20,6 @@ export default function CheckPanel({ store, order }) {
     </div>
     <div role="tabpanel" hidden={tab !== "store"}>{store}</div>
     <div role="tabpanel" hidden={tab !== "order"}>{order}</div>
+    <div role="tabpanel" hidden={tab !== "connect"}>{connect}</div>
   </section>;
 }

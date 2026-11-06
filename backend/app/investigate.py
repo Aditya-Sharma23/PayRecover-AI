@@ -71,11 +71,22 @@ class StoreUnavailable(RuntimeError):
 
 
 def _store_setting() -> tuple[str, str]:
-    return STORES[_active_store.get()]
+    return STORES.get(_active_store.get(), ("TESTPILOT_CONNECTED_STORE_URL", "connected store"))
+
+
+def connected_store() -> bool:
+    return _active_store.get() == "connected"
 
 
 def store_url() -> str:
-    """The address of the store this investigation checks, from operator settings only."""
+    """The address of the store this investigation checks, from operator settings (or the saved connection) only."""
+    if connected_store():
+        from app import connector
+
+        mapping = connector.saved()
+        if mapping is None:
+            raise StoreUnavailable("No store is connected yet. Connect one under Check payments > Connect your store.")
+        return mapping.base_url
     variable, default = _store_setting()
     url = os.environ.get(variable, default).strip().rstrip("/")
     if not url.startswith(("http://", "https://")):
@@ -127,6 +138,14 @@ def _money(value: Decimal) -> str:
 
 
 async def _store_json(session: aiohttp.ClientSession, method: str, path: str, body: dict | None = None):
+    if connected_store():
+        # The merchant's own store, read through its checked mapping (GET only, address-checked fetches).
+        from app import connector
+
+        try:
+            return await connector.store_json(method, path)
+        except connector.ConnectorError as exc:
+            raise StoreUnavailable(str(exc)) from exc
     try:
         async with session.request(method, f"{store_url()}{path}", json=body) as response:
             text = await response.text()
@@ -161,7 +180,8 @@ async def read_store(order_id: str) -> tuple[dict | None, dict[str, Decimal] | N
 async def probe_store(catalog: dict[str, Decimal] | None) -> list[PaymentCheck]:
     """Whether the store trusts a price sent by the browser. Creates one unapproved Sandbox order, then cancels it."""
     checks = []
-    if not catalog:
+    if not catalog or connected_store():
+        # A probe creates an order; PayRecover never writes to a connected store, only reads it.
         return checks
     product_id, price = next(iter(catalog.items()))
     async with _session() as session:
@@ -686,10 +706,12 @@ async def investigate(request: InvestigationRequest, run_website: WebsiteRunner 
                                          evidence={})]
 
     website_report = None
-    if request.website_checks and run_website is not None and claim is not None:
+    # A connected store is only read: no website scan and no XSS payloads are sent to the merchant's site.
+    own = connected_store()
+    if request.website_checks and run_website is not None and claim is not None and not own:
         website_report = await scan_store(run_website)
     xss_scan = None
-    if request.xss_probe and claim is not None:
+    if request.xss_probe and claim is not None and not own:
         try:
             xss_scan = await scan_xss()
         except StoreUnavailable as exc:

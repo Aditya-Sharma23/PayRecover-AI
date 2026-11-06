@@ -29,9 +29,9 @@ MAX_RESULT_CHARS = 6000
 ORDER_ID = {"type": "string", "pattern": "^[A-Z0-9]{8,40}$", "description": "A PayPal order id."}
 STORE_NAMES = STORE_KEYS
 STORE = {"type": "string", "enum": list(STORE_NAMES),
-         "description": "Which store: 'main' (Main store), 'vulnerable' (Vulnerable store) or 'risky' (Risky "
-                        "store). Use the store the merchant names; leave it out to use the store selected on the "
-                        "dashboard."}
+         "description": "Which store: 'main' (Main store), 'vulnerable' (Vulnerable store), 'risky' (Risky "
+                        "store) or 'connected' (the merchant's own store, once connected). Use the store the merchant "
+                        "names; leave it out to use the store selected on the dashboard."}
 SYSTEM = (
     "You are PayRecover, an assistant for a merchant who sells through PayPal (Sandbox). You find money the "
     "store is losing on PayPal and help get it back. Use the tools for every fact: never guess amounts, ids, "
@@ -39,8 +39,8 @@ SYSTEM = (
     "dispute, call propose_dispute_answer. Both only show the merchant an Approve button; say so, and never "
     "claim money has moved. Tools marked [PayPal Agent Toolkit] read PayPal directly. Answer in short, plain "
     "sentences with the amounts and order ids that matter, and say what the merchant should approve next. "
-    "Write plain text without Markdown. There are three stores, 'main', 'vulnerable' and 'risky'; when the "
-    "merchant names "
+    "Write plain text without Markdown. There are three demo stores, 'main', 'vulnerable' and 'risky', and "
+    "'connected', the merchant's own store; when the merchant names "
     "one, pass it as the store argument, and say which store your answer is about."
 )
 

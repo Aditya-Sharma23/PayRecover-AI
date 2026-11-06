@@ -91,6 +91,14 @@ class VulnerableStoreTests(unittest.TestCase):
         self.assertEqual((paid.json()["status"], paid.json()["authorization_id"]), ("PAID", "AUTH1"))
         self.assertFalse(any(call[1].endswith("/capture") for call in self.paypal.calls))
 
+    def test_the_legacy_export_has_the_same_orders_in_another_format(self):
+        order_id, _ = self.pay()
+        sale = self.client.get("/shoplegacy/v2/sales").json()["data"]["sales"][0]
+        self.assertEqual((sale["payment"]["orderRef"], sale["state"], sale["amount"]["totalCents"]), (order_id, "complete", 1800))
+        self.assertEqual(self.client.get(f"/shoplegacy/v2/sales/{order_id}").json()["sale"]["saleNo"], sale["saleNo"])
+        catalog = {item["sku"]: item["priceCents"] for item in self.client.get("/shoplegacy/v2/catalog").json()["products"]}
+        self.assertEqual(catalog["tee"], 1800)
+
     def test_payments_are_tagged_with_the_store(self):
         self.pay()
         self.assertEqual(self.paypal.calls[0][2]["purchase_units"][0]["custom_id"], "payrecover-vulnerable")

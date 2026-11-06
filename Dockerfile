@@ -23,6 +23,11 @@ RUN pip install -r requirements.txt \
     && python -m playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/app ./app
+# The demo stores' code, read (never served) by the AI fix writer, which runs a fixed copy to prove a fix.
+COPY vuln-store/store_app.py /app/vuln-store/
+COPY vuln-store/static /app/vuln-store/static
+COPY main-store/store_app.py /app/main-store/
+COPY main-store/static /app/main-store/static
 COPY --from=frontend /build/dist /app/frontend/dist
 # Run as an unprivileged user; /data holds the SQLite database, audit log and screenshots.
 RUN useradd --create-home --uid 10001 payrecover \

@@ -11,8 +11,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app import alerts, paypal, paypal_toolkit, recovery
-from app.schemas import STORE_KEYS, ScanResult, Timeline, TimelineEvent, TimelineResource
+from app import alerts, connector, paypal, paypal_toolkit, recovery
+from app.schemas import DEMO_STORE_KEYS, STORE_KEYS, ScanResult, Timeline, TimelineEvent, TimelineResource
 
 HISTORY_FILE = "scan-history.json"
 MAX_HISTORY = 300
@@ -20,7 +20,7 @@ SCAN_BLOCK = timedelta(minutes=20)
 RECOVERY_BLOCK = timedelta(minutes=20)
 DISPUTES_CACHE_SECONDS = 60
 MAX_DISPUTES = 10
-STORE_NAMES = {"main": "Main store", "vulnerable": "Vulnerable store", "risky": "Risky store"}
+STORE_NAMES = {"main": "Main store", "vulnerable": "Vulnerable store", "risky": "Risky store", "connected": "Your store"}
 VERDICT_LOOK = {"leaking": ("Money leaking", "red"), "vulnerable": ("Vulnerable", "orange"),
                 "waiting": ("Waiting for PayPal", "grey"), "clear": ("All clear", "green")}
 # "at" is None until the first fetch: monotonic time starts near boot, so 0 can look like "just fetched".
@@ -74,7 +74,8 @@ async def _disputes() -> list[dict[str, Any]] | None:
 async def build(owner: str, days_back: int = 3, days_ahead: int = 10, now: datetime | None = None) -> Timeline:
     current = now or datetime.now(timezone.utc)
     start, end = current - timedelta(days=days_back), current + timedelta(days=days_ahead)
-    resources = [TimelineResource(id=key, name=STORE_NAMES.get(key, key)) for key in STORE_KEYS]
+    keys = [*DEMO_STORE_KEYS, *(["connected"] if connector.connected(owner) else [])]
+    resources = [TimelineResource(id=key, name=STORE_NAMES.get(key, key)) for key in keys]
     resources.append(TimelineResource(id="disputes", name="PayPal disputes"))
     events: list[TimelineEvent] = []
 

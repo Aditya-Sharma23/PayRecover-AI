@@ -346,6 +346,50 @@ def cart_orders(cart_id: str = CartId) -> list[dict[str, Any]]:
     return [record for record in orders.values() if record.get("cart_id") == cart_id]
 
 
+# The same orders in another shop platform's export format ("ShopLegacy v2"): other field names, nesting,
+# and money in cents. It exists to show PayRecover's AI store connector working out a format it has never seen.
+LEGACY_STATES = {"PAID": "complete", "PENDING": "awaiting_payment", "CANCELLED": "cancelled"}
+
+
+def _cents(value: Any) -> int:
+    return int((Decimal(str(value)) * 100).to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def _legacy_sale(number: int, record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "saleNo": f"S-{number:05d}",
+        "state": LEGACY_STATES.get(record["status"], record["status"].lower()),
+        "payment": {"provider": "paypal", "orderRef": record["order_id"], "captureRef": record.get("capture_id")},
+        "amount": {"totalCents": _cents(record["total"]), "currency": record["currency"]},
+        "lines": [{"sku": line["product_id"], "qty": line["quantity"], "priceCents": _cents(line["unit_price"])}
+                  for line in record["items"]],
+        "basket": record.get("cart_id"),
+        "placedAt": record.get("created_at"),
+    }
+
+
+@app.get("/shoplegacy/v2/sales")
+def legacy_sales(count: int = Query(default=50, ge=1, le=100)) -> dict[str, Any]:
+    """Recent orders, newest first, in the ShopLegacy v2 export format."""
+    numbered = list(enumerate(orders.values(), start=1))
+    sales = [_legacy_sale(number, record) for number, record in reversed(numbered)][:count]
+    return {"meta": {"format": "shoplegacy/v2", "count": len(sales)}, "data": {"sales": sales}}
+
+
+@app.get("/shoplegacy/v2/sales/{order_ref}")
+def legacy_sale(order_ref: str = PathParam(pattern=ORDER_ID_PATTERN)) -> dict[str, Any]:
+    for number, record in enumerate(orders.values(), start=1):
+        if record["order_id"] == order_ref:
+            return {"sale": _legacy_sale(number, record)}
+    raise HTTPException(status_code=404, detail="No such sale.")
+
+
+@app.get("/shoplegacy/v2/catalog")
+def legacy_catalog() -> dict[str, Any]:
+    return {"products": [{"sku": key, "title": item["name"], "priceCents": _cents(catalog_price(key))}
+                         for key, item in CATALOG.items()]}
+
+
 @app.get("/", include_in_schema=False)
 def index(q: str = Query(default="", max_length=500)) -> HTMLResponse:
     """The store page. BUG: the search term is pasted into the page without escaping (reflected XSS)."""

@@ -19,7 +19,7 @@ from app import (autoscan)
 from app.deployment import deployment_readiness, public_mode
 from app.security import request_owner, security_middleware
 from app.jobs import JobManager
-from app.routers import payrecover, qa
+from app.routers import ai_tools, payrecover, qa
 from app.schemas import API_CHECK_NAMES, FULL_SCAN_CHECKS, WEBSITE_CHECK_NAMES
 
 FRONTEND_DIST = Path(
@@ -145,6 +145,7 @@ def ai_status() -> dict[str, str | bool | int]:
 
 app.include_router(qa.router)
 app.include_router(payrecover.router)
+app.include_router(ai_tools.router)
 
 
 def _drop_field_titles(node, top: bool = False) -> None:

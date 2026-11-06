@@ -8,6 +8,7 @@ import {
 } from "../lib/payment.js";
 import { groupChecks as groupWebsiteChecks, label as websiteLabel } from "../lib/report.js";
 import DemoScenarios from "./DemoScenarios.jsx";
+import FixButton from "./FixDialog.jsx";
 
 const CLAIM_FIELDS = [["status", "Status"], ["total", "Total"], ["currency", "Currency"], ["capture_id", "Capture id"]];
 const PAYPAL_FIELDS = [
@@ -92,6 +93,7 @@ function LeakCard({ leak, orderId, store, onRecovered, sample }) {
       {leak.expires_at ? <ExpiresClock until={leak.expires_at} /> : leak.waiting_since && <WaitingClock since={leak.waiting_since} />}</p>
     <p><b>Why:</b> {leak.root_cause}</p>
     <p><b>Recover:</b> {leak.recovery}</p>
+    {!sample && <FixButton issue={leak.kind} store={store} detail={leak.root_cause} label="Fix the cause in the store's code" />}
     {!record && !leak.targets?.length && <p className="notice" role="note">No PayPal action is possible for this leak, so there is nothing to approve: hold the shipment.</p>}
     {sample && leak.targets?.length > 0 && <p className="notice" role="note">Sample data: on a real order this button would read <b>Approve: {RECOVERY_LABELS[leak.recovery_action]} {leak.amount} {leak.currency}</b>.</p>}
     {!sample && !record && leak.targets?.length > 0 && <button className="danger-button approve-button" type="button" disabled={busy} onClick={approve}>
@@ -121,7 +123,7 @@ function Explanation({ explanation }) {
   </div>;
 }
 
-function XssScan({ scan }) {
+function XssScan({ scan, store }) {
   const [label, tone] = XSS_VERDICTS[scan.status] || XSS_VERDICTS.error;
   return <div className="check-section xss-section">
     <div className="check-row-head">
@@ -133,6 +135,7 @@ function XssScan({ scan }) {
       <div className="check-row-head"><strong>{item.title}</strong><span className="leak-amount">{item.severity}</span></div>
       <p>{item.detail}</p>
       <p><b>Fix:</b> {item.recommendation}</p>
+      {store && <FixButton issue="xss" store={store} detail={`${item.title}. ${item.detail}`} />}
     </div>)}
     {scan.payloads.length > 0 && <details className="website-group" open={scan.status === "failed"}>
       <summary><span>All {scan.payloads.length} payloads</span><span className={`badge ${tone}`}>{label}</span></summary>
@@ -212,7 +215,7 @@ function Investigation({ result, onOpenReport, onRecovered }) {
         <small>{check.message}</small>
       </div>)}
     </div>)}
-    {result.xss_scan && <XssScan scan={result.xss_scan} />}
+    {result.xss_scan && <XssScan scan={result.xss_scan} store={result.sample_data ? null : result.store} />}
     {result.website_report && <WebsiteScan report={result.website_report} onOpenReport={onOpenReport} />}
     <details className="raw-evidence"><summary>Raw evidence</summary><pre>{JSON.stringify(result.checks, null, 2)}</pre></details>
   </div>;

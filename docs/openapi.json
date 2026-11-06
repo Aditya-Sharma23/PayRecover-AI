@@ -359,7 +359,8 @@
             "enum": [
               "main",
               "vulnerable",
-              "risky"
+              "risky",
+              "connected"
             ],
             "type": "string"
           }
@@ -900,6 +901,120 @@
         "title": "CheckStatus",
         "type": "string"
       },
+      "ConnectorProposal": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentCheck"
+            },
+            "type": "array"
+          },
+          "mapping": {
+            "$ref": "#/components/schemas/StoreMapping"
+          },
+          "preview": {
+            "description": "The first orders, read through the mapping.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mapping",
+          "checks",
+          "ready",
+          "source"
+        ],
+        "title": "ConnectorProposal",
+        "type": "object"
+      },
+      "ConnectorRequest": {
+        "additionalProperties": false,
+        "description": "Connect a store: where its orders (and products) are. Send a mapping to check your own edit instead.",
+        "properties": {
+          "base_url": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreMapping"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "default": "Your store",
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "orders_path": {
+            "pattern": "^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$",
+            "type": "string"
+          },
+          "products_path": {
+            "anyOf": [
+              {
+                "pattern": "^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "base_url",
+          "orders_path"
+        ],
+        "title": "ConnectorRequest",
+        "type": "object"
+      },
+      "ConnectorStatus": {
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "example": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreMapping"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "ConnectorStatus",
+        "type": "object"
+      },
       "DemoScenario": {
         "properties": {
           "description": {
@@ -1217,6 +1332,140 @@
         "title": "DisputeResponseResult",
         "type": "object"
       },
+      "FixEdit": {
+        "properties": {
+          "find": {
+            "type": "string"
+          },
+          "replace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "find",
+          "replace"
+        ],
+        "title": "FixEdit",
+        "type": "object"
+      },
+      "FixProposal": {
+        "description": "The AI's fix, as edits and a diff, with PayRecover's own checks of it. Nothing is changed in any store.",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentCheck"
+            },
+            "type": "array"
+          },
+          "diff": {
+            "type": "string"
+          },
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/FixEdit"
+            },
+            "type": "array"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "verified": {
+            "description": "True only when the fixed code was run and the hole was shown to be closed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue",
+          "filename",
+          "summary",
+          "edits",
+          "diff",
+          "checks",
+          "verified",
+          "source"
+        ],
+        "title": "FixProposal",
+        "type": "object"
+      },
+      "FixRequest": {
+        "additionalProperties": false,
+        "description": "Write the code fix for one finding. Demo stores use their own source; any other store sends its code.",
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 40000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your store's code, for a store that is not a demo store."
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What PayRecover found, shown to the AI."
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issue": {
+            "enum": [
+              "xss",
+              "security_headers",
+              "price_tampering",
+              "never_captured",
+              "fake_paid",
+              "wrong_amount",
+              "duplicate_charge",
+              "hold_expiring",
+              "hold_expired"
+            ],
+            "type": "string"
+          },
+          "store": {
+            "default": "vulnerable",
+            "enum": [
+              "main",
+              "vulnerable",
+              "risky",
+              "connected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "title": "FixRequest",
+        "type": "object"
+      },
       "FlowStep": {
         "additionalProperties": false,
         "description": "One user-specified browser action or assertion in a multi-step flow.",
@@ -1431,7 +1680,8 @@
             "enum": [
               "main",
               "vulnerable",
-              "risky"
+              "risky",
+              "connected"
             ],
             "type": "string"
           },
@@ -1897,6 +2147,120 @@
         "title": "OpenApiOperation",
         "type": "object"
       },
+      "OrderFields": {
+        "additionalProperties": false,
+        "description": "Where each fact sits in one store order, as dotted paths (\"amount.total\", \"lines\").",
+        "properties": {
+          "capture_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cart_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "item_product_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "item_quantity": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "item_unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_id": {
+            "description": "The PayPal order id.",
+            "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+            "type": "string"
+          },
+          "status": {
+            "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+            "type": "string"
+          },
+          "total": {
+            "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "status",
+          "total"
+        ],
+        "title": "OrderFields",
+        "type": "object"
+      },
       "OverallStatus": {
         "enum": [
           "passed",
@@ -2278,6 +2642,36 @@
         "title": "PriceCheckReport",
         "type": "object"
       },
+      "ProductFields": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price": {
+            "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "price"
+        ],
+        "title": "ProductFields",
+        "type": "object"
+      },
       "RecoveryList": {
         "description": "The caller's recoveries, newest first, with totals by outcome.",
         "properties": {
@@ -2393,7 +2787,8 @@
             "enum": [
               "main",
               "vulnerable",
-              "risky"
+              "risky",
+              "connected"
             ],
             "type": "string"
           }
@@ -2615,7 +3010,8 @@
             "enum": [
               "main",
               "vulnerable",
-              "risky"
+              "risky",
+              "connected"
             ],
             "type": "string"
           }
@@ -2750,6 +3146,134 @@
           "fix"
         ],
         "title": "SecurityFinding",
+        "type": "object"
+      },
+      "StoreMapping": {
+        "additionalProperties": false,
+        "description": "How to read one merchant's store: proposed by the AI, checked by PayRecover, saved only when it passes.",
+        "properties": {
+          "base_url": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "money": {
+            "default": "decimal",
+            "enum": [
+              "decimal",
+              "cents"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "default": "Your store",
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "order_fields": {
+            "$ref": "#/components/schemas/OrderFields"
+          },
+          "order_object": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_path": {
+            "anyOf": [
+              {
+                "pattern": "^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orders_list": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orders_path": {
+            "pattern": "^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$",
+            "type": "string"
+          },
+          "paid_statuses": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "paypal_custom_id": {
+            "anyOf": [
+              {
+                "maxLength": 127,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product_fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "products_list": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_$@-]+(\\.[A-Za-z0-9_$@-]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "products_path": {
+            "anyOf": [
+              {
+                "pattern": "^/[A-Za-z0-9_.~/{}=&?%-]{0,200}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "base_url",
+          "orders_path",
+          "paid_statuses",
+          "order_fields"
+        ],
+        "title": "StoreMapping",
         "type": "object"
       },
       "StorePing": {
@@ -3782,6 +4306,133 @@
         ]
       }
     },
+    "/api/connector": {
+      "delete": {
+        "description": "Forget the caller's connected store (nothing in the store changes).",
+        "operationId": "disconnect_store",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Disconnect Store",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "get": {
+        "description": "Whether the caller has connected their own store, and how PayRecover reads it.",
+        "operationId": "connector_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connector Status",
+        "tags": [
+          "PayRecover"
+        ]
+      },
+      "put": {
+        "description": "Save a mapping, after checking it again. Only a mapping whose checks pass is saved.",
+        "operationId": "connect_store",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Connect Store",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/connector/propose": {
+      "post": {
+        "description": "Read a sample of the store's orders and let the AI propose how to read them, then check the proposal against\nevery order and against PayPal. Send a mapping to check your own edit instead. Nothing is saved.",
+        "operationId": "propose_store_mapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Propose Store Mapping",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
     "/api/dashboard": {
       "get": {
         "description": "Totals for the dashboard cards, from the caller's stored runs.",
@@ -4033,6 +4684,48 @@
           }
         },
         "summary": "Respond To Dispute",
+        "tags": [
+          "PayRecover"
+        ]
+      }
+    },
+    "/api/fixes": {
+      "post": {
+        "description": "The AI writes the code fix for one finding; PayRecover checks the edits, and for a demo store runs the fixed\ncopy to show the hole is closed. No store's files are changed.",
+        "operationId": "write_fix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Write Fix",
         "tags": [
           "PayRecover"
         ]
@@ -4410,7 +5103,8 @@
               "enum": [
                 "main",
                 "vulnerable",
-                "risky"
+                "risky",
+                "connected"
               ],
               "type": "string"
             }
@@ -5014,7 +5708,8 @@
               "enum": [
                 "main",
                 "vulnerable",
-                "risky"
+                "risky",
+                "connected"
               ],
               "type": "string"
             }
@@ -5061,7 +5756,8 @@
               "enum": [
                 "main",
                 "vulnerable",
-                "risky"
+                "risky",
+                "connected"
               ],
               "type": "string"
             }

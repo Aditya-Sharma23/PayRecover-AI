@@ -11,8 +11,8 @@ from decimal import Decimal
 
 import aiohttp
 
-from app import alerts, investigate, paypal, paypal_toolkit, recovery, scan
-from app.schemas import STORE_KEYS, Overview, ScanRequest, ScanResult, StorePing, StoreStatus
+from app import alerts, connector, investigate, paypal, paypal_toolkit, recovery, scan
+from app.schemas import DEMO_STORE_KEYS, Overview, ScanRequest, ScanResult, StorePing, StoreStatus
 
 DISPUTES_CACHE_SECONDS = 60
 OPEN_DISPUTE_STATES = ("REQUIRED_ACTION", "REQUIRED_OTHER_PARTY_ACTION", "UNDER_PAYPAL_REVIEW")
@@ -48,7 +48,8 @@ async def _open_disputes() -> int | None:
 
 async def build(owner: str) -> Overview:
     saved = alerts._load("last-scans.json")
-    stores = [StoreStatus.model_validate(saved[key]) if key in saved else StoreStatus(store=key) for key in STORE_KEYS]
+    keys = [*DEMO_STORE_KEYS, *(["connected"] if connector.connected(owner) else [])]
+    stores = [StoreStatus.model_validate(saved[key]) if key in saved else StoreStatus(store=key) for key in keys]
     totals = recovery.list_recoveries(owner)["totals"]
     recovered = Decimal(totals["collected"]) + Decimal(totals["invoiced"]) + Decimal(totals["refunded"])
     at_risk = sum((Decimal(s.money_at_risk) for s in stores), Decimal(0))
@@ -110,4 +111,4 @@ async def _store_up(store: str) -> StorePing:
 
 async def start_stores() -> list[StorePing]:
     """Start every demo store at once (each in its own task), and say which ones answered."""
-    return list(await asyncio.gather(*(_store_up(store) for store in STORE_KEYS)))
+    return list(await asyncio.gather(*(_store_up(store) for store in DEMO_STORE_KEYS)))

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-from app import investigate, paypal_toolkit, recovery, scan
+from app import connector, investigate, paypal_toolkit, recovery, scan
 from app.schemas import UnrecordedPayment, UnrecordedReport
 
 STORE_TAGS = {"main": "payrecover-main", "vulnerable": "payrecover-vulnerable", "risky": "payrecover-risky"}
@@ -49,7 +49,7 @@ async def paypal_payments(store: str, days: int = LOOKBACK_DAYS) -> list[dict[st
     for detail in details:
         info = detail.get("transaction_info") or {}
         amount = info.get("transaction_amount") or {}
-        if info.get("custom_field") != STORE_TAGS[store] or Decimal(str(amount.get("value", "0"))) <= 0:
+        if info.get("custom_field") != store_tag(store) or Decimal(str(amount.get("value", "0"))) <= 0:
             continue
         if info.get("transaction_id") in refunded:
             continue
@@ -59,6 +59,14 @@ async def paypal_payments(store: str, days: int = LOOKBACK_DAYS) -> list[dict[st
             "payer_email": (detail.get("payer_info") or {}).get("email_address"),
         })
     return sorted(payments, key=lambda p: p["paid_at"] or "", reverse=True)
+
+
+def store_tag(store: str) -> str | None:
+    """The custom_id a store tags its PayPal payments with; a connected store's comes from its mapping."""
+    if store == "connected":
+        mapping = connector.saved()
+        return mapping.paypal_custom_id if mapping else None
+    return STORE_TAGS.get(store)
 
 
 async def find(store: str) -> UnrecordedReport:

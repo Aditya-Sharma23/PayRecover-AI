@@ -6,6 +6,7 @@ import {
   RECOVERY_LABELS, RECOVERY_STATUS, STORES, URGENCY, approvalQuestion, recoveryBody, remainingAtRisk, scanBody, scanRows,
 } from "../lib/payment.js";
 import { SCAN_VERDICTS, withSampleHint } from "../lib/assist.js";
+import FixButton from "./FixDialog.jsx";
 import MarketPrices from "./MarketPrices.jsx";
 import { EvidenceButton, ExpiresClock, WaitingClock } from "./PaymentPanel.jsx";
 
@@ -28,7 +29,8 @@ function ActionsCell({ data, context }) {
   }
   if (!data.leak.targets?.length) {
     return <div className="grid-actions"><span className="badge warning" title={data.leak.recovery}>Hold shipment</span>
-      <EvidenceButton orderId={data.order_id} store={context.store} /></div>;
+      <EvidenceButton orderId={data.order_id} store={context.store} />
+      <FixButton issue={data.leak.kind} store={context.store} detail={data.leak.root_cause} label="Fix cause" /></div>;
   }
   return <div className="grid-actions">
     <button className="danger-button" type="button" disabled={outcome?.busy}
@@ -36,6 +38,7 @@ function ActionsCell({ data, context }) {
       {outcome?.busy ? "Asking PayPal…" : `Approve ${RECOVERY_LABELS[data.action]?.toLowerCase()}`}
     </button>
     <EvidenceButton orderId={data.order_id} store={context.store} />
+    <FixButton issue={data.leak.kind} store={context.store} detail={data.leak.root_cause} label="Fix cause" />
     {outcome?.error && <span className="badge failed" title={outcome.error}>Error</span>}
   </div>;
 }
@@ -52,7 +55,7 @@ function Verdict({ result, plan }) {
 }
 
 // The store-wide security check, apart from the money: holes that could let money leak later.
-function StoreSecurity({ security, open }) {
+function StoreSecurity({ security, open, store }) {
   if (!security) return null;
   const findings = security.findings || [];
   if (!security.checked) return <p className="hint">Security check incomplete: {security.note}</p>;
@@ -62,6 +65,7 @@ function StoreSecurity({ security, open }) {
     <ul className="security-findings">{findings.map((finding) => <li key={finding.name}>
       <span className={`badge ${finding.severity === "high" ? "failed" : "warning"}`}>{finding.severity} risk</span>
       <div><strong>{finding.title}</strong><small>{finding.detail}</small><small className="fix">Fix: {finding.fix}</small></div>
+      <FixButton issue={finding.name} store={store} detail={`${finding.title}. ${finding.detail}`} />
     </li>)}</ul>
   </details>;
 }
@@ -91,7 +95,7 @@ const COLUMNS = [
   { field: "urgency", headerName: "Urgency", width: 110, cellRenderer: UrgencyCell },
   { field: "why", headerName: "Why now", flex: 1, minWidth: 220, tooltipField: "why" },
   { field: "waiting_since", headerName: "Waiting", width: 250, cellRenderer: WaitingCell, sortable: false },
-  { field: "id", headerName: "Recover", width: 290, cellRenderer: ActionsCell, sortable: false, filter: false },
+  { field: "id", headerName: "Recover", width: 380, cellRenderer: ActionsCell, sortable: false, filter: false },
 ];
 
 export default function ScanPanel({ onRecovered, onScanned, embedded = false }) {
@@ -176,7 +180,7 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
             defaultColDef={{ sortable: true, filter: true, resizable: true }} /></div>
         : <p className="empty-state">No leaks: every paid order in this store matches PayPal&apos;s record.</p>}
       {result.unrecorded && <UnrecordedPayments report={result.unrecorded} />}
-      <StoreSecurity security={result.security} open={result.verdict === "vulnerable"} />
+      <StoreSecurity security={result.security} open={result.verdict === "vulnerable"} store={result.store} />
     </>}
     {/* A separate check, so it comes after the scan's own results. */}
     <MarketPrices store={store} />
