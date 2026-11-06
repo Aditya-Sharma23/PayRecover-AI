@@ -81,7 +81,7 @@ async def find(store: str) -> UnrecordedReport:
                                 note=TRANSACTION_SEARCH_HELP + paypal_toolkit.said(exc) if exc.status in {401, 403}
                                 else str(exc))
     try:
-        orders = await scan.recent_orders(STORE_ORDERS_READ)
+        orders = await scan.recent_orders(STORE_ORDERS_READ, status="PAID")
     except investigate.StoreUnavailable as exc:
         return UnrecordedReport(store=store, checked=False, note=str(exc))
     recorded = {order.get("capture_id") for order in orders if order.get("status") == "PAID"}

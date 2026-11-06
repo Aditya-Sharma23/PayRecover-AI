@@ -29,11 +29,12 @@ URGENCY_WHY = {
 }
 
 
-async def recent_orders(limit: int) -> list[dict[str, Any]]:
-    """The store's newest orders, read from the operator-configured store only."""
+async def recent_orders(limit: int, status: str | None = None) -> list[dict[str, Any]]:
+    """The store's newest orders (only those with this status, when given), from the operator-configured store only."""
+    query = f"limit={limit}" + (f"&status={status}" if status else "")
     async with investigate._session() as session:
-        status, listed = await investigate._store_json(session, "GET", f"/api/recent-orders?limit={limit}")
-    if status == 404 or not isinstance(listed, list):
+        status_code, listed = await investigate._store_json(session, "GET", f"/api/recent-orders?{query}")
+    if status_code == 404 or not isinstance(listed, list):
         raise investigate.StoreUnavailable("This store does not list its recent orders (GET /api/recent-orders).")
     return [order for order in listed if isinstance(order, dict) and order.get("order_id")]
 
@@ -96,8 +97,9 @@ Leaks: {json.dumps(facts, default=str)}"""
 async def scan_store(request: ScanRequest) -> ScanResult:
     """Check every recent order the store calls PAID, then rank the leaks and plan the recovery."""
     investigate._active_store.set(request.store)
-    # Read past unpaid orders (abandoned checkouts, price probes) so the newest `limit` paid orders are checked.
-    orders = await recent_orders(STORE_READ_LIMIT)
+    # Ask for paid orders only: every scan's price probe adds an unpaid order, and with a plain "newest 100" those
+    # probes would push older paid orders, and their leaks, out of every later scan.
+    orders = await recent_orders(STORE_READ_LIMIT, status="PAID")
     paid = [order for order in orders if order.get("status") == "PAID"][:request.limit]
     gate = asyncio.Semaphore(MAX_CONCURRENT)
 

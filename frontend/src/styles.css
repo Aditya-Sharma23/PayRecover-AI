@@ -437,8 +437,7 @@ button.store-status:disabled { cursor: progress; }
 .switch input:focus-visible + span[aria-hidden] { outline: 3px solid #ff7379; outline-offset: 2px; }
 
 /* Timeline (Bryntum Scheduler) */
-.timeline-view { height: 330px; margin-top: 12px; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
-.timeline-view > .b-scheduler, .timeline-view .b-schedulerbase { height: 100%; }
+.timeline-view { margin-top: 12px; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
 .timeline-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--muted); font-size: 11px; }
 .timeline-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .timeline-legend .dot { width: 9px; height: 9px; border-radius: 50%; }
@@ -507,7 +506,7 @@ button.store-status:disabled { cursor: progress; }
 .fix-button { margin-top: 6px; white-space: nowrap; }
 .grid-actions .fix-button { margin-top: 0; }
 .security-findings li { grid-template-columns: auto minmax(0, 1fr) auto; }
-.fix-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 18px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); color: var(--text); }
+.fix-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-x: hidden; padding: 18px; white-space: normal; text-align: left; line-height: 1.45; font-size: 13px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); color: var(--text); }
 .fix-dialog::backdrop { background: rgba(4, 6, 9, .72); }
 .fix-dialog h3 { margin: 0; font: 700 16px 'Space Grotesk', sans-serif; }
 .fix-dialog textarea { min-height: 160px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -533,3 +532,14 @@ button.store-status:disabled { cursor: progress; }
 .mapping-table th { width: 34%; color: var(--text-2); font-weight: 600; }
 .mapping-table.preview th { width: auto; }
 .connector-edit textarea { min-height: 220px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+/* Results grid: no empty band under the last row, and wrapped cells keep a readable line height */
+.recovery-grid .ag-grid-scrolling-rows.ag-layout-auto-height,
+.recovery-grid .ag-layout-auto-height .ag-center-cols-viewport,
+.recovery-grid .ag-layout-auto-height .ag-center-cols-container { min-height: 0; }
+.recovery-grid .grid-wrap { line-height: 1.45; padding-top: 9px; padding-bottom: 9px; word-break: normal; }
+.urgency-cell { display: grid; gap: 4px; justify-items: start; padding: 7px 0; line-height: 1.35; white-space: normal; }
+.urgency-cell .waiting-clock { font-size: 11px; }
+.recovery-grid .grid-actions { flex-wrap: wrap; padding: 7px 0; height: auto; }
+/* Timeline: a scan lasts minutes, so give every block a visible width at a whole-day scale */
+.timeline-view .b-sch-event-wrap { min-width: 12px; }

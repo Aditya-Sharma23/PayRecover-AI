@@ -99,6 +99,15 @@ class VulnerableStoreTests(unittest.TestCase):
         catalog = {item["sku"]: item["priceCents"] for item in self.client.get("/shoplegacy/v2/catalog").json()["products"]}
         self.assertEqual(catalog["tee"], 1800)
 
+    def test_paid_orders_are_listed_even_behind_many_unpaid_ones(self):
+        self.pay()
+        for _ in range(5):
+            self.client.post("/api/orders", json={**CART, "cart_id": None})
+        newest = self.client.get("/api/recent-orders?limit=3").json()
+        self.assertNotIn("PAID", [order["status"] for order in newest])
+        paid = self.client.get("/api/recent-orders?limit=3&status=PAID").json()
+        self.assertEqual([order["status"] for order in paid], ["PAID"])
+
     def test_payments_are_tagged_with_the_store(self):
         self.pay()
         self.assertEqual(self.paypal.calls[0][2]["purchase_units"][0]["custom_id"], "payrecover-vulnerable")

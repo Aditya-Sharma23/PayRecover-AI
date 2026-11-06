@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiJson } from "../api/client.js";
 import { diffLines, fixBody, fixTitle } from "../lib/fixes.js";
 
@@ -39,7 +40,8 @@ export default function FixButton({ issue, store, detail, label = "Write the fix
 
   return <>
     <button className="secondary-button fix-button" type="button" onClick={open} title="The AI writes the code change; PayRecover checks it">{label}</button>
-    <dialog ref={dialog} className="fix-dialog" aria-labelledby={`fix-${issue}`}>
+    {/* Rendered at the page's top level, so a grid cell's no-wrap and clipping styles never reach the dialog. */}
+    {createPortal(<dialog ref={dialog} className="fix-dialog" aria-labelledby={`fix-${issue}`}>
       <div className="check-row-head">
         <h3 id={`fix-${issue}`}>Fix: {fixTitle(issue, detail)}</h3>
         <button className="secondary-button" type="button" onClick={() => dialog.current?.close()}>Close</button>
@@ -66,6 +68,6 @@ export default function FixButton({ issue, store, detail, label = "Write the fix
           <small className="hint">Written by {fix.source}. PayRecover does not change your store: apply the diff yourself.</small>
         </div>
       </div>}
-    </dialog>
+    </dialog>, document.body)}
   </>;
 }

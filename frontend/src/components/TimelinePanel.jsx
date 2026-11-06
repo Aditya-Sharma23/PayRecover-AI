@@ -26,6 +26,11 @@ export default function TimelinePanel({ refreshKey }) {
   const config = useMemo(() => ({
     readOnly: true,
     viewPreset: "dayAndWeek",
+    // The 13 days fit the panel's width, and the rows set the height, so the timeline never scrolls.
+    forceFit: true,
+    autoHeight: true,
+    // One line per store: blocks on the same day overlap instead of stacking into tall rows of thin lanes.
+    eventLayout: "none",
     rowHeight: 46,
     barMargin: 6,
     columns: [{ text: "Store", field: "name", width: 170 }],

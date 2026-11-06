@@ -231,8 +231,10 @@ async def store_json(method: str, path: str) -> tuple[int, Any]:
         return 405, {"detail": "PayRecover only reads a connected store."}
     route, _, query = path.partition("?")
     if route == "/api/recent-orders":
-        limit = int((parse_qs(query).get("limit") or ["25"])[0])
-        return 200, (await _orders(mapping))[:limit]
+        params = parse_qs(query)
+        limit = int((params.get("limit") or ["25"])[0])
+        wanted = (params.get("status") or [None])[0]
+        return 200, [order for order in await _orders(mapping) if wanted is None or order["status"] == wanted][:limit]
     if route == "/api/products":
         if not mapping.products_path:
             return 404, {"detail": "This store's product list is not connected."}

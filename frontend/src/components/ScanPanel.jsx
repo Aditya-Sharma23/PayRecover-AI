@@ -10,14 +10,13 @@ import FixButton from "./FixDialog.jsx";
 import MarketPrices from "./MarketPrices.jsx";
 import { EvidenceButton, ExpiresClock, WaitingClock } from "./PaymentPanel.jsx";
 
-function UrgencyCell({ value }) {
+// Urgency, with the clock under it: how long the buyer has waited, or when a held payment expires.
+function UrgencyCell({ value, data }) {
   const [label, tone] = URGENCY[value] || URGENCY.normal;
-  return <span className={`badge ${tone}`}>{label}</span>;
-}
-
-function WaitingCell({ value, data }) {
-  if (data.expires_at) return <ExpiresClock until={data.expires_at} />;
-  return value ? <WaitingClock since={value} /> : <span className="hint">—</span>;
+  return <div className="urgency-cell">
+    <span className={`badge ${tone}`}>{label}</span>
+    {data.expires_at ? <ExpiresClock until={data.expires_at} /> : data.waiting_since && <WaitingClock since={data.waiting_since} />}
+  </div>;
 }
 
 function ActionsCell({ data, context }) {
@@ -87,15 +86,16 @@ function UnrecordedPayments({ report }) {
   </div>;
 }
 
+// Sized to fit the panel: long text wraps onto more lines instead of being cut off or scrolling sideways.
+const WRAP = { wrapText: true, autoHeight: true, cellClass: "grid-wrap" };
 const COLUMNS = [
-  { field: "rank", headerName: "#", width: 60 },
-  { field: "order_id", headerName: "Order", width: 175, cellClass: "grid-mono" },
-  { field: "title", headerName: "Leak", flex: 1, minWidth: 220, tooltipField: "title" },
-  { field: "amount", headerName: "At risk", width: 110, type: "rightAligned" },
-  { field: "urgency", headerName: "Urgency", width: 110, cellRenderer: UrgencyCell },
-  { field: "why", headerName: "Why now", flex: 1, minWidth: 220, tooltipField: "why" },
-  { field: "waiting_since", headerName: "Waiting", width: 250, cellRenderer: WaitingCell, sortable: false },
-  { field: "id", headerName: "Recover", width: 380, cellRenderer: ActionsCell, sortable: false, filter: false },
+  { field: "rank", headerName: "#", width: 52 },
+  { field: "order_id", headerName: "Order", width: 165, cellClass: "grid-mono" },
+  { field: "title", headerName: "Leak", flex: 3, minWidth: 170, ...WRAP },
+  { field: "amount", headerName: "At risk", width: 96, type: "rightAligned" },
+  { field: "urgency", headerName: "Urgency", flex: 2, minWidth: 150, cellRenderer: UrgencyCell, autoHeight: true },
+  { field: "why", headerName: "Why now", flex: 3, minWidth: 170, ...WRAP },
+  { field: "id", headerName: "Recover", width: 290, cellRenderer: ActionsCell, sortable: false, filter: false, autoHeight: true },
 ];
 
 export default function ScanPanel({ onRecovered, onScanned, embedded = false }) {

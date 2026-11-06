@@ -361,9 +361,14 @@ def get_order(order_id: str = OrderId) -> dict[str, Any]:
 
 
 @app.get("/api/recent-orders", response_model=list[OrderRecord])
-def recent_orders(limit: int = Query(default=25, ge=1, le=100)) -> list[dict[str, Any]]:
-    """The newest orders first, so a checker can scan the whole store instead of one order at a time."""
-    return list(reversed(list(orders.values())))[:limit]
+def recent_orders(limit: int = Query(default=25, ge=1, le=100),
+                  status: str | None = Query(default=None, pattern="^[A-Z_]{1,30}$")) -> list[dict[str, Any]]:
+    """The newest orders first, so a checker can scan the whole store instead of one order at a time.
+
+    status=PAID lists only paid orders, so unpaid ones (abandoned checkouts, price probes) never push them out.
+    """
+    newest = reversed(list(orders.values()))
+    return [record for record in newest if status is None or record["status"] == status][:limit]
 
 
 @app.get("/api/carts/{cart_id}/orders", response_model=list[OrderRecord])

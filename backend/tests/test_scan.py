@@ -37,7 +37,7 @@ def run_scan(explain=False, generate=None, orders=None, limit=25):
     checked = []
     listed = ORDERS if orders is None else orders
 
-    async def fake_recent(read_limit):
+    async def fake_recent(read_limit, status=None):
         return listed[:read_limit]
 
     async def fake_investigate(request):

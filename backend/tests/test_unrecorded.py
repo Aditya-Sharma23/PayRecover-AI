@@ -24,7 +24,7 @@ class UnrecordedTests(unittest.TestCase):
                 raise error
             return {"transaction_details": transactions}
 
-        async def fake_orders(_limit):
+        async def fake_orders(_limit, status=None):
             return orders
 
         with patch("app.paypal_toolkit.run", fake_toolkit), patch("app.scan.recent_orders", fake_orders):
