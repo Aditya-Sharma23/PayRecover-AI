@@ -203,6 +203,20 @@ claude mcp add --transport http payrecover http://127.0.0.1:8000/api/mcp
 
 For a hosted deployment, add `--header "Authorization: Bearer <your API token>"` and use its `https://` address.
 
+### Connect your own store and write the fix (Gemini, checked by PayRecover)
+
+Two features where the AI does the work and PayRecover decides whether it is right:
+
+- **Connect your store** (Check payments → *Connect your store*): paste a sample of your store's orders and Gemini
+  proposes how to read them (which fields hold the order id, status and total). PayRecover checks that mapping against
+  every order and against PayPal before you can connect; nothing is saved until the checks pass.
+- **Write the fix** (a button on each finding): Gemini returns small find-and-replace edits to the store's code. Every edit must
+  match exactly once and keep the code valid, and a change that runs programs, opens files or sockets, or evaluates code
+  is rejected. For a demo store the fixed copy is run in a separate process (no keys, no network, time limit) with the bug
+  switched on, and the check that found the hole runs again; only a fix that passes is marked *verified*. A failed attempt
+  goes back to the AI once with the exact reason. A store that is not a demo store is checked statically only and is
+  labelled *not run*. PayRecover never changes a store's files: it shows the diff for the merchant to apply.
+
 ### Dispute defender (PayPal Disputes)
 
 The **Disputes** panel reads your PayPal disputes with the Agent Toolkit, follows each disputed capture to its
@@ -309,7 +323,7 @@ Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps &
 
 ### Alerts: dashboard, email and Zapier
 
-Every scan ends with one of three results. The scan also runs a store-wide security check once (price tampering,
+Every scan ends with one of four results (three outcomes, plus *waiting for PayPal* when a check could not finish). The scan also runs a store-wide security check once (price tampering,
 reflected XSS, security headers), so a store can be judged even when no money has leaked yet:
 
 | Result | When | Alert |
@@ -493,6 +507,7 @@ run the backend with `uvicorn app.main:app --reload` from `backend/` and the das
 backend/      FastAPI API: runners, PayPal verifier, order investigation, AI adapter, storage, security
   app/routers/payrecover.py   PayRecover endpoints: scans, recoveries, disputes, assistant, alerts, MCP, approvals
   app/routers/qa.py           The inherited website/API test runner: jobs, run history, AI planner
+  app/routers/ai_tools.py     Store connector and AI fix writer (app/connector.py, app/fixer.py)
 frontend/     React dashboard (Vite)
 main-store/   The PayPal Sandbox checkout PayRecover checks, built to pass every check
 vuln-store/   A deliberately vulnerable copy with switchable payment bugs, for demos only
@@ -523,7 +538,7 @@ GitHub Actions runs the backend, main-store, vuln-store and frontend tests and a
 
 ## Deployment
 
-The PayRecover backend and dashboard ship as a single Docker image (`docker compose up --build`). A Render blueprint (`render.yaml`) is included. Public deployments refuse to start unless authentication, rate limiting, audit logging and HTTPS are configured. See [docs/deployment.md](docs/deployment.md).
+The PayRecover backend and dashboard ship as a single Docker image (`docker compose up --build`). A Render blueprint (`render.yaml`) is included; it declares the `starter` plan for all four services, so unlike the hand-made free-tier demo below it needs a paid Render account. Public deployments refuse to start unless authentication, rate limiting, audit logging and HTTPS are configured. See [docs/deployment.md](docs/deployment.md).
 
 **The live demo** runs as four Render web services, created by hand on the free tier:
 
