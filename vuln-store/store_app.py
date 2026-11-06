@@ -355,7 +355,8 @@ def index(q: str = Query(default="", max_length=500)) -> HTMLResponse:
     if not _profile()["bugs"]:
         page = page.replace("Tick a bug, pay, then investigate the order in PayRecover.",
                             "This store's payment code is correct, so its payments always match PayPal.")
-    results = f"<p id=\"search-results\">You searched for: {q}</p>" if q else ""
+    from html import escape
+    results = f"<p id=\"search-results\">You searched for: {escape(q)}</p>" if q else ""
     return HTMLResponse(page.replace("{{SEARCH_RESULTS}}", results))
 
 
