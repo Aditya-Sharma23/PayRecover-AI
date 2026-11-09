@@ -4,6 +4,8 @@
 
 **An AI agent for PayPal merchants: it finds money a store has lost, proves each leak, and shows how to get it back.**
 
+**PayRecover AI is primarily a payment-loss detection and recovery platform. Its security scanning, AI remediation and integrations extend its ability to prevent future financial losses.**
+
 Built for the PayPal AI Hackathon. It extends an earlier open-source project of mine, a website and API testing tool, with PayPal-specific checks and recovery.
 
 A store's "Payment complete" page can be wrong. The store can say an order is paid while PayPal never captured the money, charge less than the catalog price, or charge one cart twice. PayRecover checks each claim against something it can trust: **PayPal's own record of the order**, read through PayPal's official Server SDK and Agent Toolkit. Gemini explains every result in plain words, but it never decides a result, and no money moves until the merchant approves.
