@@ -18,7 +18,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TESTPILOT_FRONTEND_DIST=/app/frontend/dist
 WORKDIR /app/backend
 COPY backend/requirements.txt backend/requirements-toolkit.txt ./
-RUN pip install -r requirements.txt \
+# libatomic1: Playwright's bundled Node runtime (1.65+) needs it, and the slim image does not ship it.
+RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+    && pip install -r requirements.txt \
     && pip install --no-deps -r requirements-toolkit.txt \
     && python -m playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*

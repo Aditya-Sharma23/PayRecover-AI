@@ -26,11 +26,11 @@ A store's "Payment complete" page can be wrong. The store can say an order is pa
   same checks (never captured, fake paid, wrong amount, duplicate charge, an expiring held payment, waiting for PayPal,
   healthy), and **Disputes → Show a sample dispute** shows the defender. Samples are labelled and cannot be approved.
 - **A three-minute tour:**
-  1. **Overview:** the three demo stores side by side, 🟢 Main (all clear once it has a paid order), 🟠 Risky (vulnerable, no money lost),
+  1. **Overview:** the three demo stores side by side, 🟢 Main (all clear: no leaks, security checks passed), 🟠 Risky (vulnerable, no money lost),
      🔴 Vulnerable (money leaking), with money at risk and money recovered.
   2. **Check payments → Scan store** on the Vulnerable store: leaks ranked by urgency, each with PayPal's record.
      Press **Approve** on one; PayRecover captures, refunds or invoices at PayPal and confirms it with a fresh read.
-  3. **Ask PayRecover:** *"How much am I losing and what should I fix first?"* Gemini answers by calling PayPal's
+  3. **Ask PayRecover** (on the dashboard, under the store cards): *"How much am I losing and what should I fix first?"* Gemini answers by calling PayPal's
      Agent Toolkit and PayRecover's checks; every tool call is listed under the answer.
   4. **Disputes:** each PayPal dispute linked to its store order, with a recommended answer and a draft to approve.
   5. **Market price check** (Channel3) and the **Timeline** (Bryntum) under the scan results.
@@ -101,7 +101,8 @@ urgency, then amount: an approved payment still uncollected comes first, with a 
 taken from PayPal's own timestamp (PayPal does not publish a fixed deadline for capturing an approved order,
 so PayRecover shows how long it has waited rather than inventing a countdown). Gemini writes the recovery plan
 for that fixed order; it cannot add, drop or reorder leaks. A cart charged twice yields one refund, of the
-later charge, so approving every row never refunds the whole purchase. The scan reads past unpaid orders
+later charge, so approving every row never refunds the whole purchase. A charge already refunded is never refunded
+again, but if the same cart is charged twice once more, that new charge gets its own refund. The scan reads past unpaid orders
 (abandoned checkouts, cancelled price probes) so the newest paid orders are always the ones checked.
 
 ### Market price check (Channel3)
@@ -129,7 +130,8 @@ The timeline loads in its own chunk, so the rest of the dashboard opens fast.
 
 The dashboard opens with four headline numbers (orders scanned, money at risk, open PayPal disputes, money
 recovered) and a strip with each demo store's latest result: 🟢 all clear, 🟠 vulnerable, 🔴 money leaking, or not
-scanned yet. Click a store to scan it now. After a recovery, the store's payments are re-checked in the background
+scanned yet. A clean store is all clear even before its first payment; its card adds *no payments yet*. Click a store
+to scan it now. **Ask PayRecover** and the **Alerts** feed sit on the same page, below the stores. After a recovery, the store's payments are re-checked in the background
 so money at risk drops right away.
 
 Opening the dashboard also **starts every demo store** (`POST /api/stores/start`): a free host puts idle stores to
@@ -320,7 +322,8 @@ Every leak comes with a recovery the merchant can approve, on the dashboard or f
 | Held, never collected | Capture the authorization before it expires | PayPal shows the hold captured for the full amount |
 | Hold expired | Send the buyer a PayPal invoice instead | PayPal shows the invoice SENT for that amount |
 
-The **Money recovered** panel (AG Grid) lists every recovery with totals collected, invoiced and refunded.
+The **Money recovered** panel (AG Grid) lists every recovery with totals collected, invoiced and refunded, under a
+chart of the running total over time.
 Invoicing needs the *Invoicing* feature switched on for your Sandbox app (Apps & Credentials > your app > Features).
 
 ### Alerts: dashboard, email and Zapier
@@ -330,7 +333,7 @@ reflected XSS, security headers), so a store can be judged even when no money ha
 
 | Result | When | Alert |
 |---|---|---|
-| 🔴 **Money leaking** | At least one payment does not match PayPal | Sent at once, with the amounts, approve links, and the holes that let it happen |
+| 🔴 **Money leaking** | At least one payment does not match PayPal | Sent at once, with the amounts, approve links for leaks PayPal can act on, and the holes that let it happen |
 | 🟠 **No leak, but vulnerable** | Every payment matches PayPal, but the store has a hole that could let money leak | Sent at once, with what to fix |
 | 🟢 **All clear** | Payments match PayPal and the store passes the security checks | Shown on the dashboard only; nothing is sent |
 | 🔵 **Waiting for PayPal** | Nothing wrong found, but a check could not finish (see below) | Shown on the dashboard only; nothing is sent |
@@ -349,8 +352,10 @@ finishes, in three layers set in the dashboard's **Alerts** card:
 
 Each user's settings and feed are kept apart, **Send test alert** checks the setup (five an hour), and a failing
 channel is shown on the alert and never fails a scan or recovery. With `TESTPILOT_APPROVAL_SECRET` (32+ random
-characters) set, every leak alert carries a signed **Approve recovery** link that expires after 24 hours.
-Opening it only shows a confirmation page; money moves when the button on it is pressed.
+characters) set, each leak PayPal can act on (a capture, refund or invoice) carries a signed **Approve recovery** link
+that expires after 24 hours. A leak with nothing to recover at PayPal, such as an order whose buyer never approved a
+payment, gets no link; the alert says what to do instead (hold the shipment). Opening a link only shows a
+confirmation page; money moves when the button on it is pressed.
 
 ### Catching payment bugs
 
