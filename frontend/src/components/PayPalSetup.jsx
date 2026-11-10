@@ -29,7 +29,7 @@ export default function PayPalSetup() {
       <i aria-hidden="true" />
       {noKeys
         ? <span><strong>PayPal setup</strong> · <b>no PayPal keys yet</b>, so live checks are off. The sample buttons under Check payments still show every result.</span>
-        : <span><strong>PayPal setup</strong> · {setup.ready ? "everything PayRecover needs is on" : `${working} of ${required.length} ready`}
+        : <span><strong>PayPal setup</strong> · {setup.ready ? "all features on" : `${working} of ${required.length} ready`}
           {off.length > 0 && <> · <b>{off.map((item) => item.name).join(", ")} {off.length === 1 ? "is" : "are"} off</b></>}</span>}
     </summary>
     <ul>{setup.items.map((item) => <li key={item.id}>

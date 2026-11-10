@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SkeletonText } from "./Skeleton.jsx";
 import { apiJson } from "../api/client.js";
 import { AUTOSCAN_INTERVALS, autoscanText, storeStatusText, storeVerdict, timeAgo, withSampleHint } from "../lib/assist.js";
 import { STORES } from "../lib/payment.js";
@@ -81,6 +82,7 @@ export default function OverviewPanel({ refreshKey }) {
         <i aria-hidden="true" />
         <span>Live{data?.last_activity ? ` · last check ${timeAgo(data.last_activity, now)}` : " · no checks yet"}</span>
       </div>
+      <PayPalSetup />
       {auto && <div className={`autoscan ${auto.enabled ? "on" : ""}`}>
         <label className="switch">
           <input type="checkbox" checked={auto.enabled} onChange={(event) => setAutoscan(event.target.checked, auto.interval_minutes)} />
@@ -94,11 +96,10 @@ export default function OverviewPanel({ refreshKey }) {
         </select>
       </div>}
     </div>
-    <PayPalSetup />
     <div className="metrics overview-cards">
       {cards.map(([title, value, icon, note, tone]) => <article className={`metric-card ${tone}`} key={title}>
         <span className="metric-icon" aria-hidden="true">{icon}</span>
-        <div><p>{title}</p><strong>{value}</strong><small>{note}</small></div>
+        <div><p>{title}</p><strong>{data ? value : <SkeletonText width="70%" tall />}</strong><small>{note}</small></div>
       </article>)}
     </div>
     <div className="demo-stores-heading">
@@ -106,7 +107,7 @@ export default function OverviewPanel({ refreshKey }) {
       <span>Click a store to scan it now.</span>
     </div>
     <div className="store-statuses" aria-label="Demo store results">
-      {(data?.stores || STORES.map(([store]) => ({ store }))).map((status) => {
+      {(data?.stores || STORES.filter(([store]) => store !== "connected").map(([store]) => ({ store }))).map((status) => {
         const [label, tone] = storeVerdict(status);
         const busy = scanning[status.store];
         const starting = startup[status.store] === "starting";
@@ -118,8 +119,9 @@ export default function OverviewPanel({ refreshKey }) {
         return <button type="button" className={`store-status ${busy || starting ? "status-scanning" : down ? "status-none" : tone}`}
           key={status.store} disabled={busy || starting} onClick={() => scanStore(status.store)} title="Scan this store now">
           <i aria-hidden="true" />
-          <span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {title}</span>
-          <small>{detail}</small>
+          {data || busy || starting || down
+            ? <><span><strong>{STORE_NAMES[status.store] || status.store}</strong> · {title}</span><small>{detail}</small></>
+            : <><span><strong>{STORE_NAMES[status.store] || status.store}</strong></span><SkeletonText width="55%" /></>}
         </button>;
       })}
     </div>

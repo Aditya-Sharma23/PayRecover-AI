@@ -77,7 +77,7 @@ export default function AssistantPanel({ onRecovered }) {
     </div>
     <p className="hint">Ask in plain words. Every tool call is shown, and nothing moves until you press Approve.</p>
     <div className="chat-log" aria-live="polite">
-      {history.length === 0 && <div className="example-questions">{EXAMPLE_QUESTIONS.map((question) =>
+      {history.length === 0 && <div className="example-questions">{EXAMPLE_QUESTIONS.slice(0, 3).map((question) =>
         <button key={question} type="button" className="secondary-button" onClick={() => ask(question)}>{question}</button>)}</div>}
       {history.map((message, index) => <Message key={index} message={message} onDone={onRecovered} />)}
       {busy && <div className="chat-message assistant"><p><span className="spinner" aria-hidden="true" /> Checking PayPal…</p></div>}

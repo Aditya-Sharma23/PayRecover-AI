@@ -191,3 +191,19 @@ export function scanRows(result) {
     action: leak.recovery_action,
   })));
 }
+
+// Money recovered over time: one point per completed recovery, oldest first, with the running total.
+// Failed or still-pending recoveries moved no money, so they are left out.
+export function recoveredOverTime(records) {
+  let total = 0;
+  return records
+    .filter((record) => DONE.has(record.status))
+    .map((record) => ({ ...record, time: Date.parse(record.created_at) }))
+    .filter((record) => Number.isFinite(record.time))
+    .sort((a, b) => a.time - b.time)
+    .map((record) => {
+      total = Math.round((total + Number(record.amount)) * 100) / 100;
+      return { time: record.time, amount: Number(record.amount), total, currency: record.currency,
+        action: record.action, order_id: record.order_id };
+    });
+}

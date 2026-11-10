@@ -46,7 +46,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .sidebar-note strong { display: block; margin-top: 10px; }
 .sidebar-note p { margin-bottom: 0; color: var(--muted); line-height: 1.5; }
 .shield { color: var(--red); font-size: 22px; }
-.main-content { max-width: 1600px; margin-left: 200px; padding: 0 30px 25px; }
+.main-content { max-width: 1440px; margin-left: max(200px, calc(200px + (100vw - 200px - 1440px) / 2)); padding: 0 30px 25px; }
 
 /* Header and metrics */
 .welcome { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 96px; padding: 22px 0 17px; overflow: hidden; }
@@ -543,3 +543,56 @@ button.store-status:disabled { cursor: progress; }
 .recovery-grid .grid-actions { flex-wrap: wrap; padding: 7px 0; height: auto; }
 /* Timeline: a scan lasts minutes, so give every block a visible width at a whole-day scale */
 .timeline-view .b-sch-event-wrap { min-width: 12px; }
+
+/* Approve: the one action that moves money, so it says what it does and how much. */
+.approve-cta { flex-direction: column; gap: 1px; min-width: 0; padding: 7px 16px; line-height: 1.15; border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 105, 113, .35), 0 6px 18px rgba(237, 41, 56, .25); }
+.approve-cta span { font-size: 13px; font-weight: 800; }
+.approve-cta small { font-size: 11px; font-weight: 600; opacity: .9; }
+.grid-actions .approve-cta { padding: 6px 14px; }
+.grid-actions .approve-cta span { font-size: 12px; }
+
+/* Loading placeholders in the shape of what will appear. */
+.skeleton { display: inline-block; vertical-align: middle; border-radius: 6px;
+  background: linear-gradient(90deg, #1a212a 0%, #252e39 50%, #1a212a 100%); background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.skeleton-text { height: 11px; }
+.skeleton-tall { height: 22px; }
+.skeleton-block { display: block; width: 100%; margin: 12px 0; border-radius: 10px; }
+.grid-skeleton { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.grid-skeleton-row { display: flex; gap: 18px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); }
+.grid-skeleton-row:first-child { border-top: 0; }
+.grid-skeleton-row.head { background: var(--panel-2); }
+@keyframes skeleton-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Money recovered over time: one series, recessive grid, crosshair tooltip. */
+.recovered-chart { margin: 14px 0 12px; padding: 14px 16px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); }
+.recovered-chart figcaption { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; color: var(--text-2); font-size: 12px; }
+.recovered-chart figcaption strong { color: var(--text); font-size: 15px; }
+.recovered-plot { position: relative; }
+.recovered-plot svg { display: block; max-width: 100%; }
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-size: 11px; }
+.chart-line { fill: none; stroke: #33ad78; stroke-width: 2; stroke-linejoin: round; }
+.chart-area { fill: #33ad78; fill-opacity: .14; }
+.chart-dot { fill: #33ad78; stroke: var(--panel-2); stroke-width: 2; }
+.chart-dot.active { r: 6; }
+.chart-crosshair { stroke: var(--text-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-tooltip { position: absolute; transform: translateX(-50%); display: grid; gap: 2px; min-width: 160px; padding: 8px 10px;
+  border: 1px solid var(--line-strong); border-radius: 8px; background: #161c24; box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  color: var(--text-2); font-size: 11px; pointer-events: none; white-space: nowrap; }
+.chart-tooltip strong { color: var(--text); font-size: 12px; }
+
+/* One status row on the dashboard: Live, PayPal setup (a small pill when all is on), auto-scan. */
+.overview-bar .paypal-setup { margin: 0; padding: 4px 11px; border-radius: 99px; font-size: 11px; }
+.overview-bar .paypal-setup > summary { gap: 7px; list-style: none; }
+.overview-bar .paypal-setup > summary::-webkit-details-marker { display: none; }
+.overview-bar .paypal-setup.not-ready, .overview-bar .paypal-setup[open] { order: 1; flex: 1 1 100%; padding: 9px 13px; border-radius: 10px; font-size: 12px; }
+.overview-bar .paypal-setup:not([open]):not(.not-ready) { margin-right: auto; }
+
+/* Alerts: the feed first; where they are sent is one line that opens the settings. */
+.alert-settings-toggle { margin-top: 6px; }
+.alert-settings-toggle > summary { color: var(--text-2); font-size: 12px; cursor: pointer; }
+.alert-settings-toggle[open] > summary { margin-bottom: 4px; }
+.link-button { margin-top: 8px; padding: 0; border: 0; background: none; color: var(--text-2); font-size: 12px; text-decoration: underline; cursor: pointer; }
+.link-button:hover { color: var(--text); }

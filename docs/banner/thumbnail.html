@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- Source of docs/banner.png. Re-render with: backend\.venv\Scripts\python docs\banner\render.py -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PayRecover AI thumbnail</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #090c10; --panel: #11161d; --line: #252c35; --text: #e9edf5; --text-2: #aab2bd; --muted: #7f8896;
+    --red: #ed2938; --red-soft: #ff6971; --green: #72e0ad; --amber: #f1c36e;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 800px; overflow: hidden; }
+  body {
+    position: relative; font-family: 'DM Sans', system-ui, sans-serif; color: var(--text);
+    background:
+      radial-gradient(ellipse 620px 420px at 88% -10%, rgba(237, 41, 56, .30), transparent 70%),
+      radial-gradient(ellipse 520px 360px at 8% 120%, rgba(114, 224, 173, .08), transparent 70%),
+      var(--bg);
+  }
+  body::before {
+    content: ""; position: absolute; inset: 0; opacity: .35;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 1100px 700px at 60% 45%, #000 10%, transparent 75%);
+  }
+  .wrap { position: relative; display: flex; flex-direction: column; height: 100%; padding: 56px 72px 40px; }
+
+  .brand { display: flex; align-items: center; gap: 14px; font: 700 28px 'Space Grotesk', sans-serif; }
+  .brand svg { width: 42px; height: 42px; fill: #f52f3d; stroke: #f52f3d; stroke-width: 1.2; stroke-linejoin: round; }
+  .brand em { font-style: normal; color: #ff5964; }
+
+  h1 { margin-top: 34px; font: 700 72px/1.05 'Space Grotesk', sans-serif; letter-spacing: -1.2px; }
+  h1 span { color: var(--red-soft); }
+  .lede { margin-top: 20px; max-width: 900px; font-size: 26px; line-height: 1.45; color: var(--text-2); }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  .pills { display: flex; gap: 12px; margin-top: 30px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px 10px 14px; border-radius: 999px;
+    font: 600 18px 'DM Sans', sans-serif; border: 1px solid; }
+  .pill i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+  .green { color: var(--green); border-color: rgba(114, 224, 173, .35); background: rgba(114, 224, 173, .08); }
+  .amber { color: var(--amber); border-color: rgba(241, 195, 110, .35); background: rgba(241, 195, 110, .08); }
+  .red { color: var(--red-soft); border-color: rgba(255, 105, 113, .4); background: rgba(237, 41, 56, .12); }
+
+  .card { position: absolute; right: 72px; bottom: 70px; width: 420px; padding: 22px 22px 20px; border: 1px solid var(--line); border-radius: 16px;
+    background: linear-gradient(180deg, #141a22, #0e1318); box-shadow: 0 30px 70px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 105, 113, .08); }
+  .card-head { display: flex; justify-content: space-between; align-items: center; }
+  .eyebrow { font: 600 11.5px 'DM Sans', sans-serif; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+  .tag { padding: 4px 10px; border-radius: 999px; font: 600 12.5px 'DM Sans', sans-serif; }
+  .card h2 { margin-top: 12px; font: 600 17px 'DM Sans', sans-serif; color: var(--text-2); }
+  .money { margin-top: 2px; font: 700 40px 'Space Grotesk', sans-serif; color: var(--red-soft); letter-spacing: -.5px; }
+  .money small { font-size: 18px; color: var(--muted); font-weight: 600; margin-left: 6px; }
+  .rows { margin-top: 14px; border-top: 1px solid var(--line); }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .row span { color: var(--text-2); }
+  .row b { font-weight: 600; }
+  .row .src { font-size: 12.5px; color: var(--muted); margin-left: 8px; }
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { flex: 1; padding: 11px 0; border-radius: 10px; text-align: center; font: 700 15px 'DM Sans', sans-serif; }
+  .btn.primary { background: var(--red); color: #fff; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text-2); }
+
+  .foot { position: absolute; left: 72px; bottom: 34px; font-size: 16px; color: var(--muted); letter-spacing: .2px; }
+  .foot b { color: var(--text-2); font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 22.5 45 3 29 45l-7-15.2L3 22.5Zm19.2 7.3L45 3 18 25.2" /></svg>
+      <span>Pay<em>Recover</em> AI</span>
+    </div>
+    <h1>Your store says “paid”.<br><span>PayPal knows better.</span></h1>
+    <p class="lede">An AI agent that <b>finds money merchants lose</b>, proves it with PayPal’s own records, and <b>recovers it after one approved click</b>.</p>
+    <div class="pills">
+      <span class="pill green"><i></i>All clear</span>
+      <span class="pill amber"><i></i>Vulnerable</span>
+      <span class="pill red"><i></i>Money leaking</span>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="eyebrow">Store scan · PayPal Sandbox</span><span class="tag red">Money leaking</span></div>
+      <h2>At risk right now</h2>
+      <div class="money">18.00<small>USD</small></div>
+      <div class="rows">
+        <div class="row"><span>Never captured<span class="src">PayPal: APPROVED</span></span><b>12.50 USD</b></div>
+        <div class="row"><span>Duplicate charge<span class="src">same cart, 2 captures</span></span><b>5.50 USD</b></div>
+      </div>
+      <div class="actions"><span class="btn primary">Approve recovery</span><span class="btn ghost">Evidence pack</span></div>
+    </div>
+  </div>
+  <p class="foot"><b>PayPal</b> Server SDK · Agent Toolkit · Disputes &nbsp;·&nbsp; <b>Gemini</b> advises, PayPal’s record decides</p>
+</body>
+</html>

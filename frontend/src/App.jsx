@@ -12,7 +12,8 @@ import PaymentPanel from "./components/PaymentPanel.jsx";
 import RecoveryPanel from "./components/RecoveryPanel.jsx";
 import ScanPanel from "./components/ScanPanel.jsx";
 import ReportView from "./components/ReportView.jsx";
-import { PAGES, pageFor } from "./lib/pages.js";
+import { PanelSkeleton } from "./components/Skeleton.jsx";
+import { PAGES, pageFor, sectionFor } from "./lib/pages.js";
 
 // Bryntum Scheduler is large; load the timeline in its own chunk so the rest of the dashboard opens fast.
 const TimelinePanel = lazy(() => import("./components/TimelinePanel.jsx"));
@@ -24,8 +25,7 @@ const METRICS = [
   ["accessibility_issues", "Accessibility issues", "♿", "WCAG"],
 ];
 
-const ALERTS_ICON = <svg className="nav-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg>;
-const ICONS = { dashboard: "⌂", check: "⌕", assistant: "✦", disputes: "⚖", timeline: "▦", alerts: ALERTS_ICON, recoveries: "↺", more: "▤" };
+const ICONS = { dashboard: "⌂", check: "⌕", disputes: "⚖", timeline: "▦", recoveries: "↺", more: "▤" };
 
 export default function App() {
   const [serviceState, setServiceState] = useState("Connecting");
@@ -45,7 +45,10 @@ export default function App() {
   useEffect(() => {
     const follow = () => {
       setPage(pageFor(window.location.hash));
-      window.scrollTo(0, 0);
+      // A section link (#assistant, #alerts, ...) scrolls to that panel once its page is shown; a page link starts at the top.
+      const section = sectionFor(window.location.hash);
+      if (section) requestAnimationFrame(() => document.getElementById(section)?.scrollIntoView({ block: "start" }));
+      else window.scrollTo(0, 0);
     };
     // hashchange covers links; popstate covers Back and Forward, and addresses changed by history.pushState.
     window.addEventListener("hashchange", follow);
@@ -116,7 +119,12 @@ export default function App() {
 
       {needsToken && <p className="notice notice-error" role="status">This server needs an API token. Paste it under <a href="#more">More tools → Settings</a>.</p>}
 
-      <div {...shown("dashboard")}><OverviewPanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} /></div>
+      {/* The first screen shows the whole product: money at risk, the AI assistant, and where alerts go. */}
+      <div {...shown("dashboard")}>
+        <OverviewPanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
+        <AssistantPanel onRecovered={recovered} />
+        <AlertsPanel refreshKey={`${recoveryKey}-${token}`} />
+      </div>
 
       <div {...shown("check")}>
         <CheckPanel
@@ -126,20 +134,16 @@ export default function App() {
         />
       </div>
 
-      <div {...shown("assistant")}><AssistantPanel onRecovered={recovered} /></div>
-
       <div {...shown("disputes")}><DisputesPanel onAnswered={recovered} /></div>
 
       <div {...shown("timeline")}>
         {/* Hidden pages are never on screen, so the timeline (and Bryntum) loads the first time this page opens. */}
-        <OnVisible fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
-          <Suspense fallback={<section className="panel" id="timeline"><p className="hint">Loading the timeline…</p></section>}>
+        <OnVisible fallback={<section className="panel" id="timeline"><PanelSkeleton height={260} label="Loading the timeline" /></section>}>
+          <Suspense fallback={<section className="panel" id="timeline"><PanelSkeleton height={260} label="Loading the timeline" /></section>}>
             <TimelinePanel refreshKey={`${recoveryKey}-${overviewKey}-${token}`} />
           </Suspense>
         </OnVisible>
       </div>
-
-      <div {...shown("alerts")}><AlertsPanel refreshKey={`${recoveryKey}-${token}`} /></div>
 
       <div {...shown("recoveries")}><RecoveryPanel refreshKey={`${recoveryKey}-${token}`} /></div>
 

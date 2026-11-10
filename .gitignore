@@ -31,3 +31,4 @@ vuln-store/data/
 
 # Bryntum trial downloads (large, and their license forbids republishing them)
 bryntum-*.zip
+submission/

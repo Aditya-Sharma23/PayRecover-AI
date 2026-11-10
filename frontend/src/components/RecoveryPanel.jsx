@@ -3,6 +3,8 @@ import { AgGridReact } from "ag-grid-react";
 import { apiJson } from "../api/client.js";
 import { gridTheme } from "../lib/grid.js";
 import { RECOVERY_LABELS, RECOVERY_STATUS, recoveryRows } from "../lib/payment.js";
+import RecoveredChart from "./RecoveredChart.jsx";
+import { GridSkeleton, PanelSkeleton, SkeletonText } from "./Skeleton.jsx";
 
 function StatusCell({ value }) {
   const [label, tone] = RECOVERY_STATUS[value] || RECOVERY_STATUS.failed;
@@ -41,6 +43,8 @@ export default function RecoveryPanel({ refreshKey }) {
 
   const rows = useMemo(() => recoveryRows(data?.records || []), [data]);
   const totals = data?.totals || { collected: "0.00", invoiced: "0.00", refunded: "0.00" };
+  const loading = data === null && !error;
+  const amount = (value) => (loading ? <SkeletonText width="60%" tall /> : `${value} USD`);
 
   return <section className="panel" id="recoveries" aria-labelledby="recoveries-heading">
     <div className="section-heading">
@@ -51,12 +55,14 @@ export default function RecoveryPanel({ refreshKey }) {
       </div>
     </div>
     <div className="recovery-totals">
-      <article><span>Collected</span><strong>{totals.collected} USD</strong><small>Captured payments the store had missed</small></article>
-      <article><span>Invoiced</span><strong>{totals.invoiced} USD</strong><small>Sent to buyers who paid too little</small></article>
-      <article><span>Refunded</span><strong>{totals.refunded} USD</strong><small>Duplicate charges returned before a chargeback</small></article>
+      <article><span>Collected</span><strong>{amount(totals.collected)}</strong><small>Captured payments the store had missed</small></article>
+      <article><span>Invoiced</span><strong>{amount(totals.invoiced)}</strong><small>Sent to buyers who paid too little</small></article>
+      <article><span>Refunded</span><strong>{amount(totals.refunded)}</strong><small>Duplicate charges returned before a chargeback</small></article>
     </div>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
-    {rows.length > 0
+    {loading && <><PanelSkeleton height={200} label="Loading money recovered" /><GridSkeleton rows={5} label="Loading recoveries" /></>}
+    {rows.length > 0 && <RecoveredChart records={data.records} />}
+    {loading ? null : rows.length > 0
       ? <div className="recovery-grid"><AgGridReact theme={gridTheme} rowData={rows} columnDefs={COLUMNS} domLayout="autoHeight"
           defaultColDef={{ sortable: true, filter: true, resizable: true }} pagination paginationPageSize={10}
           paginationPageSizeSelector={false} /></div>

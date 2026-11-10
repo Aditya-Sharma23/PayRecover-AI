@@ -96,8 +96,9 @@ function LeakCard({ leak, orderId, store, onRecovered, sample }) {
     {!sample && <FixButton issue={leak.kind} store={store} detail={leak.root_cause} label="Fix the cause in the store's code" />}
     {!record && !leak.targets?.length && <p className="notice" role="note">No PayPal action is possible for this leak, so there is nothing to approve: hold the shipment.</p>}
     {sample && leak.targets?.length > 0 && <p className="notice" role="note">Sample data: on a real order this button would read <b>Approve: {RECOVERY_LABELS[leak.recovery_action]} {leak.amount} {leak.currency}</b>.</p>}
-    {!sample && !record && leak.targets?.length > 0 && <button className="danger-button approve-button" type="button" disabled={busy} onClick={approve}>
-      {busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</> : `Approve: ${RECOVERY_LABELS[leak.recovery_action]} ${leak.amount} ${leak.currency}`}
+    {!sample && !record && leak.targets?.length > 0 && <button className="danger-button approve-button approve-cta" type="button" disabled={busy} onClick={approve}>
+      {busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</>
+        : <><span>Approve</span><small>{RECOVERY_LABELS[leak.recovery_action]} · {leak.amount} {leak.currency}</small></>}
     </button>}
     {record && <RecoveryOutcome record={record} />}
     {error && <p className="notice notice-error" role="alert">{error}</p>}

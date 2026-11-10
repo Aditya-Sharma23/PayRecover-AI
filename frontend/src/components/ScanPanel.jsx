@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GridSkeleton } from "./Skeleton.jsx";
 import { AgGridReact } from "ag-grid-react";
 import { apiJson } from "../api/client.js";
 import { gridTheme } from "../lib/grid.js";
@@ -32,9 +33,10 @@ function ActionsCell({ data, context }) {
       <FixButton issue={data.leak.kind} store={context.store} detail={data.leak.root_cause} label="Fix cause" /></div>;
   }
   return <div className="grid-actions">
-    <button className="danger-button" type="button" disabled={outcome?.busy}
+    <button className="danger-button approve-cta" type="button" disabled={outcome?.busy}
       title={outcome?.error || ""} onClick={() => context.approve(data)}>
-      {outcome?.busy ? "Asking PayPal…" : `Approve ${RECOVERY_LABELS[data.action]?.toLowerCase()}`}
+      {outcome?.busy ? <><span className="spinner" aria-hidden="true" /> Asking PayPal…</>
+        : <><span>Approve</span><small>{RECOVERY_LABELS[data.action]} · {data.leak.amount} {data.leak.currency}</small></>}
     </button>
     <EvidenceButton orderId={data.order_id} store={context.store} />
     <FixButton issue={data.leak.kind} store={context.store} detail={data.leak.root_cause} label="Fix cause" />
@@ -166,6 +168,7 @@ export default function ScanPanel({ onRecovered, onScanned, embedded = false }) 
       </button>
     </form>
     {error && <p className="notice notice-error" role="alert">{error}</p>}
+    {busy && <GridSkeleton rows={4} label="Checking every paid order against PayPal" />}
     {result && <>
       {result.verdict && <Verdict result={result} plan={result.plan} />}
       <div className="scan-stats">

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { approvalQuestion, evidencePath, expiresText, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, remainingAtRisk, scanRows, sortPayloads, waitingText } from "../src/lib/payment.js";
+import { approvalQuestion, evidencePath, expiresText, groupChecks, investigationBody, orderIdProblem, recoveryBody, recoveryRows, remainingAtRisk, scanRows, sortPayloads, waitingText, recoveredOverTime } from "../src/lib/payment.js";
 
 test("the investigation body normalizes the order id", () => {
   assert.deepEqual(investigationBody(" 5o190127tn364715t "), {
@@ -104,4 +104,13 @@ test("each grid row carries the plan's reason to act now", () => {
   const [row] = scanRows({ items: [{ order_id: "A", leaks: [{ kind: "never_captured", amount: "1.00" }] }],
     plan: { steps: [{ order_id: "A", kind: "never_captured", why: "The approval can lapse." }] } });
   assert.equal(row.why, "The approval can lapse.");
+});
+
+test("money recovered over time is a running total of completed recoveries, oldest first", () => {
+  const points = recoveredOverTime([
+    { status: "recovered", amount: "54.00", currency: "USD", action: "capture", order_id: "B", created_at: "2026-11-09T04:36:28Z" },
+    { status: "failed", amount: "99.00", currency: "USD", action: "capture", order_id: "X", created_at: "2026-11-08T00:00:00Z" },
+    { status: "refunded", amount: "18.10", currency: "USD", action: "refund", order_id: "A", created_at: "2026-11-01T10:00:00Z" },
+  ]);
+  assert.deepEqual(points.map((point) => [point.order_id, point.total]), [["A", 18.1], ["B", 72.1]]);
 });

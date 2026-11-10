@@ -33,6 +33,12 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
   sends it and confirms with PayPal.
 - **Real-time alerts:** verified PayPal webhooks plus Zapier send an alert, with a signed one-tap approve link,
   the moment a payment or dispute needs attention.
+- **Connect any store, and fix what is broken:** Gemini reads a sample of a store's orders and proposes how to
+  map them; PayRecover checks the mapping against every order and against PayPal before it connects. For each hole it
+  finds, Gemini writes a code fix, and PayRecover rejects unsafe edits and **runs the fixed store to prove the hole is
+  closed** before marking it verified. It never changes the store's files.
+- **Usable from any AI assistant:** PayRecover is also an MCP server, so Claude or any agent can scan a store or
+  check an order. An outside assistant can only propose; the merchant approves.
 - **Security checks of the store:** price-tampering probe, reflected-XSS check, security headers and a full
   website scan, so the merchant sees the hole behind the leak.
 - **Three clear results for every scan:** 🔴 money leaking, 🟠 no leak but the store is vulnerable, 🟢 all clear.
@@ -54,10 +60,11 @@ PayRecover AI watches a store's orders and compares what the store *says* with w
 | AI tools from PayPal | **PayPal Agent Toolkit** for disputes, transactions, invoices and orders, called by Gemini and by our code |
 | Other PayPal APIs | Invoicing v2, Disputes v1 (provide evidence, accept claim), Transaction Search, Webhooks with signature verification |
 | AI | **Gemini** (function calling for the agent, structured JSON for plans and explanations), with fallback models |
-| Backend | Python, FastAPI, pydantic; 260+ automated tests across backend, stores and dashboard; ruff, eslint |
+| Backend | Python, FastAPI, pydantic; 350+ automated tests across the backend, demo stores and dashboard; ruff, eslint |
 | Dashboard | React, Vite, **AG Grid** (scan and recovery grids), **Bryntum Scheduler** (timeline of scans, recoveries and dispute deadlines) |
 | Developer experience | OpenAPI spec that passes **APIMatic** validation with zero errors; generated PayRecover SDKs (Python, TypeScript, C#) and an API portal |
 | Automation and alerts | **Zapier** (any of 9,000+ apps) and **Brevo** email for alerts with approve links; a built-in auto-scan agent |
+| Agent tooling | An **MCP server** for outside assistants; an AI **store connector** and **fix writer**, each checked by PayRecover (mapping checked against PayPal; fixes run in a sandboxed process) |
 | Demo | A clean "Main store" and a "Vulnerable store" with switchable real bugs, both on the PayPal Sandbox |
 | Deploy | Docker, **Render** blueprint, GitHub Actions CI |
 
@@ -79,6 +86,10 @@ refunds twice, and is verified by a fresh read of PayPal. The agent gets only re
   refuses.
 - **Reliable AI.** Models sometimes stall or return over-long answers. Fallback models, a per-attempt timeout,
   skipping a stalled model for two minutes, and trimming answers to the schema keep the agent responsive.
+- **Trusting AI-written code.** A model can propose a fix that does not match, does not compile, or does something
+  unsafe. Every edit must match exactly once and stay valid Python, anything that runs programs or opens files or
+  sockets is rejected, and a demo store's fixed copy is run in a keyless, network-free process with the original bug
+  switched on. A failed attempt goes back to the AI once with the exact error.
 - **A Sandbox account registered in India** couldn't run the US checkout flows, so we set up a US Sandbox
   business app.
 
@@ -98,9 +109,9 @@ refunds twice, and is verified by a fresh read of PayPal. The agent gets only re
 
 ## What's next for PayRecover AI
 
-- **Connect any store:** Shopify and WooCommerce apps, plus the documented PayRecover Store API for custom stores.
+- **Connect any store:** the AI connector already maps a custom store's order format; next are ready-made Shopify and WooCommerce apps.
 - **Connect PayPal safely:** PayPal Partner onboarding, so merchants approve access on PayPal's own page.
-- **Always-on agent:** scheduled scans and a daily summary.
+- **A daily summary** email on top of auto-scan.
 - **A browser extension** that flags leaks right on the store's order pages.
 - **Live mode** after PayPal review (today it is locked to the Sandbox on purpose).
 
@@ -114,11 +125,11 @@ alerts and the APIMatic SDKs.
 ## Built with
 
 paypal-server-sdk, paypal-agent-toolkit, paypal-orders-api, paypal-invoicing-api, paypal-disputes-api,
-paypal-webhooks, gemini, python, fastapi, react, vite, ag-grid, bryntum, channel3, apimatic, zapier, render, docker, playwright
+paypal-webhooks, gemini, mcp, python, fastapi, react, vite, ag-grid, bryntum, channel3, apimatic, zapier, render, docker, playwright
 
 ## Links
 
 - GitHub: https://github.com/Aditya-Sharma23/PayRecover-AI
-- Live demo: (Render link after deploy)
+- Live demo: https://payrecover-ai-xm1k.onrender.com (PayPal Sandbox; free tier, first load can take about a minute)
 - API portal: (APIMatic portal link after hosting)
 - Demo video: (YouTube link)
