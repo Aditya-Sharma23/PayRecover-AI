@@ -441,6 +441,16 @@ flowchart LR
 - **No personal data in evidence.** Payer and payee details are never copied into results.
 - **SSRF-safe.** Every target address is validated and the connection pinned to it, and the browser cannot open connections of its own. See [docs/threat-model.md](docs/threat-model.md).
 
+### Responsible use and compliance
+
+- **No card data.** Buyers pay on PayPal's own checkout, so PayRecover never sees or stores card numbers. That keeps it out of PCI DSS card-data scope.
+- **PayPal's integration rules.** Webhooks are trusted only after PayPal verifies their signature, every capture and refund carries an idempotency key, and the PayPal Server SDK and Agent Toolkit are used as PayPal publishes them.
+- **Recoveries the buyer already agreed to.** A capture collects a payment the buyer approved, and a refund returns a duplicate charge. An invoice for a shortfall is only a request the buyer can pay or decline; nobody is charged more than they agreed to without their consent.
+- **Scan only stores you own.** The security checks (price tampering, cross-site scripting, missing headers) are tests a store owner runs on their own site. The demo is set up to scan its own three stores. The API also accepts other addresses, and only checks that they are safe to connect to, not who owns them. Testing a site without the owner's permission can be illegal, so use it only on stores you own; live mode would first verify ownership, for example with a file or DNS record on the store's domain.
+- **Data sent to AI.** Sandbox orders hold test data only. With real merchants, buyer details would be covered by a privacy notice and data-protection law (such as GDPR and India's DPDP Act), and Gemini would run on a paid tier whose terms do not use prompts for training.
+- **Acting for other merchants.** Today each store uses its own Sandbox app. Reaching other merchants' PayPal accounts would go through PayPal Partner onboarding, where the merchant grants access on PayPal's own page, never by sharing API keys.
+- **Not affiliated with PayPal.** PayRecover AI is an independent project built for the PayPal hackathon; PayPal's name refers to the APIs it uses.
+
 ---
 
 ## Quick start (local)
@@ -571,6 +581,8 @@ stores within their monthly hours.
 - [x] Hosted demo on Render: https://payrecover-ai-xm1k.onrender.com
 - [x] Demo stores start automatically when the dashboard opens
 - [x] AI fix writer (verified by running the fixed store) and AI store connector (checked against PayPal)
+- [ ] Before live mode: store ownership verification, PayPal Partner onboarding and a privacy notice (see
+      [Responsible use and compliance](#responsible-use-and-compliance))
 - [ ] Next: automated checkout scenarios (success and cancellation). These need a write-enabled browser mode, kept
       apart from today's read-only runners on purpose.
 
