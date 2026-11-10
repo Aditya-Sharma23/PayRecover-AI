@@ -63,6 +63,17 @@ class EventTests(unittest.TestCase):
         self.assertIn("1. Never captured (18.00 USD)", event["message"])
         self.assertIn("Approve: https://payrecover.example/approve?token=", event["message"])
 
+    def test_a_leak_paypal_cannot_act_on_gets_no_approval_link(self):
+        found = leaking()
+        found.leaks[0] = found.leaks[0].model_copy(update={
+            "kind": "fake_paid", "recovery_action": "invoice", "recovery": "Hold the shipment.", "targets": []})
+        with patch.dict(os.environ, {**SECRET, "TESTPILOT_PUBLIC_URL": "https://payrecover.example"}):
+            event = notify.leak_event(found, "local")
+        self.assertIsNone(event["leaks"][0]["approve_url"])
+        self.assertNotIn("/approve?token=", event["message"])
+        self.assertIn("Nothing to approve at PayPal", event["message"])
+        self.assertIn("found 1 leak on order", event["summary"])
+
     def test_nothing_is_sent_without_an_https_webhook(self):
         with patch.dict(os.environ, {"TESTPILOT_ZAPIER_WEBHOOK_URL": "http://hooks.zapier.com/x"}):
             self.assertFalse(asyncio.run(notify.send({"event": "leak_found"})))

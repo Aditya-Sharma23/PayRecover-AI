@@ -94,13 +94,14 @@ def _webhook_url() -> str | None:
 def leak_event(result: Investigation, owner: str) -> dict[str, Any]:
     leaks = []
     for leak in result.leaks:
-        token = approval_token(result.order_id, result.store, leak.kind, owner)
+        # Only a leak PayPal can act on gets a link; for the rest (such as holding a shipment) the alert says what to do.
+        token = approval_token(result.order_id, result.store, leak.kind, owner) if leak.targets else None
         leaks.append({
             "kind": leak.kind, "title": leak.title, "amount": leak.amount, "currency": leak.currency,
             "action": leak.recovery_action, "recovery": leak.recovery, "root_cause": leak.root_cause,
-            "approve_url": approval_url(token) if token else None,
+            "approve_url": approval_url(token) if token else None, "has_targets": bool(leak.targets),
         })
-    summary = (f"PayRecover found {len(leaks)} leak(s) on order {result.order_id}: "
+    summary = (f"PayRecover found {len(leaks)} {'leak' if len(leaks) == 1 else 'leaks'} on order {result.order_id}: "
                f"{result.money_at_risk} {result.currency} at risk.")
     return {
         "event": "leak_found", "severity": "red", "order_id": result.order_id, "store": result.store,
@@ -119,7 +120,9 @@ def _leak_message(summary: str, leaks: list[dict[str, Any]]) -> str:
             f"{number}. {leak['title']} ({leak['amount']} {leak['currency']})",
             f"   Why: {leak['root_cause']}",
             f"   Fix: {leak['recovery']}",
-            f"   Approve: {leak['approve_url']}" if leak["approve_url"] else "   Approve it in the PayRecover dashboard.",
+            f"   Approve: {leak['approve_url']}" if leak["approve_url"]
+            else "   Approve it in the PayRecover dashboard." if leak["has_targets"]
+            else "   Nothing to approve at PayPal: follow the fix above.",
             "",
         ]
     lines.append("Nothing moves until you approve. PayRecover then checks PayPal again to confirm it worked.")
@@ -163,7 +166,8 @@ def scan_event(result: ScanResult) -> dict[str, Any]:
 def vulnerable_event(store: str, security: StoreSecurity, checked: str) -> dict[str, Any]:
     """Orange alert: no money has leaked, but the store has holes that could let it leak."""
     count = len(security.findings)
-    summary = f"No money leaking, but the {store} store is vulnerable: {count} security issue(s) found."
+    summary = (f"No money leaking, but the {store} store is vulnerable: {count} security "
+               f"{'issue' if count == 1 else 'issues'} found.")
     lines = ["STORE VULNERABLE", "", f"{checked} Every payment matches PayPal, so no money has leaked yet."]
     lines += _security_lines(security, "But these holes could let money leak:")
     lines += ["", "Fix them before they cost you money. Details are in the PayRecover dashboard."]

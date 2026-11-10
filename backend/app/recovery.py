@@ -276,6 +276,8 @@ async def recover(request: RecoveryRequest, owner: str) -> RecoveryRecord:
     if leak is None or not leak.targets:
         if done is not None:
             return done
+        if leak is not None:  # the leak is real, but PayPal has nothing to act on (for example, hold the shipment)
+            raise RecoveryNotPossible(f"Nothing PayRecover can recover at PayPal for order {request.order_id}. {leak.recovery}")
         raise RecoveryNotPossible(f"Order {request.order_id} no longer has a {request.kind.replace('_', ' ')} leak to recover.")
     if done is not None and {t.capture_id for t in leak.targets} <= _refunded_captures(records, owner):
         return done

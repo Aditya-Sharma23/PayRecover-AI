@@ -199,6 +199,13 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(recovery.RecoveryNotPossible):
             self.recover(None, kind="never_captured")
 
+    def test_a_leak_with_nothing_to_recover_says_what_to_do(self):
+        hold_only = leak("fake_paid", "invoice", "18.00")
+        hold_only = hold_only.model_copy(update={"recovery": "Hold the shipment."})
+        with self.assertRaises(recovery.RecoveryNotPossible) as caught:
+            self.recover(hold_only)
+        self.assertIn("Hold the shipment.", str(caught.exception))
+
     def test_totals_add_up_by_outcome(self):
         self.recover(NEVER_CAPTURED)
         self.recover(DUPLICATE)
