@@ -43,10 +43,12 @@ def _scan_detail(entry: dict[str, Any]) -> str:
     if entry.get("verdict") == "leaking":
         return f"{entry.get('money_at_risk')} {entry.get('currency')} at risk"
     if entry.get("verdict") == "vulnerable":
-        return f"{entry.get('security_issues')} security issue(s)"
+        count = entry.get('security_issues')
+        return f"{count} security {'issue' if count == 1 else 'issues'}"
     if entry.get("verdict") == "waiting":
         return "Nothing wrong found, but some checks could not finish"
-    return f"{entry.get('orders_checked')} paid order(s) checked"
+    count = entry.get('orders_checked')
+    return f"{count} paid {'order' if count == 1 else 'orders'} checked"
 
 
 def _when(value: Any) -> datetime | None:

@@ -153,7 +153,7 @@ def scan_event(result: ScanResult) -> dict[str, Any]:
                      f"({step.action}, {step.urgency}) - {step.why}")
     lines += _security_lines(result.security, "Holes in the store that let this happen:")
     lines += ["", "Approve each recovery in the PayRecover dashboard."]
-    summary = (f"Money leaking in the {result.store} store: {result.leaking_orders} order(s), "
+    summary = (f"Money leaking in the {result.store} store: {result.leaking_orders} {'order' if result.leaking_orders == 1 else 'orders'}, "
                f"{result.money_at_risk} {result.currency} at risk.")
     return {"event": "money_leaking", "severity": "red", "store": result.store, "summary": summary,
             "message": "\n".join(lines), "money_at_risk": result.money_at_risk, "currency": result.currency,

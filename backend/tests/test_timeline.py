@@ -53,7 +53,7 @@ class TimelineTests(unittest.TestCase):
         timeline.record_scan(scan("main", "clear", NOW - timedelta(days=9)))
         events = self.build().events
         self.assertEqual([(e.resource_id, e.tone, e.detail) for e in events],
-                         [("vulnerable", "red", "18.00 USD at risk"), ("risky", "orange", "0 security issue(s)")])
+                         [("vulnerable", "red", "18.00 USD at risk"), ("risky", "orange", "0 security issues")])
 
     def test_a_dispute_runs_to_its_deadline_and_turns_red_when_close(self):
         due_soon = {"dispute_id": "PP-D-1", "create_time": "2026-11-01T10:00:00Z", "status": "WAITING_FOR_SELLER_RESPONSE",

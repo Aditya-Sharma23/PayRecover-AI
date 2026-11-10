@@ -44,7 +44,7 @@ function Message({ message, onDone }) {
 }
 
 export default function AssistantPanel({ onRecovered }) {
-  const [store, setStore] = useState("main");
+  const [store, setStore] = useState("vulnerable");
   const [history, setHistory] = useState([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,7 +86,7 @@ export default function AssistantPanel({ onRecovered }) {
     <form className="chat-form" onSubmit={(event) => { event.preventDefault(); ask(draft); }}>
       <input className="text-input" value={draft} maxLength={4000} placeholder="e.g. Why did I lose money this week?"
         onChange={(event) => setDraft(event.target.value)} aria-label="Question for PayRecover" />
-      <button className="danger-button" type="submit" disabled={busy || !draft.trim()}>Ask</button>
+      <button className="danger-button" type="submit" disabled={busy}>{busy ? "Thinking…" : "Ask"}</button>
     </form>
   </section>;
 }
