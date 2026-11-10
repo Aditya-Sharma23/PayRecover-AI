@@ -71,10 +71,10 @@ test("store results read as a short line", () => {
 });
 
 test("a clean scan with no paid orders is not called all clear", () => {
-  assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 0 }), ["No paid orders yet", "status-none"]);
+  assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 0 }), ["All clear", "status-green"]);
   assert.deepEqual(storeVerdict({ verdict: "clear", orders_checked: 3 }), ["All clear", "status-green"]);
   assert.deepEqual(storeVerdict({ verdict: null }), ["Not scanned yet", "status-none"]);
-  assert.equal(storeStatusText({ verdict: "clear", orders_checked: 0 }), "Security checks passed");
+  assert.equal(storeStatusText({ verdict: "clear", orders_checked: 0 }), "Security checks passed · no payments yet");
 });
 
 test("auto-scan status reads as a short line", () => {

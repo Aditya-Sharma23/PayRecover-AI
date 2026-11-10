@@ -251,13 +251,22 @@ async def _invoice(leak: Leak) -> tuple[str, str, dict, list[PaymentCheck]]:
 ACTIONS = {"capture": _capture, "refund": _refund, "invoice": _invoice, "capture_hold": _capture_hold}
 
 
+def _refunded_captures(records: list[dict[str, Any]], owner: str) -> set[str]:
+    """Every capture this owner has already had refunded, so the same charge is never refunded twice."""
+    return {refund.get("capture_id") for r in records if r.get("owner") == owner and r["status"] in DONE_STATUSES
+            for refund in (r.get("paypal") or {}).get("refunds", [])}
+
+
 async def recover(request: RecoveryRequest, owner: str) -> RecoveryRecord:
     """Recompute the leak, act at PayPal once, verify with a fresh read, and record the outcome."""
     records = _load()
-    previous = next((r for r in records if r.get("owner") == owner and r["order_id"] == request.order_id
+    previous = next((r for r in reversed(records) if r.get("owner") == owner and r["order_id"] == request.order_id
                      and r["kind"] == request.kind and r["status"] in DONE_STATUSES), None)
-    if previous is not None:
-        return RecoveryRecord.model_validate({k: v for k, v in previous.items() if k != "owner"})
+    done = RecoveryRecord.model_validate({k: v for k, v in previous.items() if k != "owner"}) if previous else None
+    # An order is captured or invoiced once, so a finished recovery is simply returned. A cart can be charged
+    # twice again after a refund, so a duplicate charge is looked up at PayPal first (below).
+    if done is not None and request.kind != "duplicate_charge":
+        return done
 
     found = await investigate.investigate(InvestigationRequest(
         order_id=request.order_id, store=request.store,
@@ -265,7 +274,11 @@ async def recover(request: RecoveryRequest, owner: str) -> RecoveryRecord:
     ))
     leak = next((item for item in found.leaks if item.kind == request.kind), None)
     if leak is None or not leak.targets:
+        if done is not None:
+            return done
         raise RecoveryNotPossible(f"Order {request.order_id} no longer has a {request.kind.replace('_', ' ')} leak to recover.")
+    if done is not None and {t.capture_id for t in leak.targets} <= _refunded_captures(records, owner):
+        return done
 
     status, message, ids, checks = await ACTIONS[leak.recovery_action](leak)
     record = RecoveryRecord(

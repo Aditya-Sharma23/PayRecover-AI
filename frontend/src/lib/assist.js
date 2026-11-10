@@ -101,16 +101,16 @@ export const STORE_VERDICTS = {
   none: ["Not scanned yet", "status-none"],
 };
 
-// A store whose scan found no paid orders is not "all clear": nothing was there to check.
+// A clean scan is green even before the store has paid orders: nothing leaks and the security checks passed.
+// The detail line still says when there were no payments to compare with PayPal.
 export function storeVerdict(status) {
-  if (status.verdict === "clear" && !status.orders_checked) return ["No paid orders yet", "status-none"];
   return STORE_VERDICTS[status.verdict] || STORE_VERDICTS.none;
 }
 
 export function storeStatusText(status, now = Date.now()) {
   if (!status.verdict) return "Click to scan";
   if (status.verdict === "clear" && !status.orders_checked) {
-    return status.scanned_at ? `Security checks passed · ${timeAgo(status.scanned_at, now)}` : "Security checks passed";
+    return status.scanned_at ? `Security checks passed · no payments yet · ${timeAgo(status.scanned_at, now)}` : "Security checks passed · no payments yet";
   }
   const detail = status.verdict === "leaking" ? `${status.money_at_risk} ${status.currency} at risk`
     : status.verdict === "vulnerable" ? `${status.security_issues} security issue${status.security_issues === 1 ? "" : "s"}`

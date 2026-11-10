@@ -180,6 +180,21 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(second.recovery_id, first.recovery_id)
         self.assertEqual(paypal.calls, [])
 
+    def test_the_same_duplicate_charge_is_never_refunded_twice(self):
+        first, _ = self.recover(DUPLICATE)
+        second, paypal = self.recover(DUPLICATE)
+        self.assertEqual(second.recovery_id, first.recovery_id)
+        self.assertEqual(paypal.calls, [])
+
+    def test_a_cart_charged_twice_again_gets_a_new_refund(self):
+        first, _ = self.recover(DUPLICATE)
+        again = leak("duplicate_charge", "refund", "18.00",
+                     RecoveryTarget(order_id="9ZZ00000000000003", capture_id="CAP3", amount="18.00"))
+        second, paypal = self.recover(again)
+        self.assertNotEqual(second.recovery_id, first.recovery_id)
+        self.assertEqual(paypal.calls[0][1], "/v2/payments/captures/CAP3/refund")
+        self.assertEqual(recovery.list_recoveries("local")["totals"]["refunded"], "36.00")
+
     def test_a_leak_that_is_gone_cannot_be_recovered(self):
         with self.assertRaises(recovery.RecoveryNotPossible):
             self.recover(None, kind="never_captured")
